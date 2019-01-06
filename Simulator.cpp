@@ -2,6 +2,11 @@
 #include "Helper.h"
 #include <algorithm>
 #include <cmath>
+#include <optional>
+#include <string>
+#include <functional>
+#include <iostream>
+#include <optional>
 
 const double Simulator::Eps = 1E-3;
 const double Simulator::Eps2 = 1E-6;
@@ -41,24 +46,23 @@ void Simulator::CollideEntities(Entity & a, Entity & b, double hitE)
 	}
 }
 
-Vector3D* Simulator::CollideWithArena(Entity & e)
+std::optional<Vector3D> Simulator::CollideWithArena(Entity & e)
 {
-	Dan* dan = new Dan;
-	*dan = DanCalculator::GetDanToArena(e.Position, Constants::Rules.arena);//первый аргумент обновится
-	double penetration = e.Radius - (*dan).Distance;
+	Dan dan = DanCalculator::GetDanToArena(e.Position, Constants::Rules.arena);//первый аргумент обновится
+	double penetration = e.Radius - dan.Distance;
 	if (penetration > 0)
 	{
-		e.Position.Add((*dan).Normal * penetration);
-		double velocity = e.Velocity * (*dan).Normal - e.GetRadiusChangeSpeed();
+		e.Position.Add(dan.Normal * penetration);
+		double velocity = e.Velocity * dan.Normal - e.GetRadiusChangeSpeed();
 		if (velocity < 0)
 		{
-			e.Velocity.Sub((*dan).Normal * ((1 + e.GetArenaE()) * velocity));
+			e.Velocity.Sub(dan.Normal * ((1 + e.GetArenaE()) * velocity));
 			e.IsArenaCollided = true;
-			return &(*dan).Normal;
+			return dan.Normal;
 		}
 	}
 
-	return NULL;
+	return std::nullopt;
 }
 
 void Simulator::Move(Entity & e, double deltaTime)
@@ -206,7 +210,7 @@ PositionVelocityContainer Simulator::GetRobotPVContainer(const Vector3D & startP
 	return PositionVelocityContainer(position, velocity, isPassedBy);
 }
 
-double * Simulator::GetCollisionT(const Vector3D & pR, const Vector3D & vR, const Vector3D & pB, const Vector3D & vB)
+std::optional<double> Simulator::GetCollisionT(const Vector3D & pR, const Vector3D & vR, const Vector3D & pB, const Vector3D & vB)
 {
 	double bDiv2 = (vB.X - vR.X) * (pB.X - pR.X) + (vB.Y - vR.Y) * (pB.Y - pR.Y) +
 		(vB.Z - vR.Z) * (pB.Z - pR.Z);
@@ -216,11 +220,10 @@ double * Simulator::GetCollisionT(const Vector3D & pR, const Vector3D & vR, cons
 		(Constants::Rules.BALL_RADIUS + Constants::Rules.ROBOT_MAX_RADIUS);
 
 	double d1 = bDiv2 * bDiv2 - a * c;
-	if (d1 < 0) return NULL; // no collision
+	if (d1 < 0) return std::nullopt; // no collision
 
-	double* collisionT = new double;
-	*collisionT = (-bDiv2 - sqrt(d1)) / a;
-	if (*collisionT < 0) return NULL;
+	double collisionT = (-bDiv2 - sqrt(d1)) / a;
+	if (collisionT < 0) return std::nullopt;
 	return collisionT;
 }
 
@@ -288,8 +291,8 @@ void Simulator::Update(RobotEntity& robot, BallEntity& ball, double deltaTime, d
 
 	
 	CollideEntities(robot, ball, hitE);
-	Vector3D* collisionNormal = CollideWithArena(robot);
-	if (collisionNormal == NULL)
+	std::optional<Vector3D> collisionNormal = CollideWithArena(robot);
+	if (collisionNormal == std::nullopt)
 		robot.Touch = false;
 	else
 	{

@@ -6,6 +6,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+
 #ifndef _MY_STRATEGY_H_
 #define _MY_STRATEGY_H_
 
@@ -15,6 +16,7 @@
 #include "Vector3D.h"
 #include "BallEntity.h"
 #include "RobotEntity.h"
+#include <optional>
 
 class MyStrategy : public Strategy {
 public:
@@ -59,26 +61,30 @@ private:
 	BallEntity SimulateTickBall(const BallEntity& ballEntity, bool& isGoalScored);
 	bool IsPenaltyArea(const Vector3D& position);
 	double GetVectorAngleToHorizontal(const Vector3D& v);
-	int CompareBallVelocities(const Vector3D& v1, const Vector3D* v2);
+	int CompareBallVelocities(const Vector3D& v1, const std::optional<Vector3D> v2);
 	bool IsGoalBallDirection2(const BallEntity& ballEntity, int directionCoeff);
 
-	model::Action SetDefenderAction(const model::Robot& me, const model::Ball& ball, const Vector3D& defenderPoint, double*& collisionT);
-	Vector3D* GetDefenderStrikeBallVelocity(
-		const model::Robot& robot, int t, double*& collisionT, bool& isPassedBy);
+	model::Action SetDefenderAction(const model::Robot& me, const model::Ball& ball, 
+		const Vector3D& defenderPoint, std::optional<double>& collisionT);
+	std::optional<Vector3D> GetDefenderStrikeBallVelocity(
+		const model::Robot& robot, int t, std::optional<double>& collisionT, bool& isPassedBy);
 	bool IsOkDefenderPosToJump(const Vector3D & robotPosition, const Vector3D & robotVelocity,
 		const Vector3D& moveTBePosition, const Vector3D& moveTBeVelocity,
-		double*& collisionT, Vector3D*& collisionBallVelocity);
-	Vector3D* GetDefenderMovePoint(const model::Robot& robot, const model::Ball& ball, double*& collisionT, Vector3D*& bestBallVelocity);
+		std::optional<double>& collisionT, std::optional<Vector3D>& collisionBallVelocity);
+	std::optional<Vector3D> GetDefenderMovePoint(const model::Robot& robot, const model::Ball& ball,
+		std::optional<double>& collisionT, std::optional<Vector3D>& bestBallVelocity);
 
-	model::Action SetAttackerAction(const model::Robot& me, const model::Ball& ball, double*& collisionT);
-	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, const BallEntity& ballEntity, int t, double*& collisionT);
-	Vector3D* GetAttackerMovePoint(const model::Robot& robot, const model::Ball& ball,
-		double*& collisionT, bool& isDefender, Vector3D*& bestBallVelocity);
-	Vector3D* GetAttackerStrikePoint(const model::Robot& robot, int t, double*& collisionT);
+	model::Action SetAttackerAction(const model::Robot& me, const model::Ball& ball, 
+		std::optional<double>& collisionT);
+	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, const BallEntity& ballEntity, int t, 
+		std::optional<double>& collisionT);
+	std::optional<Vector3D> GetAttackerMovePoint(const model::Robot& robot, const model::Ball& ball,
+		std::optional<double>& collisionT, bool& isDefender, std::optional<Vector3D>& bestBallVelocity);
+	std::optional<Vector3D> GetAttackerStrikePoint(const model::Robot& robot, int t, std::optional<double>& collisionT);
 	bool IsOkPosToJump(
 		BallEntity ballEntity,
 		RobotEntity& robotEntity,
-		double*& collisionT);
+		std::optional<double>& collisionT);
 
 
 public:
