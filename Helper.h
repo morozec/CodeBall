@@ -9,13 +9,12 @@
 #include "model/Action.h"
 #include "model/Robot.h"
 #include "model/Ball.h"
-#include <cmath>
 
 class Helper {
 public:
 	static double Clamp(double value, double minValue, double maxValue);
-	static Vector3D Clamp(Vector3D& v, double maxLength);
-	static Vector3D Clamp2(Vector3D& v, double maxLength2);
+	static Vector3D Clamp(Vector3D v, double maxLength);
+	static Vector3D Clamp2(Vector3D v, double maxLength2);
 	static Vector3D Clamp(Vector3D& v, double maxLength, double maxLength2);
 	static double GetLength2(const Vector3D& v1, const Vector3D& v2);
 	static double GetLength(const Vector3D& v1, const Vector3D& v2);

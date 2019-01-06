@@ -1,4 +1,5 @@
 #include "DanCalculator.h"
+#include "Helper.h"
 
 const double DanCalculator::Eps = 1E-6;
 
@@ -49,7 +50,7 @@ void DanCalculator::Init(const model::Arena & arena)
 
 }
 
-Dan & DanCalculator::Min(Dan & dan1, Dan & dan2)
+Dan DanCalculator::Min(Dan & dan1, Dan dan2)
 {
 	return dan1.Distance <= dan2.Distance ? dan1 : dan2;
 }
@@ -387,7 +388,7 @@ Dan DanCalculator::GetDanToArenaQuarter(const Vector3D & point, const model::Are
 	return Dan(dan.Distance, Vector3D(dan.Normal)); //чтобы не перетереть _vector000 и пр.
 }
 
-Dan DanCalculator::GetDanToArena(Vector3D& point, const model::Arena & arena)
+Dan DanCalculator::GetDanToArena(Vector3D point, const model::Arena & arena)
 {
 	//TODO pass point by reference
 	bool negateX = point.X < 0;

@@ -5,8 +5,6 @@
 #ifndef _VECTOR3D_H_
 #define _VECTOR3D_H_
 
-#include <cmath>
-
 struct Vector3D {
 	double X;
 	double Y;

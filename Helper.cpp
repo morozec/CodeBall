@@ -7,7 +7,7 @@ double Helper::Clamp(double value, double minValue, double maxValue)
 	return value;
 }
 
-Vector3D Helper::Clamp(Vector3D & v, double maxLength)
+Vector3D Helper::Clamp(Vector3D v, double maxLength)
 {
 	double vLength = v.Length();
 	if (vLength > maxLength)
@@ -15,7 +15,7 @@ Vector3D Helper::Clamp(Vector3D & v, double maxLength)
 	return v;
 }
 
-Vector3D Helper::Clamp2(Vector3D & v, double maxLength2)
+Vector3D Helper::Clamp2(Vector3D v, double maxLength2)
 {
 	double vLength2 = v.Length2();
 	if (vLength2 < maxLength2) return v;

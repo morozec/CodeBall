@@ -1,4 +1,6 @@
 #include "Simulator.h"
+#include "Helper.h"
+#include <algorithm>
 
 const double Simulator::Eps = 1E-3;
 const double Simulator::Eps2 = 1E-6;
@@ -41,7 +43,7 @@ void Simulator::CollideEntities(Entity & a, Entity & b, double hitE)
 Vector3D* Simulator::CollideWithArena(Entity & e)
 {
 	Dan* dan = new Dan;
-	*dan = DanCalculator::GetDanToArena(Vector3D(e.Position), Constants::Rules.arena);//первый аргумент обновится
+	*dan = DanCalculator::GetDanToArena(e.Position, Constants::Rules.arena);//первый аргумент обновится
 	double penetration = e.Radius - (*dan).Distance;
 	if (penetration > 0)
 	{
@@ -325,7 +327,7 @@ void Simulator::Tick(BallEntity& ball)
 	}
 }
 
-void Simulator::Tick(RobotEntity& robot, BallEntity& ball)
+void Simulator::Tick(RobotEntity& robot, BallEntity ball)
 {
 	double deltaTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	bool isGoalScored = false;

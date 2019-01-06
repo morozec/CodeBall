@@ -9,9 +9,10 @@
 
 struct Entity{
 protected:
-	double _radiusChangeSpeed;
+	double _radiusChangeSpeed = 0;
 
 public:
+	virtual ~Entity() = default;
 	Vector3D Position;
 	Vector3D Velocity;
 	double Radius;

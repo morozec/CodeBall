@@ -1,4 +1,5 @@
 #include "RobotEntity.h"
+#include "Constants.h"
 
 RobotEntity::RobotEntity(const model::Robot & robot)
 {
@@ -12,11 +13,12 @@ RobotEntity::RobotEntity(const model::Robot & robot)
 }
 
 RobotEntity::RobotEntity(const RobotEntity & robotEntity)
+	: Entity(robotEntity)
 {
 	Position = Vector3D(robotEntity.Position);
 	Velocity = Vector3D(robotEntity.Velocity);
 	Radius = robotEntity.Radius;
-	SetRadiusChangeSpeed(robotEntity.GetRadiusChangeSpeed());
+	_radiusChangeSpeed =robotEntity.GetRadiusChangeSpeed();
 	Touch = robotEntity.Touch;
 	TouchNormal = robotEntity.TouchNormal;
 	Nitro = robotEntity.Nitro;

@@ -11,7 +11,7 @@
 #include "model/Ball.h"
 
 struct BallEntity :Entity {
-	BallEntity() {}//TODO:убрать
+	BallEntity() = default; //TODO:убрать
 	BallEntity(const model::Ball& ball);
 	BallEntity(const BallEntity& ballEntity);
 	BallEntity(const Vector3D& position, const Vector3D& velocity);

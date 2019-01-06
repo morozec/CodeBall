@@ -1,4 +1,6 @@
 #include "MyStrategy.h"
+#include "Simulator.h"
+#include "Helper.h"
 
 using namespace model;
 
@@ -65,15 +67,15 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		if (!robot.is_teammate) continue;
 
 		Action robotAction;
-		double* collisionT = NULL;
+		double* collisionT = nullptr;
 		if (!robot.touch)
 		{
 			robotAction = model::Action();
 
 			RobotEntity re = RobotEntity(robot);
-			model::Action action = Action();
-			action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-			re.Action = action;
+			model::Action reAction = Action();
+			reAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+			re.Action = reAction;
 
 			Simulator::Tick(re, BallEntity(game.ball));
 			if (!re.IsArenaCollided) robotAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
@@ -126,7 +128,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		if (!robot.is_teammate) continue;
 		if (!robot.touch) continue;
 
-		Robot otherRobot;
+		Robot otherRobot{};
 		for (Robot r : game.robots)
 		{
 			if (!r.is_teammate || r.id == robot.id) continue;
@@ -134,7 +136,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			break;
 		}
 
-		if (collisionTimes[robot.id] != NULL && collisionTimes[otherRobot.id] != NULL)
+		if (collisionTimes[robot.id] != nullptr && collisionTimes[otherRobot.id] != nullptr)
 		{
 			if (*collisionTimes[robot.id] > *collisionTimes[otherRobot.id])
 			{
@@ -155,7 +157,7 @@ void MyStrategy::Init(const model::Rules & rules)
 
 	_maxDefenderStrikeDist = rules.BALL_RADIUS + rules.ROBOT_MIN_RADIUS + rules.ROBOT_MIN_RADIUS * 4; //TODO
 	_maxDefenderStrikeDist2 = _maxDefenderStrikeDist * _maxDefenderStrikeDist;
-	_moveSpereRadius = rules.BALL_RADIUS + rules.ROBOT_MIN_RADIUS + rules.ROBOT_MIN_RADIUS * 4; //TODO
+	_moveSphereRadius = rules.BALL_RADIUS + rules.ROBOT_MIN_RADIUS + rules.ROBOT_MIN_RADIUS * 4; //TODO
 
 }
 
@@ -497,7 +499,6 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model
 {
 	model::Action action = model::Action();
 
-	Vector3D deltaPos;
 	Vector3D targetVelocity;
 	RobotEntity robotEntity = RobotEntity(me);
 
@@ -711,7 +712,7 @@ Vector3D * MyStrategy::GetAttackerStrikePoint(const model::Robot & robot, int t,
 	}
 
 	double div = (ballEntity.Position.X - robot.x) / (ballEntity.Position.Z - robot.z);
-	double tmp = _moveSpereRadius / sqrt(1 + div * div);
+	double tmp = _moveSphereRadius / sqrt(1 + div * div);
 	double x1 = ballEntity.Position.X - tmp;
 	double z1 = ballEntity.Position.Z - (robot.x - ballEntity.Position.X) * (x1 - ballEntity.Position.X) /
 		(robot.z - ballEntity.Position.Z);
@@ -757,7 +758,7 @@ Vector3D * MyStrategy::GetAttackerStrikePoint(const model::Robot & robot, int t,
 	return NULL;
 }
 
-bool MyStrategy::IsOkPosToJump(BallEntity & ballEntity, RobotEntity & robotEntity, double *& collisionT)
+bool MyStrategy::IsOkPosToJump(BallEntity ballEntity, RobotEntity & robotEntity, double *& collisionT)
 {
 	if (Helper::GetLength2(robotEntity.Position, ballEntity.Position) > _maxStrikeDist2 + EPS)
 	{

@@ -9,8 +9,6 @@
 #include "Vector3D.h"
 #include "model/Arena.h"
 #include "Dan.h"
-#include "Helper.h"
-#include <cmath>
 
 class DanCalculator {
 private:
@@ -33,12 +31,12 @@ private:
 
 public:
 	static void Init(const model::Arena& arena);
-	static Dan& Min(Dan& dan1, Dan& dan2);
+	static Dan Min(Dan& dan1, Dan dan2);
 	static Dan GetDanToPlane(const Vector3D& point, const Vector3D& pointOnPlane, const Vector3D& planeNormal);
 	static Dan GetDanToSphereInner(const Vector3D& point, const Vector3D& sphereCenter, double sphereRadius);
 	static Dan GetDanToSphereOuter(const Vector3D& point, const Vector3D& sphereCenter, double sphereRadius);
 	static Dan GetDanToArenaQuarter(const Vector3D& point, const model::Arena& arena);
-	static Dan GetDanToArena(Vector3D& point, const model::Arena& arena);
+	static Dan GetDanToArena(Vector3D point, const model::Arena& arena);
 };
 
 #endif

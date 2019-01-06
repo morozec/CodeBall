@@ -7,7 +7,6 @@
 
 #include "Vector3D.h"
 #include "Entity.h"
-#include "Constants.h"
 #include "model/Action.h"
 #include "model/Robot.h"
 

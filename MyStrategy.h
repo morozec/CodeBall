@@ -10,24 +10,17 @@
 #define _MY_STRATEGY_H_
 
 #include "Strategy.h"
-#include <cmath>
-#include <algorithm>
 #include <map>
-#include <vector>
 #include "Constants.h"
 #include "Vector3D.h"
 #include "BallEntity.h"
 #include "RobotEntity.h"
-#include "DanCalculator.h"
-#include "Simulator.h"
 
 class MyStrategy : public Strategy {
 public:
 private:
 	const double EPS = 1E-5;
-	const double DeltaAngleToStrike = M_PI / 180 * 3;
 	const int BallMoveTicks = 100;
-	const int CollideWaitTicks = 50;
 	const int StrikeSphereStepsCount = 10;
 	double _maxStrikeDist;
 	double _maxStrikeDist2;
@@ -35,7 +28,7 @@ private:
 	double _maxDefenderStrikeDist;		
 	double _maxDefenderStrikeDist2;
 
-	double _moveSpereRadius;
+	double _moveSphereRadius;
 		
 	double _penaltyAreaZ;
 	double _penaltyMinX;
@@ -83,7 +76,7 @@ private:
 		double*& collisionT, bool& isDefender, Vector3D*& bestBallVelocity);
 	Vector3D* GetAttackerStrikePoint(const model::Robot& robot, int t, double*& collisionT);
 	bool IsOkPosToJump(
-		BallEntity& ballEntity,
+		BallEntity ballEntity,
 		RobotEntity& robotEntity,
 		double*& collisionT);
 
