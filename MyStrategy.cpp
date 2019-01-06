@@ -503,6 +503,9 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model
 
 	if (IsOkPosToJump(BallEntity(ball), robotEntity, collisionT))
 	{
+		RobotEntity re = RobotEntity(me);
+		bool isOk = IsOkPosToJump(BallEntity(ball), re, collisionT);
+
 		targetVelocity =
 			Helper::GetTargetVelocity(me.x, 0, me.z, ball.x, 0, ball.z, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
 		action.target_velocity_x = targetVelocity.X;

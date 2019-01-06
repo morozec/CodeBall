@@ -10,6 +10,8 @@ RobotEntity::RobotEntity(const model::Robot & robot)
 	if (Touch)
 		TouchNormal = Vector3D(robot.touch_normal_x, robot.touch_normal_y, robot.touch_normal_z);
 	Nitro = robot.nitro_amount;
+	IsCollided = false;
+	IsArenaCollided = false;
 }
 
 RobotEntity::RobotEntity(const RobotEntity & robotEntity)
@@ -23,6 +25,8 @@ RobotEntity::RobotEntity(const RobotEntity & robotEntity)
 	TouchNormal = robotEntity.TouchNormal;
 	Nitro = robotEntity.Nitro;
 	Action = robotEntity.Action;
+	IsCollided = robotEntity.IsCollided;
+	IsArenaCollided = robotEntity.IsArenaCollided;
 }
 
 RobotEntity::RobotEntity(const Vector3D & position, const Vector3D & velocity, double radius, bool touch, const Vector3D touchNormal, double nitro)
@@ -33,6 +37,8 @@ RobotEntity::RobotEntity(const Vector3D & position, const Vector3D & velocity, d
 	Touch = touch;
 	TouchNormal = touchNormal;
 	Nitro = nitro;
+	IsCollided = false;
+	IsArenaCollided = false;
 }
 
 double RobotEntity::GetMass()
