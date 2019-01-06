@@ -1,6 +1,7 @@
 #include "MyStrategy.h"
 #include "Simulator.h"
 #include "Helper.h"
+#include <cmath>
 
 using namespace model;
 

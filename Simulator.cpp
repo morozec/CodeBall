@@ -1,6 +1,7 @@
 #include "Simulator.h"
 #include "Helper.h"
 #include <algorithm>
+#include <cmath>
 
 const double Simulator::Eps = 1E-3;
 const double Simulator::Eps2 = 1E-6;

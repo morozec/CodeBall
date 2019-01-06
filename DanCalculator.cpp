@@ -1,5 +1,6 @@
 #include "DanCalculator.h"
 #include "Helper.h"
+#include <cmath>
 
 const double DanCalculator::Eps = 1E-6;
 

@@ -1,4 +1,5 @@
 #include "Helper.h"
+#include <cmath>
 
 double Helper::Clamp(double value, double minValue, double maxValue)
 {
