@@ -32,8 +32,9 @@ Vector& Vector::Mult(double k)
 
 Vector & Vector::Normalize()
 {
-	X /= Length();
-	Y /= Length();
+	double length = Length();
+	X /= length;
+	Y /= length;
 	return *this;
 }
 

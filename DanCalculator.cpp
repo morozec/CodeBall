@@ -394,8 +394,10 @@ Dan DanCalculator::GetDanToArena(Vector3D point, const model::Arena & arena)
 	//TODO pass point by reference
 	bool negateX = point.X < 0;
 	bool negateZ = point.Z < 0;
-	if (negateX) point.X *= -1;
-	if (negateZ) point.Z *= -1;
+	if (negateX) 
+		point.X *= -1;
+	if (negateZ) 
+		point.Z *= -1;
 	Dan result = GetDanToArenaQuarter(point, arena);
 	if (negateX) result.Normal.X = -result.Normal.X;
 	if (negateZ) result.Normal.Z = -result.Normal.Z;
