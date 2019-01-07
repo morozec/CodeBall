@@ -285,7 +285,7 @@ model::Action MyStrategy::SetDefenderAction(
 	Vector3D targetVelocity;
 
 	std::optional<Vector3D> bestBallVelocity = std::nullopt;
-	std::optional<Vector3D> defendPoint = 
+	std::optional<Vector3D> defendPoint =
 		GetDefenderMovePoint(me, ball, isMeGoalPossible, collisionT, bestBallVelocity);
 
 	std::optional<double> jumpCollisionT = std::nullopt;
@@ -319,10 +319,30 @@ model::Action MyStrategy::SetDefenderAction(
 
 	if (defendPoint == std::nullopt) {
 		defendPoint = defenderPoint;
-	}
 
-	targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, defendPoint.value().X, 0, defendPoint.value().Z,
-		Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+		const auto velocity = Helper::GetRobotVelocity(me).Length();
+		const auto stopTime = velocity / Constants::Rules.ROBOT_ACCELERATION;
+		const auto stopDist = velocity * stopTime - Constants::Rules.ROBOT_ACCELERATION * stopTime * stopTime / 2;
+
+		auto deltaPos = defendPoint.value() - Helper::GetRobotPosition(me);
+
+		if (stopDist < deltaPos.Length())
+		{
+			deltaPos.Normalize();
+			targetVelocity = deltaPos * Constants::Rules.ROBOT_MAX_GROUND_SPEED;
+
+		}
+		else
+		{
+			deltaPos.Normalize();
+			targetVelocity = deltaPos * (-Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+		}
+	}
+	else
+	{
+		targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, defendPoint.value().X, 0, defendPoint.value().Z,
+			Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+	}
 
 	action.target_velocity_x = targetVelocity.X;
 	action.target_velocity_y = 0.0;
@@ -548,7 +568,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model
 		auto const isGoalPossible = IsGoalBallDirection2(ballEntity, -1);
 		if (IsOkDefenderPosToJump(
 			Helper::GetRobotPosition(me),
-			Helper::GetRobotVelocity(me),			
+			Helper::GetRobotVelocity(me),
 			Helper::GetBallPosition(ball),
 			Helper::GetBallVelocity(ball),
 			isGoalPossible,
@@ -572,10 +592,31 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model
 
 		if (movePoint == std::nullopt) {
 			movePoint = _beforeMyGates;
+
+			const auto velocity = Helper::GetRobotVelocity(me).Length();
+			const auto stopTime = velocity / Constants::Rules.ROBOT_ACCELERATION;
+			const auto stopDist = velocity * stopTime - Constants::Rules.ROBOT_ACCELERATION * stopTime * stopTime / 2;
+
+			auto deltaPos = movePoint.value() - Helper::GetRobotPosition(me);
+
+			if (stopDist < deltaPos.Length())
+			{
+				deltaPos.Normalize();
+				targetVelocity = deltaPos * Constants::Rules.ROBOT_MAX_GROUND_SPEED;
+
+			}
+			else
+			{
+				deltaPos.Normalize();
+				targetVelocity = deltaPos * (-Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+			}
 		}
 
-		targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, movePoint.value().X, 0, movePoint.value().Z,
-			Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+		else
+		{
+			targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, movePoint.value().X, 0, movePoint.value().Z,
+				Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+		}
 
 		action.target_velocity_x = targetVelocity.X;
 		action.target_velocity_y = 0.0;
