@@ -212,13 +212,18 @@ double MyStrategy::GetVectorAngleToHorizontal(const Vector3D & v)
 	return angle;
 }
 
-int MyStrategy::CompareBallVelocities(const Vector3D & v1, const std::optional<Vector3D> v2)
+int MyStrategy::CompareBallVelocities(const Vector3D & v1, const std::optional<Vector3D>& v2)
 {
 	if (v2 == std::nullopt) return -1;
+	if (v1.Z * v2.value().Z < 0)
+	{
+		return v1.Z > 0 ? -1 : 1;
+	}
+
 	double v1HorAngle = GetVectorAngleToHorizontal(v1);
 	double v2HorAngle = GetVectorAngleToHorizontal(v2.value());
 	if (v1HorAngle > M_PI / 6 && v2HorAngle > M_PI / 6)
-		return v1.Z > (*v2).Z ? -1 : 1;
+		return abs(v1.Z) > abs(v2.value().Z) ? -1 : 1;
 	return v1HorAngle > v2HorAngle ? -1 : 1;
 }
 
