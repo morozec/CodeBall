@@ -73,10 +73,13 @@ void Simulator::Move(Entity & e, double deltaTime)
 	e.Velocity.Y -= Constants::Rules.GRAVITY * deltaTime;
 }
 
-PositionVelocityContainer Simulator::GetRobotPVContainer(const Vector3D & startPosition, const Vector3D & targetPosition, const Vector3D & startVelocity, int ticks)
+PositionVelocityContainer Simulator::GetRobotPVContainer(
+	const Vector3D & startPosition, const Vector3D & targetPosition, const Vector3D & startVelocity, 
+	int ticks, double velocityCoeff)
 {
 	double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	double microTickTime = tickTime / Constants::Rules.MICROTICKS_PER_TICK;
+	auto const tvLength = Constants::Rules.ROBOT_MAX_GROUND_SPEED * velocityCoeff;
 
 	int getDirectionMicroTicks = 0;
 	Vector3D velocity = Vector3D(startVelocity);
@@ -84,7 +87,7 @@ PositionVelocityContainer Simulator::GetRobotPVContainer(const Vector3D & startP
 	double distToTarget2 = Helper::GetLength2(position, targetPosition);
 
 	Vector3D targetVelocity =
-		Helper::GetTargetVelocity(startPosition, targetPosition, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+		Helper::GetTargetVelocity(startPosition, targetPosition, tvLength);
 
 
 	double velocityPosSign = targetVelocity.X * velocity.Z - targetVelocity.Z * velocity.X;
@@ -123,7 +126,7 @@ PositionVelocityContainer Simulator::GetRobotPVContainer(const Vector3D & startP
 
 		getDirectionMicroTicks += Constants::Rules.MICROTICKS_PER_TICK;
 
-		targetVelocity = Helper::GetTargetVelocity(position, targetPosition, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+		targetVelocity = Helper::GetTargetVelocity(position, targetPosition, tvLength);
 		velocityPosSign = targetVelocity.X * velocity.Z - targetVelocity.Z * velocity.X;
 	}
 
@@ -186,12 +189,12 @@ PositionVelocityContainer Simulator::GetRobotPVContainer(const Vector3D & startP
 
 	Vector3D tvc2 = Helper::GetTargetVelocity(position, targetPosition, Constants::Rules.ROBOT_ACCELERATION * microTickTime);
 	//разгоняемся до максимальной скорости
-	double maxVelocityTime = (Constants::Rules.ROBOT_MAX_GROUND_SPEED - velocity.Length()) / Constants::Rules.ROBOT_ACCELERATION;
+	double maxVelocityTime = (tvLength - velocity.Length()) / Constants::Rules.ROBOT_ACCELERATION;
 	double accelerationTicks = maxVelocityTime * Constants::Rules.TICKS_PER_SECOND *
 		Constants::Rules.MICROTICKS_PER_TICK; //TODO: здесь д.б. int
 	position.Add(velocity * (accelerationTicks * microTickTime) + tvc2 *
 		(microTickTime * accelerationTicks * (accelerationTicks + 1) / 2.0));
-	velocity = Helper::GetTargetVelocity(position, targetPosition, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+	velocity = Helper::GetTargetVelocity(position, targetPosition, tvLength);
 
 	double getMaxVelocityMicroTicks = getDirectionMicroTicks + accelerationTicks;
 

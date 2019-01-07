@@ -356,7 +356,8 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikeBallVelocity(const model::R
 			Helper::GetRobotPosition(robot),
 			targetPos,
 			Helper::GetRobotVelocity(robot),
-			moveT);
+			moveT,
+			1.0);
 
 		if (pvContainer.IsPassedBy)
 		{
@@ -499,12 +500,13 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 		bool isPassedBy = false;
 		std::optional<Vector3D> ballVelocity = 
 			GetDefenderStrikeBallVelocity(robot, t, isMeGoalPossible, jumpCollisionT, isPassedBy);
-		if (isPassedBy)
-			return movePoint;
+		//if (isPassedBy)//TODO: возможно, следующие точки будут лучше
+		//	return movePoint;
 
 		if (ballVelocity == std::nullopt) continue;
 		if (CompareBallVelocities(*ballVelocity, bestBallVelocity) < 0)
 		{
+			
 			bestBallVelocity = ballVelocity.value();
 			collisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
 
@@ -625,7 +627,8 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 		Helper::GetRobotPosition(robot),
 		mePos,
 		Helper::GetRobotVelocity(robot),
-		t);
+		t,
+		1.0);
 
 	if (pvContainer.IsPassedBy)
 		return false; // проскочим целевую точку. дальше все непредсказуемо
