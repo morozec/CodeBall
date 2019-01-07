@@ -62,24 +62,28 @@ private:
 	bool IsPenaltyArea(const Vector3D& position);
 	double GetVectorAngleToHorizontal(const Vector3D& v);
 	int CompareBallVelocities(const Vector3D& v1, const std::optional<Vector3D> v2);
-	bool IsGoalBallDirection2(const BallEntity& ballEntity, int directionCoeff);
+	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff);
 
 	model::Action SetDefenderAction(const model::Robot& me, const model::Ball& ball, 
-		const Vector3D& defenderPoint, std::optional<double>& collisionT);
+		const Vector3D& defenderPoint, bool isMeGoalPossible, std::optional<double>& collisionT);
 	std::optional<Vector3D> GetDefenderStrikeBallVelocity(
-		const model::Robot& robot, int t, std::optional<double>& collisionT, bool& isPassedBy);
+		const model::Robot& robot, int t, bool isMeGoalPossible,
+		std::optional<double>& collisionT, bool& isPassedBy);
 	bool IsOkDefenderPosToJump(const Vector3D & robotPosition, const Vector3D & robotVelocity,
 		const Vector3D& moveTBePosition, const Vector3D& moveTBeVelocity,
-		bool isGoalPossible,
+		bool isMeGoalPossible,
 		std::optional<double>& collisionT, std::optional<Vector3D>& collisionBallVelocity);
 	std::optional<Vector3D> GetDefenderMovePoint(const model::Robot& robot, const model::Ball& ball,
+		bool isMeGoalPossible,
 		std::optional<double>& collisionT, std::optional<Vector3D>& bestBallVelocity);
 
-	model::Action SetAttackerAction(const model::Robot& me, const model::Ball& ball, 
+	model::Action SetAttackerAction(const model::Robot& me, const model::Ball& ball,
+		bool isMeGoalPossible,
 		std::optional<double>& collisionT);
 	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, const BallEntity& ballEntity, int t, 
 		std::optional<double>& collisionT);
 	std::optional<Vector3D> GetAttackerMovePoint(const model::Robot& robot, const model::Ball& ball,
+		bool isMeGoalPossible,
 		std::optional<double>& collisionT, bool& isDefender, std::optional<Vector3D>& bestBallVelocity);
 	std::optional<Vector3D> GetAttackerStrikePoint(const model::Robot& robot, int t, std::optional<double>& collisionT);
 	bool IsOkPosToJump(
