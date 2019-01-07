@@ -91,6 +91,8 @@ private:
 		RobotEntity& robotEntity,
 		std::optional<double>& collisionT);
 
+	static Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position);
+
 
 public:
     MyStrategy();

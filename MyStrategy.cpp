@@ -318,25 +318,7 @@ model::Action MyStrategy::SetDefenderAction(
 
 
 	if (defendPoint == std::nullopt) {
-		defendPoint = defenderPoint;
-
-		const auto velocity = Helper::GetRobotVelocity(me).Length();
-		const auto stopTime = velocity / Constants::Rules.ROBOT_ACCELERATION;
-		const auto stopDist = velocity * stopTime - Constants::Rules.ROBOT_ACCELERATION * stopTime * stopTime / 2;
-
-		auto deltaPos = defendPoint.value() - Helper::GetRobotPosition(me);
-
-		if (stopDist < deltaPos.Length())
-		{
-			deltaPos.Normalize();
-			targetVelocity = deltaPos * Constants::Rules.ROBOT_MAX_GROUND_SPEED;
-
-		}
-		else
-		{
-			deltaPos.Normalize();
-			targetVelocity = deltaPos * (-Constants::Rules.ROBOT_MAX_GROUND_SPEED);
-		}
+		targetVelocity = GetDefendPointTargetVelocity(me, defenderPoint);
 	}
 	else
 	{
@@ -591,27 +573,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model
 		}
 
 		if (movePoint == std::nullopt) {
-			movePoint = _beforeMyGates;
-
-			const auto velocity = Helper::GetRobotVelocity(me).Length();
-			const auto stopTime = velocity / Constants::Rules.ROBOT_ACCELERATION;
-			const auto stopDist = velocity * stopTime - Constants::Rules.ROBOT_ACCELERATION * stopTime * stopTime / 2;
-
-			auto deltaPos = movePoint.value() - Helper::GetRobotPosition(me);
-
-			if (stopDist < deltaPos.Length())
-			{
-				deltaPos.Normalize();
-				targetVelocity = deltaPos * Constants::Rules.ROBOT_MAX_GROUND_SPEED;
-
-			}
-			else
-			{
-				deltaPos.Normalize();
-				targetVelocity = deltaPos * (-Constants::Rules.ROBOT_MAX_GROUND_SPEED);
-			}
+			targetVelocity = GetDefendPointTargetVelocity(me, _beforeMyGates);
 		}
-
 		else
 		{
 			targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, movePoint.value().X, 0, movePoint.value().Z,
@@ -908,4 +871,27 @@ bool MyStrategy::IsOkPosToJump(BallEntity ballEntity, RobotEntity & robotEntity,
 	}
 
 	return true;
+}
+
+Vector3D MyStrategy::GetDefendPointTargetVelocity(const model::Robot & robot, const Vector3D& position)
+{
+	const auto velocity = Helper::GetRobotVelocity(robot).Length();
+	const auto stopTime = velocity / Constants::Rules.ROBOT_ACCELERATION;
+	const auto stopDist = velocity * stopTime - Constants::Rules.ROBOT_ACCELERATION * stopTime * stopTime / 2;
+
+	auto deltaPos = position - Helper::GetRobotPosition(robot);
+
+	Vector3D targetVelocity;
+	if (stopDist < deltaPos.Length())
+	{
+		deltaPos.Normalize();
+		targetVelocity = deltaPos * Constants::Rules.ROBOT_MAX_GROUND_SPEED;
+
+	}
+	else
+	{
+		deltaPos.Normalize();
+		targetVelocity = deltaPos * (-Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+	}
+	return targetVelocity;
 }

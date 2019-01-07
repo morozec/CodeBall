@@ -23,7 +23,7 @@ struct Vector3D {
 	void mult(double k);
 	
 	Vector3D operator+(const Vector3D& v);
-	Vector3D operator-(const Vector3D& v);
+	Vector3D operator-(const Vector3D& v) const;
 	Vector3D operator*(double k);
 	double operator*(const Vector3D& v);
 

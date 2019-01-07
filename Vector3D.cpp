@@ -69,7 +69,7 @@ Vector3D Vector3D::operator+(const Vector3D & v)
 	return Vector3D(newX, newY, newZ);
 }
 
-Vector3D Vector3D::operator-(const Vector3D & v)
+Vector3D Vector3D::operator-(const Vector3D & v) const
 {
 	double newX = this->X - v.X;
 	double newY = this->Y - v.Y;
