@@ -372,7 +372,8 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikeBallVelocity(const model::R
 
 bool MyStrategy::IsOkDefenderPosToJump(
 	const Vector3D & robotPosition, const Vector3D & robotVelocity,  
-	const Vector3D & moveTBePosition,const Vector3D & moveTBeVelocity, 
+	const Vector3D & moveTBePosition,const Vector3D & moveTBeVelocity,
+	bool isGoalPossible,
 	std::optional<double>& collisionT, std::optional<Vector3D>& collisionBallVelocity)
 {
 	collisionBallVelocity = std::nullopt;
@@ -450,11 +451,15 @@ bool MyStrategy::IsOkDefenderPosToJump(
 		return false;
 	}
 
-	if (moveTBallEntity.Velocity.Z <= 0) //выбиваем от ворот и вверх. TODO
-		return false;
-
 	collisionBallVelocity = moveTBallEntity.Velocity;
-	return true;
+
+	if (moveTBallEntity.Velocity.Z >= 0) //выбиваем от ворот и вверх. TODO
+		return true;
+
+	if (!isGoalPossible) return false;
+	const auto isCollisionGoalPossible = IsGoalBallDirection2(moveTBallEntity, -1);
+	
+	return !isCollisionGoalPossible;
 }
 
 std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & robot, const model::Ball & ball,

@@ -70,6 +70,7 @@ private:
 		const model::Robot& robot, int t, std::optional<double>& collisionT, bool& isPassedBy);
 	bool IsOkDefenderPosToJump(const Vector3D & robotPosition, const Vector3D & robotVelocity,
 		const Vector3D& moveTBePosition, const Vector3D& moveTBeVelocity,
+		bool isGoalPossible,
 		std::optional<double>& collisionT, std::optional<Vector3D>& collisionBallVelocity);
 	std::optional<Vector3D> GetDefenderMovePoint(const model::Robot& robot, const model::Ball& ball,
 		std::optional<double>& collisionT, std::optional<Vector3D>& bestBallVelocity);
