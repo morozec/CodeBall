@@ -48,7 +48,7 @@ private:
 	
 	std::map<int, Vector3D> _beforeStrikePoints;
 
-	int _defenderId = -1;
+	//int _defenderId = -1;
 
 	bool _isFirstRobot = false;
 	std::map<int, model::Action> _actions;

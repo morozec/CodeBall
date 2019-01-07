@@ -50,7 +50,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
 	if (abs(game.ball.z) > rules.arena.depth / 2 + game.ball.radius) //goal scored
 	{
-		_defenderId = -1;
 		return;
 	}
 
@@ -92,27 +91,13 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			continue;
 		}
 
-		bool meIsDefender = false;
-		if (_defenderId >= 0)
+		bool meIsDefender = true;		
+		for (Robot r : game.robots)
 		{
-			if (robot.id == _defenderId) meIsDefender = true;
+			if (!r.is_teammate) continue;
+			if (r.id == robot.id) continue;
+			if (r.z < robot.z) meIsDefender = false;
 		}
-		else
-		{
-			bool hasCloser = false;
-			for (Robot r : game.robots)
-			{
-				if (!r.is_teammate) continue;
-				if (r.id == robot.id) continue;
-				if (r.z < robot.z) hasCloser = true;
-			}
-			if (!hasCloser)
-			{
-				meIsDefender = true;
-				_defenderId = robot.id;
-			}
-		}
-
 
 		if (!meIsDefender)
 		{
@@ -144,7 +129,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (*collisionTimes[robot.id] > *collisionTimes[otherRobot.id])
 			{
 				_actions[robot.id] =
-					GetDefaultAction(robot, _defenderId == robot.id ? _myGates : _beforeMyGates);
+					GetDefaultAction(robot, robot.z < otherRobot.z ? _myGates : _beforeMyGates);
 			}
 		}
 	}
@@ -500,7 +485,8 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 		bool isPassedBy = false;
 		std::optional<Vector3D> ballVelocity = 
 			GetDefenderStrikeBallVelocity(robot, t, isMeGoalPossible, jumpCollisionT, isPassedBy);
-		//if (isPassedBy)//TODO: возможно, следующие точки будут лучше
+		if (isPassedBy)//TODO: возможно, следующие точки будут лучше
+			continue;
 		//	return movePoint;
 
 		if (ballVelocity == std::nullopt) continue;
@@ -687,8 +673,9 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			bool isPassedBy = false;
 			std::optional<Vector3D> ballVelocity = 
 				GetDefenderStrikeBallVelocity(robot, t, isMeGoalPossible, jumpCollisionT, isPassedBy);
-			/*if (isPassedBy)
-				return movePoint;*/
+			if (isPassedBy)
+				continue;
+				//return movePoint;
 
 			if (ballVelocity == std::nullopt) continue;
 			if (CompareBallVelocities(ballVelocity.value(), bestBallVelocity) < 0)
