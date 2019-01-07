@@ -687,8 +687,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			bool isPassedBy = false;
 			std::optional<Vector3D> ballVelocity = 
 				GetDefenderStrikeBallVelocity(robot, t, isMeGoalPossible, jumpCollisionT, isPassedBy);
-			if (isPassedBy)
-				return movePoint;
+			/*if (isPassedBy)
+				return movePoint;*/
 
 			if (ballVelocity == std::nullopt) continue;
 			if (CompareBallVelocities(ballVelocity.value(), bestBallVelocity) < 0)
