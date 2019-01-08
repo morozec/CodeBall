@@ -3,6 +3,7 @@
 #include "Helper.h"
 #include <cmath>
 #include <sstream>
+#include <algorithm>
 
 using namespace model;
 
@@ -45,9 +46,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	_drawSpheres = std::vector<Sphere>();
 
 	std::map<int, std::optional<double>> collisionTimes = std::map<int, std::optional<double>>();
+	std::map<int, Vector3D> bestBallVelocities = std::map<int, Vector3D>();
 	auto const ballEntity = BallEntity(game.ball);
 	auto const isMeGoalPossible = IsGoalBallDirection2(ballEntity, -1);
-	
+		
 	for(Robot robot : game.robots)
 	{
 		if (!robot.is_teammate) continue;
@@ -83,15 +85,17 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (r.z < robot.z) meIsDefender = false;
 		}
 
+		Vector3D bestBallVelocity = Helper::GetBallVelocity(game.ball);
 		if (!meIsDefender)
 		{
-			robotAction = SetAttackerAction(robot, game.ball, isMeGoalPossible, collisionT);
+			robotAction = SetAttackerAction(robot, game.ball, isMeGoalPossible, collisionT, bestBallVelocity);
 		}
 		else //Defender
-		{
-			robotAction = SetDefenderAction(robot, game.ball, _myGates, isMeGoalPossible, collisionT);
+		{			
+			robotAction = SetDefenderAction(robot, game.ball, _myGates, isMeGoalPossible, collisionT, bestBallVelocity);
 		}
 		collisionTimes[robot.id] = collisionT;
+		bestBallVelocities[robot.id] = bestBallVelocity;
 		_actions[robot.id] = robotAction;
 	}
 
@@ -109,8 +113,18 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		}
 
 		if (collisionTimes[robot.id] != std::nullopt && collisionTimes[otherRobot.id] != std::nullopt)
-		{
-			if (*collisionTimes[robot.id] > *collisionTimes[otherRobot.id])
+		{		
+			if (_oppStrikeTime == std::nullopt || 
+				std::max(*collisionTimes[robot.id], *collisionTimes[otherRobot.id]) < _oppStrikeTime.value())
+			{
+				if (CompareBallVelocities(bestBallVelocities[robot.id], bestBallVelocities[otherRobot.id]) > 0)
+				{
+					_actions[robot.id] =
+						GetDefaultAction(robot, robot.z < otherRobot.z ? _myGates : _beforeMyGates);
+				}
+			}
+
+			else if (*collisionTimes[robot.id] > *collisionTimes[otherRobot.id])
 			{
 				_actions[robot.id] =
 					GetDefaultAction(robot, robot.z < otherRobot.z ? _myGates : _beforeMyGates);
@@ -309,12 +323,11 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 model::Action MyStrategy::SetDefenderAction(
 	const model::Robot & me, const model::Ball & ball, const Vector3D & defenderPoint,
 	bool isMeGoalPossible,
-	std::optional<double>& collisionT)
+	std::optional<double>& collisionT, Vector3D& bestBallVelocity)
 {
 	model::Action action = model::Action();
 	Vector3D targetVelocity;
-
-	Vector3D bestBallVelocity = Helper::GetBallVelocity(ball);
+	
 	std::optional<Vector3D> defendPoint =
 		GetDefenderMovePoint(me, ball, isMeGoalPossible, collisionT, bestBallVelocity);
 
@@ -536,7 +549,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 
 model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model::Ball & ball,
 	bool isMeGoalPossible,
-	std::optional<double>& collisionT)
+	std::optional<double>& collisionT, Vector3D& bestBallVelocity)
 {
 	model::Action action = model::Action();
 
@@ -556,7 +569,6 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model
 	}
 
 	bool isDefender = false;
-	Vector3D bestBallVelocity = Helper::GetBallVelocity(ball);
 	std::optional<Vector3D> movePoint = 
 		GetAttackerMovePoint(me, ball,isMeGoalPossible, collisionT, isDefender, bestBallVelocity);
 	if (isDefender)

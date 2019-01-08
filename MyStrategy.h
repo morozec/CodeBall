@@ -73,7 +73,8 @@ public:
 	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff) const;
 
 	model::Action SetDefenderAction(const model::Robot& me, const model::Ball& ball, 
-		const Vector3D& defenderPoint, bool isMeGoalPossible, std::optional<double>& collisionT);
+		const Vector3D& defenderPoint, bool isMeGoalPossible, 
+		std::optional<double>& collisionT, Vector3D& bestBallVelocity);
 	std::optional<Vector3D> GetDefenderStrikeBallVelocity(
 		const model::Robot& robot, int t, bool isMeGoalPossible,
 		std::optional<double>& collisionT, bool& isPassedBy);
@@ -87,7 +88,7 @@ public:
 
 	model::Action SetAttackerAction(const model::Robot& me, const model::Ball& ball,
 		bool isMeGoalPossible,
-		std::optional<double>& collisionT);
+		std::optional<double>& collisionT, Vector3D& bestBallVelocity);
 	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, const BallEntity& ballEntity, int t,
 		int directionCoeff,
 		std::optional<double>& collisionT);
