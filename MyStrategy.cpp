@@ -285,53 +285,24 @@ int MyStrategy::CompareBallVelocities(const Vector3D & v1, const std::optional<V
 	return v1HorAngle > v2HorAngle ? -1 : 1;
 }
 
-bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff)
+bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff) const
 {
-	if (directionCoeff == -1)
-	{
-		if (startBallEntity.Position.Z < -Constants::Rules.arena.depth / 2 + Constants::Rules.arena.depth / 8 &&
-			abs(startBallEntity.Position.X) < Constants::Rules.arena.goal_width / 2 + 2.5)
-			return true;
-	}
-
 	if (startBallEntity.Velocity.Z * directionCoeff <= 0) return false;
 
 	BallEntity ballEntity = BallEntity(startBallEntity);
-	while (true)
-	{
-		double yTime = (ballEntity.Velocity.Y +
-			sqrt(ballEntity.Velocity.Y * ballEntity.Velocity.Y -
-				2 * Constants::Rules.GRAVITY * (Constants::Rules.BALL_RADIUS - ballEntity.Position.Y))) /
-			Constants::Rules.GRAVITY;
-		double zTime = ((Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS) * directionCoeff - ballEntity.Position.Z) / ballEntity.Velocity.Z;
-		if (yTime < zTime)
-		{
-			double ticks =
-				trunc(yTime * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
-			double time = ticks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
-
-			Simulator::Move(ballEntity, time);//доходим до коллизии с ареной
-			bool isGoalScored = false;
-			Simulator::Update(ballEntity, 
-				1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
-				isGoalScored);
-
-			if (abs(ballEntity.Position.X) > Constants::Rules.arena.goal_width / 2) return false;
-		}
-		else break;//TODO: возможно, стоит рассчитать положение в момент zTime
-	}
 
 	bool isGoalScored = false;
-	bool isZIncreasing = true;
 	double z = ballEntity.Position.Z;
-	while (!isGoalScored && isZIncreasing)
+
+	for (int t = 1; t <= BallMoveTicks; ++t)
 	{
 		SimulateTickBall(ballEntity, isGoalScored);
-		isZIncreasing = ballEntity.Position.Z * directionCoeff > z * directionCoeff;
+		if (isGoalScored) return true;
+		const auto isZIncreasing = ballEntity.Position.Z * directionCoeff > z * directionCoeff;		
+		if (!isZIncreasing) return false;
 		z = ballEntity.Position.Z;
-	}
-
-	return isGoalScored;
+	}	
+	return false;
 }
 
 model::Action MyStrategy::SetDefenderAction(
@@ -559,7 +530,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model
 	Vector3D targetVelocity;
 	RobotEntity robotEntity = RobotEntity(me);
 
-	if (IsOkPosToJump(BallEntity(ball), robotEntity, collisionT))
+	if (IsOkPosToJump(BallEntity(ball), robotEntity, 1, collisionT))
 	{
 		targetVelocity =
 			Helper::GetTargetVelocity(me.x, 0, me.z, ball.x, 0, ball.z, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
@@ -653,7 +624,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model
 }
 
 bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robot, const BallEntity & ballEntity, 
-	int t, std::optional<double>& collisionT)
+	int t, double directionCoeff, std::optional<double>& collisionT)
 {
 	collisionT = std::nullopt;
 	PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
@@ -686,7 +657,7 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 		Vector3D(0, 1, 0),
 		0);
 
-	bool isOkPosToStrike = IsOkPosToJump(BallEntity(ballEntity), robotE, collisionT);
+	bool isOkPosToStrike = IsOkPosToJump(BallEntity(ballEntity), robotE, directionCoeff, collisionT);
 	if (isOkPosToStrike)
 	{
 		return true;
@@ -737,7 +708,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		else
 		{
 			std::optional<double> jumpCollisionT = std::nullopt;
-			movePoint = GetAttackerStrikePoint(robot, t, jumpCollisionT);
+			movePoint = GetAttackerStrikePoint(robot, t, 1, jumpCollisionT);
 			if (movePoint != std::nullopt)
 			{
 				if (jumpCollisionT == std::nullopt) throw "jumpCollisionT is null";
@@ -751,13 +722,14 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	return movePoint;
 }
 
-std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & robot, int t, 
+std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & robot, int t,
+	double directionCoeff,
 	std::optional<double>& collisionT)
-{
+{	
 	const BallEntity ballEntity = _ballEntities[t];
-	if (_beforeStrikePoints.count(robot.id) > 0)
+	if (_beforeStrikePoints.count(robot.id) > 0) //TODO: учесть время t - не всегда надо проверять
 	{
-		if (IsOkPosToMove(_beforeStrikePoints[robot.id], robot, ballEntity, t, collisionT))
+		if (IsOkPosToMove(_beforeStrikePoints[robot.id], robot, ballEntity, t, directionCoeff, collisionT))
 			return _beforeStrikePoints[robot.id];
 		_beforeStrikePoints.erase(robot.id);
 	}
@@ -788,7 +760,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 
 
 	Vector3D mePos = Vector3D(ballEntity.Position.X, Constants::Rules.ROBOT_MIN_RADIUS, ballEntity.Position.Z);
-	if (IsOkPosToMove(mePos, robot, ballEntity, t, collisionT))
+	if (IsOkPosToMove(mePos, robot, ballEntity, t, directionCoeff, collisionT))
 	{
 		_beforeStrikePoints[robot.id] = mePos;
 		return mePos;
@@ -799,7 +771,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 		Vector3D rVectorMult1 = rVector1 * (i * 1.0 / StrikeSphereStepsCount);
 		Vector3D mePos1 = Vector3D(ballEntity.Position.X + rVectorMult1.X, Constants::Rules.ROBOT_MIN_RADIUS,
 			ballEntity.Position.Z + rVectorMult1.Z);
-		if (IsOkPosToMove(mePos1, robot, ballEntity, t, collisionT))
+		if (IsOkPosToMove(mePos1, robot, ballEntity, t, directionCoeff, collisionT))
 		{
 			_beforeStrikePoints[robot.id] = mePos1;
 			return mePos1;
@@ -808,7 +780,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 		Vector3D rVectorMult2 = rVector2 * (i * 1.0 / StrikeSphereStepsCount);
 		Vector3D mePos2 = Vector3D(ballEntity.Position.X + rVectorMult2.X, Constants::Rules.ROBOT_MIN_RADIUS,
 			ballEntity.Position.Z + rVectorMult2.Z);
-		if (IsOkPosToMove(mePos2, robot, ballEntity, t, collisionT))
+		if (IsOkPosToMove(mePos2, robot, ballEntity, t, directionCoeff, collisionT))
 		{
 			_beforeStrikePoints[robot.id] = mePos2;
 			return mePos2;
@@ -818,7 +790,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 	return std::nullopt;
 }
 
-bool MyStrategy::IsOkPosToJump(BallEntity ballEntity, RobotEntity & robotEntity, std::optional<double>& collisionT)
+bool MyStrategy::IsOkPosToJump(
+	BallEntity ballEntity, RobotEntity & robotEntity, double directionCoeff, std::optional<double>& collisionT)
 {
 	if (Helper::GetLength2(robotEntity.Position, ballEntity.Position) > _maxStrikeDist2 + EPS)
 	{
@@ -853,9 +826,9 @@ bool MyStrategy::IsOkPosToJump(BallEntity ballEntity, RobotEntity & robotEntity,
 		double angle = GetVectorAngleToHorizontal(ballEntity2.Velocity);
 		if (angle >M_PI / 3) return false; //не бьем под большим углом к горизонтали
 
-		if (!IsGoalBallDirection2(ballEntity2, 1)) return false;
+		if (!IsGoalBallDirection2(ballEntity2, directionCoeff)) return false;
 		double velocityZ = ballEntity2.Velocity.Z;
-		if (velocityZ < prevBallEntity.Velocity.Z && IsGoalBallDirection2(prevBallEntity, 1)) return false;
+		if (velocityZ < prevBallEntity.Velocity.Z && IsGoalBallDirection2(prevBallEntity, directionCoeff)) return false;
 
 	}
 
@@ -892,7 +865,7 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const Ball& ball, const std::
 	auto nearest_robot_entity = RobotEntity(nearest_robot);
 
 	std::optional<double> collisionT;
-	if (IsOkPosToJump(ball_entity, nearest_robot_entity, collisionT))
+	if (IsOkPosToJump(ball_entity, nearest_robot_entity, -1, collisionT))
 	{		
 		return collisionT;
 	}
@@ -910,7 +883,7 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const Ball& ball, const std::
 		nearest_robot = get_nearest_ball_robot(ball_entity, oppRobots);		
 
 		std::optional<double> jumpCollisionT = std::nullopt;
-		auto movePoint = GetAttackerStrikePoint(nearest_robot, t, jumpCollisionT);
+		auto movePoint = GetAttackerStrikePoint(nearest_robot, t, -1, jumpCollisionT);
 		if (movePoint != std::nullopt)
 		{
 			collisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();

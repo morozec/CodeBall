@@ -67,7 +67,7 @@ private:
 	bool IsPenaltyArea(const Vector3D& position);
 	double GetVectorAngleToHorizontal(const Vector3D& v);
 	int CompareBallVelocities(const Vector3D& v1, const std::optional<Vector3D>& v2);
-	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff);
+	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff) const;
 
 	model::Action SetDefenderAction(const model::Robot& me, const model::Ball& ball, 
 		const Vector3D& defenderPoint, bool isMeGoalPossible, std::optional<double>& collisionT);
@@ -85,15 +85,18 @@ private:
 	model::Action SetAttackerAction(const model::Robot& me, const model::Ball& ball,
 		bool isMeGoalPossible,
 		std::optional<double>& collisionT);
-	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, const BallEntity& ballEntity, int t, 
+	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, const BallEntity& ballEntity, int t,
+		double directionCoeff,
 		std::optional<double>& collisionT);
 	std::optional<Vector3D> GetAttackerMovePoint(const model::Robot& robot, const model::Ball& ball,
 		bool isMeGoalPossible,
 		std::optional<double>& collisionT, bool& isDefender, Vector3D& bestBallVelocity);
-	std::optional<Vector3D> GetAttackerStrikePoint(const model::Robot& robot, int t, std::optional<double>& collisionT);
+	std::optional<Vector3D> GetAttackerStrikePoint(
+		const model::Robot& robot, int t, double directionCoeff, std::optional<double>& collisionT);
 	bool IsOkPosToJump(
 		BallEntity ballEntity,
 		RobotEntity& robotEntity,
+		double directionCoeff,
 		std::optional<double>& collisionT);
 
 	static Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position);
