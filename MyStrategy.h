@@ -86,18 +86,22 @@ public:
 		bool isMeGoalPossible,
 		std::optional<double>& collisionT);
 	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, const BallEntity& ballEntity, int t,
-		double directionCoeff,
+		int directionCoeff,
 		std::optional<double>& collisionT);
 	std::optional<Vector3D> GetAttackerMovePoint(const model::Robot& robot, const model::Ball& ball,
 		bool isMeGoalPossible,
 		std::optional<double>& collisionT, bool& isDefender, Vector3D& bestBallVelocity);
 	std::optional<Vector3D> GetAttackerStrikePoint(
-		const model::Robot& robot, int t, double directionCoeff, std::optional<double>& collisionT);
+		const model::Robot& robot, int t, int directionCoeff, std::optional<double>& collisionT);
 	bool IsOkPosToJump(
 		BallEntity ballEntity,
 		RobotEntity& robotEntity,
-		double directionCoeff,
 		std::optional<double>& collisionT);
+
+	bool IsOkOppPosToJump(
+		BallEntity ballEntity,
+		RobotEntity& robotEntity,
+		std::optional<double>& collisionT) const;
 
 	static Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position);
 	std::optional<double> GetOppStrikeTime(const model::Ball& ball, const std::vector<model::Robot>& oppRobots);
