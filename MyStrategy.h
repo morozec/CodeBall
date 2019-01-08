@@ -58,7 +58,11 @@ private:
 
 	void InitAction(model::Action& action, int id);
 	model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos);	
-	BallEntity SimulateTickBall(const BallEntity& ballEntity, bool& isGoalScored);
+	void SimulateTickBall(BallEntity& ballEntity, bool& isGoalScored) const;
+	void SimulateTickRobot(RobotEntity& robotEntity) const;
+	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity, 
+		std::optional<double>& collisionT) const;
+
 	bool IsPenaltyArea(const Vector3D& position);
 	double GetVectorAngleToHorizontal(const Vector3D& v);
 	int CompareBallVelocities(const Vector3D& v1, const std::optional<Vector3D>& v2);

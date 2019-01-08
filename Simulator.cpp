@@ -230,12 +230,13 @@ std::optional<double> Simulator::GetCollisionT(const Vector3D & pR, const Vector
 	return collisionT;
 }
 
-void Simulator::Update(BallEntity& ball, double deltaTime, bool & isGoalScored)
+void Simulator::Update(Entity& entity, double deltaTime, bool & isGoalScored)
 {
-	Move(ball, deltaTime);	
-	CollideWithArena(ball);
+	Move(entity, deltaTime);
+	CollideWithArena(entity);
+	if (entity.Radius < Constants::Rules.BALL_RADIUS - Eps) return;
 
-	if (abs(ball.Position.Z) > Constants::Rules.arena.depth / 2 + ball.Radius)
+	if (abs(entity.Position.Z) > Constants::Rules.arena.depth / 2 + entity.Radius)
 		isGoalScored = true;
 
 }
@@ -324,13 +325,13 @@ void Simulator::Update(RobotEntity& robot, BallEntity& ball, double deltaTime, d
 	}*/
 }
 
-void Simulator::Tick(BallEntity& ball)
+void Simulator::Tick(Entity& entity)
 {
 	double deltaTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	bool isGoalScored = false;
 	for (int i = 0; i < Constants::Rules.MICROTICKS_PER_TICK; ++i)
 	{
-		Update(ball, deltaTime / Constants::Rules.MICROTICKS_PER_TICK, isGoalScored);
+		Update(entity, deltaTime / Constants::Rules.MICROTICKS_PER_TICK, isGoalScored);
 	}
 }
 

@@ -172,16 +172,79 @@ model::Action MyStrategy::GetDefaultAction(const model::Robot & me, const Vector
 	return action;
 }
 
-BallEntity MyStrategy::SimulateTickBall(const BallEntity & ballEntity, bool & isGoalScored)
+void MyStrategy::SimulateTickBall(BallEntity & ballEntity, bool & isGoalScored) const
 {
 	BallEntity bec = BallEntity(ballEntity);
 	Simulator::Update(bec, 1.0 / Constants::Rules.TICKS_PER_SECOND, isGoalScored);
-	if (!bec.IsArenaCollided) return bec;
+	if (!bec.IsArenaCollided)
+	{
+		ballEntity = bec;
+		return;
+	}
 
-	bec = BallEntity(ballEntity);
-	Simulator::Tick(bec);
-	bec.IsArenaCollided = false;
-	return bec;
+	Simulator::Tick(ballEntity);
+	ballEntity.IsArenaCollided = false;
+}
+
+void MyStrategy::SimulateTickRobot(RobotEntity & robotEntity) const
+{
+	RobotEntity rec = RobotEntity(robotEntity);
+	bool isGoalScored;
+	Simulator::Update(rec, 1.0 / Constants::Rules.TICKS_PER_SECOND, isGoalScored);
+	if (!rec.IsArenaCollided)
+	{
+		robotEntity = rec;
+		return;
+	}
+
+	Simulator::Tick(robotEntity);
+	robotEntity.IsArenaCollided = false;
+}
+
+bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotEntity,
+	std::optional<double>& collisionT) const
+{
+	auto const targetVelocity = Helper::GetTargetVelocity(robotEntity.Position.X, 0, robotEntity.Position.Z,
+		ballEntity.Position.X, 0, ballEntity.Position.Z,
+		Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+
+	model::Action action = model::Action();
+	action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+	action.target_velocity_x = targetVelocity.X;
+	action.target_velocity_y = 0.0;
+	action.target_velocity_z = targetVelocity.Z;
+	action.use_nitro = false;
+
+	robotEntity.Action = action;	
+
+	//симулируем отрыв от земли
+	bool isGoalScored = false;
+	Simulator::Update(robotEntity, ballEntity,
+		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
+		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
+	Simulator::Update(robotEntity, ballEntity,
+		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
+		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
+
+	collisionT = Simulator::GetCollisionT(robotEntity.Position, robotEntity.Velocity, ballEntity.Position,
+		ballEntity.Velocity);
+	if (collisionT == std::nullopt) return false;
+
+	//ситуаци§ за микротик до коллизии.
+	auto const collisionTicks = int(collisionT.value() / Constants::Rules.TICKS_PER_SECOND);
+	for (int i = 1; i <= collisionTicks; ++i)
+	{
+		SimulateTickBall(ballEntity, isGoalScored);
+		SimulateTickRobot(robotEntity);
+	}
+	auto const timeLeft = collisionT.value() - collisionTicks * Constants::Rules.TICKS_PER_SECOND;
+	auto const mtLeft = int(timeLeft * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
+
+	//TODO: Ќеточно, т.к. может быть коллизи§ м§ча с ареной или коллизи§ робота с ареной
+	Simulator::Update(robotEntity, ballEntity,
+		mtLeft * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
+		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
+	return true;
 }
 
 bool MyStrategy::IsPenaltyArea(const Vector3D & position)
@@ -253,7 +316,7 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 	double z = ballEntity.Position.Z;
 	while (!isGoalScored && isZIncreasing)
 	{
-		ballEntity = SimulateTickBall(ballEntity, isGoalScored);
+		SimulateTickBall(ballEntity, isGoalScored);
 		isZIncreasing = ballEntity.Position.Z * directionCoeff > z * directionCoeff;
 		z = ballEntity.Position.Z;
 	}
@@ -325,7 +388,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikeBallVelocity(const model::R
 {
 	std::optional<Vector3D> bestBallVelocity = std::nullopt;
 	isPassedBy = false;
-	BallEntity ballEntity = _ballEntities[t];
+	const BallEntity ballEntity = _ballEntities[t];
 
 	if (!IsPenaltyArea(ballEntity.Position))
 	{
@@ -378,63 +441,24 @@ bool MyStrategy::IsOkDefenderPosToJump(
 	bool isMeGoalPossible,
 	std::optional<double>& collisionT, std::optional<Vector3D>& collisionBallVelocity)
 {
-	collisionBallVelocity = std::nullopt;
-
-	Vector3D targetVelocity =
-		Helper::GetTargetVelocity(robotPosition.X, 0, robotPosition.Z, moveTBePosition.X, 0, moveTBePosition.Z,
-			Constants::Rules.ROBOT_MAX_GROUND_SPEED);
-
-	RobotEntity re = RobotEntity(
-		Vector3D(robotPosition), Vector3D(robotVelocity), Constants::Rules.ROBOT_MIN_RADIUS,
-		true, Vector3D(0, 1, 0), 0.0);
-	model::Action action = model::Action();
-	action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-	action.target_velocity_x = targetVelocity.X;
-	action.target_velocity_y = 0.0;
-	action.target_velocity_z = targetVelocity.Z;
-	action.use_nitro = false;
-	re.Action = action;
-
-	BallEntity moveTBallEntity = BallEntity(Vector3D(moveTBePosition), Vector3D(moveTBeVelocity));
-
-
-	//симулируем отрыв от земли
-	bool isGoalScored = false;
-	Simulator::Update(re, moveTBallEntity, 
-		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
-		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
-	Simulator::Update(re, moveTBallEntity, 
-		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
-		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
-
+	auto moveTBallEntity = BallEntity(Vector3D(moveTBePosition), Vector3D(moveTBeVelocity));
 	if (moveTBallEntity.Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)
 	{
 		return false;
 	}
 
-	re.IsArenaCollided = false;
+	auto robotEntity = RobotEntity(
+		Vector3D(robotPosition), Vector3D(robotVelocity), Constants::Rules.ROBOT_MIN_RADIUS,
+		true, Vector3D(0, 1, 0), 0.0);
 
-	collisionT = Simulator::GetCollisionT(re.Position, re.Velocity, moveTBallEntity.Position,
-		moveTBallEntity.Velocity);
-	if (collisionT == std::nullopt) return false;
-
-	//var leftT = (t - moveT) * Consants.TICKS_PER_SECOND;
-	//if (collisionT > leftT) continue;
-
-	double microTicks =
-		trunc(*collisionT * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
-	//ситуаци§ за микротик до коллизии.
-	//TODO: Неточно, т.к. может быть коллизи§ м§ча с ареной или коллизи§ робота с ареной
-	Simulator::Update(re, moveTBallEntity, 
-		microTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
-		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
-
+	auto const isCollision = SimulateCollision(moveTBallEntity, robotEntity, collisionT);
+	if (!isCollision) return false;
+	
 	if (moveTBallEntity.Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)
 		return false;
 
-	if (re.Velocity.Y < 0) return false;//не бьем на излете
-	if (re.Position.Y >= moveTBallEntity.Position.Y) return false;//не бьем сверху-вниз
-	if (re.IsArenaCollided) return false;
+	if (robotEntity.Velocity.Y < 0) return false;//не бьем на излете
+	if (robotEntity.Position.Y >= moveTBallEntity.Position.Y) return false;//не бьем сверху-вниз
 
 	//коллизи§ вне штрафной площади
 	if (!IsPenaltyArea(moveTBallEntity.Position))
@@ -442,7 +466,8 @@ bool MyStrategy::IsOkDefenderPosToJump(
 
 	double hitE = (Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0;
 
-	Simulator::Update(re, moveTBallEntity, 
+	bool isGoalScored;
+	Simulator::Update(robotEntity, moveTBallEntity,
 		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored);
 
 	if (moveTBallEntity.Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)
@@ -468,7 +493,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 	bool isMeGoalPossible,
 	std::optional<double>& collisionT, Vector3D& bestBallVelocity)
 {
-	BallEntity ballEntity = BallEntity(ball);
+	auto ballEntity = BallEntity(ball);
 	std::optional<Vector3D> movePoint = std::nullopt;
 
 	for (int t = 1; t <= BallMoveTicks; ++t)
@@ -477,7 +502,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 		else
 		{
 			bool isGoalScored = false;
-			ballEntity = SimulateTickBall(ballEntity, isGoalScored);
+			SimulateTickBall(ballEntity, isGoalScored);
 			_ballEntities[t]= ballEntity;
 		}
 
@@ -662,7 +687,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		else
 		{
 			bool isGoalScored;
-			ballEntity = SimulateTickBall(BallEntity(ballEntity), isGoalScored);
+			SimulateTickBall(ballEntity, isGoalScored);
 			_ballEntities[t]= ballEntity;
 		}
 
@@ -707,7 +732,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & robot, int t, 
 	std::optional<double>& collisionT)
 {
-	BallEntity ballEntity = _ballEntities[t];
+	const BallEntity ballEntity = _ballEntities[t];
 	if (_beforeStrikePoints.count(robot.id) > 0)
 	{
 		if (IsOkPosToMove(_beforeStrikePoints[robot.id], robot, ballEntity, t, collisionT))
@@ -779,56 +804,17 @@ bool MyStrategy::IsOkPosToJump(BallEntity ballEntity, RobotEntity & robotEntity,
 		return false;
 	}
 
-	Vector3D targetVelocity = Helper::GetTargetVelocity(robotEntity.Position.X, 0, robotEntity.Position.Z,
-		ballEntity.Position.X, 0, ballEntity.Position.Z,
-		Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+	auto const prevBallEntity = BallEntity(ballEntity);
 
-	model::Action action = model::Action();
-	action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-	action.target_velocity_x = targetVelocity.X;
-	action.target_velocity_y = 0.0;
-	action.target_velocity_z = targetVelocity.Z;
-	action.use_nitro = false;
-
-	robotEntity.Action = action;
-
-	BallEntity prevBallEntity = BallEntity(ballEntity);
-
-	//симулируем отрыв от земли
-	bool isGoalScored = false;
-	Simulator::Update(robotEntity, ballEntity, 
-		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
-		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
-	Simulator::Update(robotEntity, ballEntity, 
-		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
-		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
-
-	collisionT = Simulator::GetCollisionT(robotEntity.Position, robotEntity.Velocity, ballEntity.Position,
-		ballEntity.Velocity);
-	if (collisionT == std::nullopt) return false;
-
-	double microTicks =
-		trunc(*collisionT * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
-	//ситуаци§ за микротик до коллизии. Неточно, т.к. может быть коллизи§ м§ча с ареной
-	Simulator::Update(robotEntity, ballEntity, 
-		microTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
-		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
-
-	//var ticks = microTicks / Consants.MICROTICKS_PER_TICK;
-	//for (var i = 0; i < ticks; ++i)
-	//{
-	//    Simulator.Update(robots, ballEntity, _emptyNitroPacks, 1d / Consants.TICKS_PER_SECOND, out _);
-	//}
-
-	//for (var i = 0; i < microTicks - ticks * Consants.MICROTICKS_PER_TICK; ++i)
-	//    Simulator.Update(robots, ballEntity, _emptyNitroPacks,
-	//        1d / Consants.TICKS_PER_SECOND / Consants.MICROTICKS_PER_TICK, out _);
+	auto const isCollision = SimulateCollision(ballEntity, robotEntity, collisionT);
+	if (!isCollision) return false;
 
 	//симулируем коллизию
 	
 	std::vector<double> hitEs = std::vector<double>();
 	hitEs.push_back(Constants::Rules.MIN_HIT_E);
 	hitEs.push_back(Constants::Rules.MAX_HIT_E);
+	bool isGoalScored;
 
 	for(double hitE: hitEs)
 	{
@@ -839,14 +825,8 @@ bool MyStrategy::IsOkPosToJump(BallEntity ballEntity, RobotEntity & robotEntity,
 
 		if (!ballEntity2.IsCollided) //веро§тно, м§ч ударилс§ об арену. прыгать смысла нет
 		{
-			//if (!ballEntity.IsArenaCollided)
-			//{
-
-			//}
-
 			return false;
 		}
-
 
 		double angle = GetVectorAngleToHorizontal(ballEntity2.Velocity);
 		if (angle >M_PI / 3) return false; //не бьем под большим углом к горизонтали

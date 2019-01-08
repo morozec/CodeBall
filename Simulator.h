@@ -28,9 +28,9 @@ public:
 		const Vector3D& startVelocity, int ticks, double velocityCoeff);	
 	static void Move(Entity & e, double deltaTime);
 	static std::optional<double> GetCollisionT(const Vector3D& pR, const Vector3D& vR, const Vector3D& pB, const Vector3D& vB);
-	static void Update(BallEntity& ball, double deltaTime, bool& isGoalScored);
+	static void Update(Entity& entity, double deltaTime, bool& isGoalScored);
 	static void Update(RobotEntity& robot, BallEntity& ball, double deltaTime, double hitE, bool& isGoalScored);
-	static void Tick(BallEntity& ball);
+	static void Tick(Entity& ball);
 	static void Tick(RobotEntity& robot, BallEntity ball);
 };
 
