@@ -5,6 +5,7 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+#include "Sphere.h"
 
 
 #ifndef _MY_STRATEGY_H_
@@ -54,6 +55,8 @@ private:
 	std::map<int, model::Action> _actions;
 	std::map<int, BallEntity> _ballEntities;
 	std::optional<double> _oppStrikeTime;
+
+	std::vector<Sphere> _drawSpheres;
 public:
 	void Init(const model::Rules& rules);
 
@@ -110,6 +113,7 @@ public:
 
     MyStrategy();
     void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;
+	std::string custom_rendering() override;
 };
 
 #endif

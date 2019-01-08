@@ -2,6 +2,7 @@
 #include "Simulator.h"
 #include "Helper.h"
 #include <cmath>
+#include <sstream>
 
 using namespace model;
 
@@ -41,7 +42,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		InitAction(action, me.id);
 		return;
 	}
-
+	_drawSpheres = std::vector<Sphere>();
 
 	std::map<int, std::optional<double>> collisionTimes = std::map<int, std::optional<double>>();
 	auto const ballEntity = BallEntity(game.ball);
@@ -119,6 +120,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
 	InitAction(action, me.id);
 }
+
 
 void MyStrategy::Init(const model::Rules & rules)
 {
@@ -489,6 +491,8 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 	auto ballEntity = BallEntity(ball);
 	std::optional<Vector3D> movePoint = std::nullopt;
 
+	int bestT = -1;
+
 	for (int t = 1; t <= BallMoveTicks; ++t)
 	{
 		if (_ballEntities.count(t) > 0) ballEntity = _ballEntities[t];
@@ -515,8 +519,18 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 
 			movePoint = Vector3D(_ballEntities[t].Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 				_ballEntities[t].Position.Z);
+			bestT = t;
 		}
 	}
+
+	if(movePoint != std::nullopt)
+	{
+		_drawSpheres.push_back(Sphere((*movePoint).X, (*movePoint).Y, (*movePoint).Z, 0.25, 0, 0, 1, 0.5));
+		_drawSpheres.push_back(Sphere(
+			_ballEntities[bestT].Position.X, _ballEntities[bestT].Position.Y, _ballEntities[bestT].Position.Z,
+			Constants::Rules.BALL_RADIUS, 0, 0, 1, 0.5));
+	}
+	
 	return movePoint;
 }
 
@@ -662,6 +676,16 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 
 	if (isOkPosToStrike)
 	{
+		if (directionCoeff == 1)
+		{
+			const auto color = 0;
+			_drawSpheres.push_back(Sphere(mePos.X, mePos.Y, mePos.Z, 0.25, color, color, color, 0.5));
+			_drawSpheres.push_back(Sphere(pvContainer.Position.X, pvContainer.Position.Y, pvContainer.Position.Z, 1,
+				color, color, color, 0.5));
+			_drawSpheres.push_back(Sphere(ballEntity.Position.X, ballEntity.Position.Y, ballEntity.Position.Z,
+				Constants::Rules.BALL_RADIUS, 0, 1, 0, 0.5));
+		}
+
 		return true;
 	}
 
@@ -966,4 +990,30 @@ model::Robot MyStrategy::get_nearest_ball_robot(const BallEntity& ball_entity, c
 	}
 	return nearest_robot;
 
+}
+
+std::string MyStrategy::custom_rendering()
+{	
+	std::string res = "";
+	res += "[";
+	for (int i =0 ; i < _drawSpheres.size(); ++i)
+	{
+		auto ds = _drawSpheres[i];
+		res += "{";
+		res += "\"Sphere\":{";
+		res += "\"x\":" + std::to_string(ds.x) + ",";
+		res += "\"y\":" + std::to_string(ds.y) + ",";
+		res += "\"z\":" + std::to_string(ds.z) + ",";
+		res += "\"radius\":" + std::to_string(ds.radius) + ",";
+		res += "\"r\":" + std::to_string(ds.r) + ",";
+		res += "\"g\":" + std::to_string(ds.g) + ",";
+		res += "\"b\":" + std::to_string(ds.b) + ",";
+		res += "\"a\":" + std::to_string(ds.a);
+		
+		res += "}";
+		res += "}";
+		if (i < _drawSpheres.size() - 1) res += ",";
+	}
+	res += "]";
+	return res;
 }
