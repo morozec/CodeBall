@@ -14,31 +14,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		Constants::Rules = rules;
 		Init(rules);
 		DanCalculator::Init(rules.arena);
-		
-		_oppGates = Vector3D(0, 0, rules.arena.depth / 2 + rules.arena.goal_side_radius);
-		_oppGatesLeftCorner = Vector3D(-rules.arena.goal_width / 2,
-			0,
-			rules.arena.depth / 2 + rules.arena.goal_side_radius);
-		_oppGatesRightCorner = Vector3D(rules.arena.goal_width / 2,
-			0,
-			rules.arena.depth / 2 + rules.arena.goal_side_radius);
-
-		_myGatesLeftCorner = Vector3D(-rules.arena.goal_width / 2,
-			0,
-			-rules.arena.depth / 2 + rules.arena.goal_side_radius);
-		_myGatesRightCorner = Vector3D(rules.arena.goal_width / 2,
-			0,
-			-rules.arena.depth / 2 + rules.arena.goal_side_radius);
-
-		_myGates = Vector3D(0, 0, -rules.arena.depth / 2 - rules.arena.goal_side_radius);
-		_beforeMyGates = Vector3D(0, 0, -rules.arena.depth / 2 + rules.arena.corner_radius / 2);
-		_distToFollowBall = rules.arena.depth / 3;
-
-
-		_penaltyAreaZ = -rules.arena.depth / 4;
-		_penaltyMinX = -rules.arena.goal_width / 4 - (rules.arena.width / 2 - rules.arena.goal_width / 2) / 2;
-		_penaltyMaxX = rules.arena.goal_width / 4 + (rules.arena.width / 2 - rules.arena.goal_width / 2) / 2;
-
 	}
 
 	_isFirstRobot = !_isFirstRobot;
@@ -155,6 +130,30 @@ void MyStrategy::Init(const model::Rules & rules)
 	_maxDefenderStrikeDist2 = _maxDefenderStrikeDist * _maxDefenderStrikeDist;
 	_moveSphereRadius = rules.BALL_RADIUS + rules.ROBOT_MIN_RADIUS + rules.ROBOT_MIN_RADIUS * 4; //TODO
 
+
+	_oppGates = Vector3D(0, 0, rules.arena.depth / 2 + rules.arena.goal_side_radius);
+	_oppGatesLeftCorner = Vector3D(-rules.arena.goal_width / 2,
+		0,
+		rules.arena.depth / 2 + rules.arena.goal_side_radius);
+	_oppGatesRightCorner = Vector3D(rules.arena.goal_width / 2,
+		0,
+		rules.arena.depth / 2 + rules.arena.goal_side_radius);
+
+	_myGatesLeftCorner = Vector3D(-rules.arena.goal_width / 2,
+		0,
+		-rules.arena.depth / 2 + rules.arena.goal_side_radius);
+	_myGatesRightCorner = Vector3D(rules.arena.goal_width / 2,
+		0,
+		-rules.arena.depth / 2 + rules.arena.goal_side_radius);
+
+	_myGates = Vector3D(0, 0, -rules.arena.depth / 2 - rules.arena.goal_side_radius);
+	_beforeMyGates = Vector3D(0, 0, -rules.arena.depth / 2 + rules.arena.corner_radius / 2);
+	_distToFollowBall = rules.arena.depth / 3;
+
+
+	_penaltyAreaZ = -rules.arena.depth / 4;
+	_penaltyMinX = -rules.arena.goal_width / 4 - (rules.arena.width / 2 - rules.arena.goal_width / 2) / 2;
+	_penaltyMaxX = rules.arena.goal_width / 4 + (rules.arena.width / 2 - rules.arena.goal_width / 2) / 2;
 }
 
 void MyStrategy::InitAction(model::Action& action, int id)
@@ -828,7 +827,9 @@ bool MyStrategy::IsOkPosToJump(
 
 		if (!IsGoalBallDirection2(ballEntity2, directionCoeff)) return false;
 		double velocityZ = ballEntity2.Velocity.Z;
-		if (velocityZ < prevBallEntity.Velocity.Z && IsGoalBallDirection2(prevBallEntity, directionCoeff)) return false;
+		if (velocityZ * directionCoeff < prevBallEntity.Velocity.Z * directionCoeff)
+			if (IsGoalBallDirection2(prevBallEntity, directionCoeff)) 
+				return false;
 
 	}
 
@@ -906,7 +907,7 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const Ball& ball, const std::
 	return std::nullopt;
 }
 
-model::Robot MyStrategy::get_nearest_ball_robot(const BallEntity& ball_entity, const const std::vector<model::Robot>& oppRobots)
+model::Robot MyStrategy::get_nearest_ball_robot(const BallEntity& ball_entity, const std::vector<model::Robot>& oppRobots)
 {
 	auto min_dist = std::numeric_limits<double>::max();
 	Robot nearest_robot{};

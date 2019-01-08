@@ -19,7 +19,7 @@
 #include <optional>
 
 class MyStrategy : public Strategy {
-public:
+
 private:
 	const double EPS = 1E-5;
 	const int BallMoveTicks = 100;
@@ -54,7 +54,7 @@ private:
 	std::map<int, model::Action> _actions;
 	std::map<int, BallEntity> _ballEntities;
 	std::optional<double> _oppStrikeTime;
-
+public:
 	void Init(const model::Rules& rules);
 
 	void InitAction(model::Action& action, int id);
@@ -100,12 +100,10 @@ private:
 		std::optional<double>& collisionT);
 
 	static Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position);
-
 	std::optional<double> GetOppStrikeTime(const model::Ball& ball, const std::vector<model::Robot>& oppRobots);
-	static model::Robot get_nearest_ball_robot(const BallEntity& ball_entity, const const std::vector<model::Robot>& oppRobots);
+	static model::Robot get_nearest_ball_robot(const BallEntity& ball_entity, const std::vector<model::Robot>& oppRobots);
 
 
-public:
     MyStrategy();
     void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;
 };
