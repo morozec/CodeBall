@@ -53,6 +53,7 @@ private:
 	bool _isFirstRobot = false;
 	std::map<int, model::Action> _actions;
 	std::map<int, BallEntity> _ballEntities;
+	std::optional<double> _oppStrikeTime;
 
 	void Init(const model::Rules& rules);
 
@@ -96,6 +97,9 @@ private:
 		std::optional<double>& collisionT);
 
 	static Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position);
+
+	std::optional<double> GetOppStrikeTime(const model::Ball& ball, const std::vector<model::Robot>& oppRobots);
+	static model::Robot get_nearest_ball_robot(const BallEntity& ball_entity, const const std::vector<model::Robot>& oppRobots);
 
 
 public:
