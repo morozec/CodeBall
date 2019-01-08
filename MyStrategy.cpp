@@ -824,7 +824,7 @@ bool MyStrategy::IsOkPosToJump(
 		}
 
 		double angle = GetVectorAngleToHorizontal(ballEntity2.Velocity);
-		if (angle >M_PI / 3) return false; //не бьем под большим углом к горизонтали
+		if (angle * directionCoeff > M_PI / 3) return false; //не бьем под большим углом к горизонтали
 
 		if (!IsGoalBallDirection2(ballEntity2, directionCoeff)) return false;
 		double velocityZ = ballEntity2.Velocity.Z;
@@ -865,6 +865,18 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const Ball& ball, const std::
 	auto nearest_robot_entity = RobotEntity(nearest_robot);
 
 	std::optional<double> collisionT;
+
+	if (!nearest_robot_entity.Touch)
+	{
+		collisionT = Simulator::GetCollisionT(
+			Helper::GetRobotPosition(nearest_robot),
+			Helper::GetRobotVelocity(nearest_robot),
+			Helper::GetBallPosition(ball),
+			Helper::GetBallVelocity(ball));
+		return collisionT;
+	}
+
+	
 	if (IsOkPosToJump(ball_entity, nearest_robot_entity, -1, collisionT))
 	{		
 		return collisionT;
