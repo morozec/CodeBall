@@ -753,12 +753,12 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 	std::optional<double>& collisionT)
 {	
 	const BallEntity ballEntity = _ballEntities[t];
-	if (_beforeStrikePoints.count(robot.id) > 0) //TODO: учесть время t - не всегда надо проверять
-	{
-		if (IsOkPosToMove(_beforeStrikePoints[robot.id], robot, ballEntity, t, directionCoeff, collisionT))
-			return _beforeStrikePoints[robot.id];
-		_beforeStrikePoints.erase(robot.id);
-	}
+	//if (_beforeStrikePoints.count(robot.id) > 0) //TODO: учесть время t - не всегда надо проверять
+	//{
+	//	if (IsOkPosToMove(_beforeStrikePoints[robot.id], robot, ballEntity, t, directionCoeff, collisionT))
+	//		return _beforeStrikePoints[robot.id];
+	//	_beforeStrikePoints.erase(robot.id);
+	//}
 
 	//код, чтобы сразу отбросить лишние варианты. TODO: оптимизировать
 	double robotBallDist = sqrt((ballEntity.Position.X - robot.x)* (ballEntity.Position.X - robot.x) +
