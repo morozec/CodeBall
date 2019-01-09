@@ -210,7 +210,7 @@ void MyStrategy::SimulateTickBall(BallEntity & ballEntity, bool & isGoalScored) 
 	ballEntity.IsArenaCollided = false;
 }
 
-void MyStrategy::SimulateTickRobot(RobotEntity & robotEntity) const
+void MyStrategy::SimulateTickRobot(RobotEntity & robotEntity, bool& isArenaCollided) const
 {
 	RobotEntity rec = RobotEntity(robotEntity);
 	bool isGoalScored;
@@ -220,9 +220,11 @@ void MyStrategy::SimulateTickRobot(RobotEntity & robotEntity) const
 		robotEntity = rec;
 		return;
 	}
-
+	
+	isArenaCollided = true;
 	Simulator::Tick(robotEntity);
-	robotEntity.IsArenaCollided = false;
+	robotEntity.IsArenaCollided = false; 
+	//сохраним флаг, коллизии робота с ареной, чтобы использовать потом (например, отбрасывать такие точки для защитника)
 }
 
 bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotEntity,
@@ -257,13 +259,17 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 	robotEntity.IsArenaCollided = false;
 
 	//ситуаци¤ за микротик до коллизии.
-	auto const collisionTicks = int(collisionT.value() / Constants::Rules.TICKS_PER_SECOND);
+	auto const collisionTicks = int(collisionT.value() * Constants::Rules.TICKS_PER_SECOND);
+	bool isArenaCollided = false;
 	for (int i = 1; i <= collisionTicks; ++i)
 	{
 		SimulateTickBall(ballEntity, isGoalScored);
-		SimulateTickRobot(robotEntity);
+		SimulateTickRobot(robotEntity, isArenaCollided);
 	}
-	auto const timeLeft = collisionT.value() - collisionTicks * Constants::Rules.TICKS_PER_SECOND;
+	robotEntity.IsArenaCollided = isArenaCollided;
+	//auto const collisionTicks = 0;
+
+	auto const timeLeft = collisionT.value() - collisionTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	auto const mtLeft = int(timeLeft * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
 
 	//TODO: Неточно, т.к. может быть коллизи¤ м¤ча с ареной или коллизи¤ робота с ареной
@@ -296,9 +302,9 @@ int MyStrategy::CompareBallVelocities(const Vector3D & v1, const std::optional<V
 
 	double v1HorAngle = GetVectorAngleToHorizontal(v1);
 	double v2HorAngle = GetVectorAngleToHorizontal(v2.value());
-	if (v1HorAngle > M_PI / 6 && v2HorAngle > M_PI / 6)
+	if (v1HorAngle > M_PI / 12 && v2HorAngle > M_PI / 12)
 		return abs(v1.Z) > abs(v2.value().Z) ? -1 : 1;
-	return v1HorAngle > v2HorAngle ? -1 : 1;
+	return v1.Y > v2.value().Y ? -1 : 1;
 }
 
 bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff) const
@@ -737,6 +743,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	std::optional<Vector3D> movePoint = std::nullopt;
 	isDefender = false;
 
+	int bestT = -1;
 	for (int t = 1; t <= BallMoveTicks; ++t)
 	{
 		if (_ballEntities.count(t) > 0) ballEntity = _ballEntities[t];
@@ -766,6 +773,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 				movePoint = Vector3D(_ballEntities[t].Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 					_ballEntities[t].Position.Z);
+				bestT = t;
 			}
 		}
 		else
@@ -780,6 +788,15 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				return movePoint;
 			}
 		}
+	}
+
+
+	if (movePoint != std::nullopt)
+	{
+		_drawSpheres.push_back(Sphere((*movePoint).X, (*movePoint).Y, (*movePoint).Z, 0.25, 1, 0, 0, 0.5));
+		_drawSpheres.push_back(Sphere(
+			_ballEntities[bestT].Position.X, _ballEntities[bestT].Position.Y, _ballEntities[bestT].Position.Z,
+			Constants::Rules.BALL_RADIUS, 1, 0, 0, 0.5));
 	}
 
 	return movePoint;
