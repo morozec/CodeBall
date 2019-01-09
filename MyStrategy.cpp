@@ -306,7 +306,7 @@ int MyStrategy::CompareBallVelocities(const Vector3D & v1, const std::optional<V
 
 	double v1HorAngle = GetVectorAngleToHorizontal(v1);
 	double v2HorAngle = GetVectorAngleToHorizontal(v2.value());
-	if (v1HorAngle > M_PI / 12 && v2HorAngle > M_PI / 12)
+	if (v1HorAngle > M_PI / 9 && v2HorAngle > M_PI / 9)
 		return abs(v1.Z) > abs(v2.value().Z) ? -1 : 1;
 	return v1.Y > v2.value().Y ? -1 : 1;
 }
