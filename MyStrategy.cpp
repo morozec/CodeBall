@@ -118,7 +118,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (_oppStrikeTime == std::nullopt || 
 				std::max(*collisionTimes[robot.id], *collisionTimes[otherRobot.id]) < _oppStrikeTime.value())
 			{
-				if (CompareBallVelocities(bestBallVelocities[robot.id], bestBallVelocities[otherRobot.id]) > 0)
+				if (!otherRobot.touch ||  //если один уже в воздухе, оптимизация не имеет смысла
+					CompareBallVelocities(bestBallVelocities[robot.id], bestBallVelocities[otherRobot.id]) > 0)
 				{
 					_actions[robot.id] =
 						GetDefaultAction(robot, robot.z < otherRobot.z ? _myGates : _beforeMyGates);
