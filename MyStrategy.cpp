@@ -503,30 +503,41 @@ bool MyStrategy::IsOkDefenderPosToJump(
 	//коллизи¤ вне штрафной площади
 	if (!IsPenaltyArea(moveTBallEntity.Position))
 		return false;
-
-	double hitE = (Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0;
-
-	bool isGoalScored;
-	Simulator::Update(robotEntity, moveTBallEntity,
-		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored);
-
-	if (moveTBallEntity.Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)
-		return false;
-
-	if (!moveTBallEntity.IsCollided) //веро¤тно, м¤ч ударилс¤ об арену. прыгать смысла нет
-	{
-		return false;
-	}
-
-	collisionBallVelocity = moveTBallEntity.Velocity;
-
-	if (moveTBallEntity.Velocity.Z >= 0) //выбиваем от ворот и вверх. TODO
-		return true;
-
-	if (!isMeGoalPossible) return false;
-	const auto isCollisionGoalPossible = IsGoalBallDirection2(moveTBallEntity, -1);
 	
-	return !isCollisionGoalPossible;
+
+	std::vector<double> hitEs = std::vector<double>();
+	hitEs.push_back(Constants::Rules.MIN_HIT_E);
+	hitEs.push_back(Constants::Rules.MAX_HIT_E);
+	bool isGoalScored;
+
+	for (double hitE : hitEs)
+	{
+		RobotEntity re2 = RobotEntity(robotEntity);
+		BallEntity ballEntity2 = BallEntity(moveTBallEntity);
+
+		Simulator::Update(re2, ballEntity2,
+			1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored);
+
+		if (ballEntity2.Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)
+			return false;
+
+		if (!ballEntity2.IsCollided) //веро¤тно, м¤ч ударилс¤ об арену. прыгать смысла нет
+		{
+			return false;
+		}
+
+		if (collisionBallVelocity == std::nullopt || ballEntity2.Velocity.Z < collisionBallVelocity.value().Z)
+			collisionBallVelocity = ballEntity2.Velocity;
+
+		if (ballEntity2.Velocity.Z < 0)
+		{
+			if (!isMeGoalPossible) return false;
+			const auto isCollisionGoalPossible = IsGoalBallDirection2(ballEntity2, -1);
+			if (isCollisionGoalPossible) return false;
+		}		
+	}
+	
+	return true;
 }
 
 std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & robot, const model::Ball & ball,
@@ -714,7 +725,7 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 		Vector3D(0, 1, 0),
 		0);
 
-	bool isOkPosToStrike = directionCoeff == 1 ?
+	const bool isOkPosToStrike = directionCoeff == 1 ?
 		IsOkPosToJump(BallEntity(ballEntity), robotE, collisionT) :
 		IsOkOppPosToJump(BallEntity(ballEntity), robotE, collisionT);
 
