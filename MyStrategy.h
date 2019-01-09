@@ -46,6 +46,7 @@ private:
 	Vector3D _myGates;
 	Vector3D _beforeMyGates;
 	double _distToFollowBall;
+	double _hitEs[2];
 	
 	std::map<int, Vector3D> _beforeStrikePoints;
 

@@ -172,6 +172,9 @@ void MyStrategy::Init(const model::Rules & rules)
 	_penaltyAreaZ = -rules.arena.depth / 4;
 	_penaltyMinX = -rules.arena.goal_width / 4 - (rules.arena.width / 2 - rules.arena.goal_width / 2) / 2;
 	_penaltyMaxX = rules.arena.goal_width / 4 + (rules.arena.width / 2 - rules.arena.goal_width / 2) / 2;
+
+	_hitEs[0]= Constants::Rules.MIN_HIT_E; 
+	_hitEs[1]= Constants::Rules.MAX_HIT_E; 
 }
 
 void MyStrategy::InitAction(model::Action& action, int id)
@@ -504,13 +507,9 @@ bool MyStrategy::IsOkDefenderPosToJump(
 	if (!IsPenaltyArea(moveTBallEntity.Position))
 		return false;
 	
-
-	std::vector<double> hitEs = std::vector<double>();
-	hitEs.push_back(Constants::Rules.MIN_HIT_E);
-	hitEs.push_back(Constants::Rules.MAX_HIT_E);
 	bool isGoalScored;
 
-	for (double hitE : hitEs)
+	for (double hitE : _hitEs)
 	{
 		RobotEntity re2 = RobotEntity(robotEntity);
 		BallEntity ballEntity2 = BallEntity(moveTBallEntity);
@@ -900,12 +899,8 @@ bool MyStrategy::IsOkPosToJump(
 
 	//симулируем коллизию
 	
-	std::vector<double> hitEs = std::vector<double>();
-	hitEs.push_back(Constants::Rules.MIN_HIT_E);
-	hitEs.push_back(Constants::Rules.MAX_HIT_E);
 	bool isGoalScored;
-
-	for(double hitE: hitEs)
+	for(double hitE: _hitEs)
 	{
 		RobotEntity re2 = RobotEntity(robotEntity);
 		BallEntity ballEntity2 = BallEntity(ballEntity);
@@ -941,12 +936,8 @@ bool MyStrategy::IsOkOppPosToJump(BallEntity ballEntity, RobotEntity & robotEnti
 
 	//симулируем коллизию
 
-	std::vector<double> hitEs = std::vector<double>();
-	hitEs.push_back(Constants::Rules.MIN_HIT_E);
-	hitEs.push_back(Constants::Rules.MAX_HIT_E);
 	bool isGoalScored;
-
-	for (double hitE : hitEs)
+	for (double hitE : _hitEs)
 	{
 		RobotEntity re2 = RobotEntity(robotEntity);
 		BallEntity ballEntity2 = BallEntity(ballEntity);
