@@ -316,6 +316,7 @@ int MyStrategy::CompareBallVelocities(const Vector3D & v1, const std::optional<V
 bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff) const
 {
 	if (startBallEntity.Velocity.Z * directionCoeff <= 0) return false;
+	if (abs(startBallEntity.Velocity.Z) < EPS) return false;
 
 	const auto distToGates = abs(Constants::Rules.arena.depth / 2 * directionCoeff - startBallEntity.Position.Z);
 	const auto timeToGates = distToGates / abs(startBallEntity.Velocity.Z);
@@ -323,8 +324,11 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 	const auto distToSide = startBallEntity.Velocity.X > 0 ?
 		abs(Constants::Rules.arena.width / 2 - startBallEntity.Position.X) :
 		abs(-Constants::Rules.arena.width / 2 - startBallEntity.Position.X);
-	const auto timeToSide = distToSide / abs(startBallEntity.Velocity.X);	
-	if (timeToSide < timeToGates) return false;
+	if (abs(startBallEntity.Velocity.X) > EPS)
+	{
+		const auto timeToSide = distToSide / abs(startBallEntity.Velocity.X);
+		if (timeToSide < timeToGates) return false;
+	}
 
 	const auto xForTimeToGates = startBallEntity.Position.X + startBallEntity.Velocity.X * timeToGates;
 	if (abs(xForTimeToGates) > Constants::Rules.arena.goal_width / 2 + Constants::Rules.arena.goal_side_radius + Constants::Rules.BALL_RADIUS)
