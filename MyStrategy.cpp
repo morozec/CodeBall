@@ -305,6 +305,30 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 {
 	if (startBallEntity.Velocity.Z * directionCoeff <= 0) return false;
 
+	const auto distToGates = abs(Constants::Rules.arena.depth / 2 * directionCoeff - startBallEntity.Position.Z);
+	const auto timeToGates = distToGates / abs(startBallEntity.Velocity.Z);
+
+	const auto distToSide = startBallEntity.Velocity.X > 0 ?
+		abs(Constants::Rules.arena.width / 2 - startBallEntity.Position.X) :
+		abs(-Constants::Rules.arena.width / 2 - startBallEntity.Position.X);
+	const auto timeToSide = distToSide / abs(startBallEntity.Velocity.X);	
+	if (timeToSide < timeToGates) return false;
+
+	const auto xForTimeToGates = startBallEntity.Position.X + startBallEntity.Velocity.X * timeToGates;
+	if (abs(xForTimeToGates) > Constants::Rules.arena.goal_width / 2 + Constants::Rules.arena.goal_side_radius + Constants::Rules.BALL_RADIUS)
+		return false;
+
+	const auto a = 1;
+	const auto b1 = -startBallEntity.Velocity.Y / Constants::Rules.GRAVITY;
+	const auto c = 2 * (Constants::Rules.arena.height - startBallEntity.Position.Y) / Constants::Rules.GRAVITY;
+	const auto d1 = b1 * b1 - a * c;
+	if (d1 > 0)
+	{
+		const auto timeToRoof = -b1 - sqrt(d1);
+		if (timeToRoof >= 0 && timeToRoof < timeToGates) 
+			return false;
+	}
+
 	BallEntity ballEntity = BallEntity(startBallEntity);
 
 	bool isGoalScored = false;
