@@ -68,8 +68,8 @@ public:
 	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity, 
 		std::optional<double>& collisionT) const;
 
-	bool IsPenaltyArea(const Vector3D& position);
-	double GetVectorAngleToHorizontal(const Vector3D& v);
+	bool IsPenaltyArea(const Vector3D& position, bool isDefender) const;
+	double GetVectorAngleToHorizontal(const Vector3D& v) const;
 	int CompareBallVelocities(const Vector3D& v1, const std::optional<Vector3D>& v2);
 	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff) const;
 
@@ -78,11 +78,13 @@ public:
 		std::optional<double>& collisionT, Vector3D& bestBallVelocity);
 	std::optional<Vector3D> GetDefenderStrikeBallVelocity(
 		const model::Robot& robot, int t, bool isMeGoalPossible,
+		bool isDefender,
 		std::optional<double>& collisionT, bool& isPassedBy);
 	bool IsOkDefenderPosToJump(const Vector3D & robotPosition, const Vector3D & robotVelocity,
 		const Vector3D& moveTBePosition, const Vector3D& moveTBeVelocity,
 		bool isMeGoalPossible,
-		std::optional<double>& collisionT, std::optional<Vector3D>& collisionBallVelocity);
+		bool isDefender,
+		std::optional<double>& jumpCollisionT, std::optional<Vector3D>& collisionBallVelocity);
 	std::optional<Vector3D> GetDefenderMovePoint(const model::Robot& robot, const model::Ball& ball,
 		bool isMeGoalPossible,
 		std::optional<double>& collisionT, Vector3D& bestBallVelocity);
