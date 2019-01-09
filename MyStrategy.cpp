@@ -16,9 +16,15 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		Constants::Rules = rules;
 		Init(rules);
 		DanCalculator::Init(rules.arena);
-	}
+	}	
 
 	_isFirstRobot = !_isFirstRobot;
+
+	if (abs(game.ball.z) > rules.arena.depth / 2 + game.ball.radius) //goal scored
+	{
+		return;
+	}
+
 	if (_isFirstRobot)
 	{
 		_ballEntities = std::map<int, BallEntity>();
@@ -31,12 +37,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		}
 
 		_oppStrikeTime = GetOppStrikeTime(game.ball, opp_robots);
-	}
-
-	if (abs(game.ball.z) > rules.arena.depth / 2 + game.ball.radius) //goal scored
-	{
-		return;
-	}
+	}	
 
 	if (!_isFirstRobot)
 	{
