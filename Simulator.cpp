@@ -130,39 +130,50 @@ PositionVelocityContainer Simulator::GetRobotPVContainer(
 		velocityPosSign = targetVelocity.X * velocity.Z - targetVelocity.Z * velocity.X;
 	}
 
-	Vector3D targetVelocityChange = targetVelocity - velocity;
-	double tvcLength2 = targetVelocityChange.Length2();
+	
 
 	//докручиваем до direction в рамках 1 тика
+	Vector3D targetVelocityChange = targetVelocity - velocity;
+	double tvcLength2 = targetVelocityChange.Length2();
+	if (tvcLength2 > Eps2 && 
+		getDirectionMicroTicks < ticks * Constants::Rules.MICROTICKS_PER_TICK &&
+		abs(targetVelocity.X * velocity.Z - targetVelocity.Z * velocity.X) > Eps)
+	{		
+		const auto aVectorLength = Constants::Rules.ROBOT_ACCELERATION * microTickTime;
+		const auto n = int(targetVelocityChange.Length() / aVectorLength);
 
-	if (abs(targetVelocity.X * velocity.Z - targetVelocity.Z * velocity.X) > Eps)
-		while (tvcLength2 > Eps2 && getDirectionMicroTicks < ticks * Constants::Rules.MICROTICKS_PER_TICK)
-		{			
+		if (n > 0)
+		{
+			targetVelocityChange.Normalize();
+			Vector3D tvc1 = targetVelocityChange * (Constants::Rules.ROBOT_ACCELERATION * microTickTime);
+			
+			position.Add(velocity * (n * microTickTime) + tvc1 *
+				(microTickTime * n * (n + 1) / 2.0));
+			if (isGettingCloser && !isPassedBy)
+			{
+				if (Helper::GetLength2(position, targetPosition) > distToTarget2) isPassedBy = true;
+			}
+
+			velocity = velocity + tvc1 * n;
+			getDirectionMicroTicks += n;
+		}
+
+		targetVelocityChange = targetVelocity - velocity;		
+		tvcLength2 = targetVelocityChange.Length2();
+
+		if (tvcLength2 > Eps2 &&
+			getDirectionMicroTicks < ticks * Constants::Rules.MICROTICKS_PER_TICK &&
+			abs(targetVelocity.X * velocity.Z - targetVelocity.Z * velocity.X) > Eps)
+		{
 			targetVelocityChange.Normalize();
 			velocity.Add(Helper::Clamp2(
 				targetVelocityChange * (Constants::Rules.ROBOT_ACCELERATION * microTickTime),
 				tvcLength2));
-			position.Add(velocity * microTickTime);
-
-			double newDistToTarget2 = Helper::GetLength2(position, targetPosition);
-			if (!isGettingCloser)
-			{
-				if (newDistToTarget2 < distToTarget2)
-				{
-					isGettingCloser = true;
-				}
-			}
-			else if (!isPassedBy)
-			{
-				if (newDistToTarget2 > distToTarget2) isPassedBy = true;
-			}
-			distToTarget2 = newDistToTarget2;
-
-			targetVelocityChange = targetVelocity - velocity;
-			tvcLength2 = targetVelocityChange.Length2();
+			position.Add(velocity * microTickTime);		
 
 			getDirectionMicroTicks += 1;
 		}
+	}
 
 	//остальные микротики тика докручивания движемся прямо
 	double addMoveMicroTicks = getDirectionMicroTicks % Constants::Rules.MICROTICKS_PER_TICK == 0
