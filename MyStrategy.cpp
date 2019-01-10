@@ -266,7 +266,7 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 	//ballEntity.Position.X += ballEntity.Velocity.X * 2 * mtTime;
 	//ballEntity.Position.Y += ballEntity.Velocity.Y * 2 * mtTime - Constants::Rules.GRAVITY * (2 * mtTime) * (2 * mtTime) / 2;
 	//ballEntity.Position.Z += ballEntity.Velocity.Z * 2 * mtTime;
-	//ballEntity.Velocity.Y -= Constants::Rules.GRAVITY * 2 * mtTime;;
+	//ballEntity.Velocity.Y -= Constants::Rules.GRAVITY * 2 * mtTime;
 
 
 	//считаем врем€ коллизии
@@ -280,64 +280,49 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 	auto const collisionMicroTicks = int(collisionT.value() * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
 	auto const t = collisionMicroTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
 
-	bool needBeSimulation = false;
-	const auto bePosition = Vector3D(
-		ballEntity.Position.X + ballEntity.Velocity.X * t,
-		ballEntity.Position.Y + ballEntity.Velocity.Y * t - Constants::Rules.GRAVITY * t * t / 2,
-		ballEntity.Position.Z + ballEntity.Velocity.Z * t);
-	Dan dan = DanCalculator::GetDanToArena(bePosition, Constants::Rules.arena);
-	if (ballEntity.Radius - dan.Distance > 0) needBeSimulation = true;
-
 	bool needReSimulation = false;
 	auto const rePosition = Vector3D(
 		robotEntity.Position.X + robotEntity.Velocity.X * t,
 		robotEntity.Position.Y + robotEntity.Velocity.Y * t - Constants::Rules.GRAVITY * t * t / 2,
 		robotEntity.Position.Z + robotEntity.Velocity.Z * t);
-	dan = DanCalculator::GetDanToArena(rePosition, Constants::Rules.arena);
+	Dan dan = DanCalculator::GetDanToArena(rePosition, Constants::Rules.arena);
 	if (robotEntity.Radius - dan.Distance > 0) needReSimulation = true;
+	if (needReSimulation) return false;//если робот ударитс€ о стену, не рассматриваем такой вариант
+
+	robotEntity.Position = rePosition;
+	robotEntity.Velocity.Y -= Constants::Rules.GRAVITY * t;
+
+
+	bool needBeSimulation = false;
+	const auto bePosition = Vector3D(
+		ballEntity.Position.X + ballEntity.Velocity.X * t,
+		ballEntity.Position.Y + ballEntity.Velocity.Y * t - Constants::Rules.GRAVITY * t * t / 2,
+		ballEntity.Position.Z + ballEntity.Velocity.Z * t);
+	dan = DanCalculator::GetDanToArena(bePosition, Constants::Rules.arena);
+	if (ballEntity.Radius - dan.Distance > 0) needBeSimulation = true;	
 
 	if (!needBeSimulation)
 	{
 		ballEntity.Position = bePosition;
-		ballEntity.Velocity.Y -= Constants::Rules.GRAVITY * t;;
-	}
-	if (!needReSimulation)
-	{
-		robotEntity.Position = rePosition;
-		robotEntity.Velocity.Y -= Constants::Rules.GRAVITY * t;
+		ballEntity.Velocity.Y -= Constants::Rules.GRAVITY * t;
+		return true;
 	}
 
-	if (!needBeSimulation && !needReSimulation) return true;
-
-	
-	bool isArenaCollided = false;
 	auto const collisionTicks = int(collisionT.value() * Constants::Rules.TICKS_PER_SECOND);
 	for (int i = 1; i <= collisionTicks; ++i)
 	{
-		if (needBeSimulation)
-			SimulateTickBall(ballEntity, isGoalScored);
-		if (needReSimulation)
-			SimulateTickRobot(robotEntity, isArenaCollided);
+		SimulateTickBall(ballEntity, isGoalScored);
 	}
-	robotEntity.IsArenaCollided = isArenaCollided;
 
 	auto const timeLeft = collisionT.value() - collisionTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	auto const mtLeft = int(timeLeft * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
 	auto const mtLeftTime = mtLeft * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
 
 	//TODO: Ќеточно, т.к. может быть коллизи§ м§ча с ареной или коллизи§ робота с ареной
-	if (needBeSimulation && needReSimulation)
-		Simulator::Update(robotEntity, ballEntity,
-			mtLeftTime,
-			(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
-	else if (needBeSimulation)
-		Simulator::Update(ballEntity,
-			mtLeftTime,
-			isGoalScored);
-	else //needReSimulation
-		Simulator::Update(robotEntity,
-			mtLeftTime,
-			isGoalScored);
+	Simulator::Update(ballEntity,
+		mtLeftTime,
+		isGoalScored);
+	
 	return true;
 }
 
