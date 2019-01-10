@@ -114,6 +114,8 @@ public:
 	std::optional<double> GetOppStrikeTime(const model::Ball& ball, const std::vector<model::Robot>& oppRobots);
 	static model::Robot get_nearest_ball_robot(const BallEntity& ball_entity, const std::vector<model::Robot>& oppRobots);
 
+	void UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity);
+
 
     MyStrategy();
     void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;
