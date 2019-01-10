@@ -48,7 +48,7 @@ void Simulator::CollideEntities(Entity & a, Entity & b, double hitE)
 
 std::optional<Vector3D> Simulator::CollideWithArena(Entity & e)
 {
-	Dan dan = DanCalculator::GetDanToArena(e.Position, Constants::Rules.arena);//первый аргумент обновится
+	Dan dan = DanCalculator::GetDanToArena(e.Position, Constants::Rules.arena);
 	double penetration = e.Radius - dan.Distance;
 	if (penetration > 0)
 	{
