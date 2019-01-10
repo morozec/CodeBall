@@ -200,18 +200,20 @@ model::Action MyStrategy::GetDefaultAction(const model::Robot & me, const Vector
 	return action;
 }
 
-void MyStrategy::SimulateTickBall(BallEntity & ballEntity, bool & isGoalScored) const
+BallEntity MyStrategy::SimulateTickBall(const BallEntity & ballEntity, bool & isGoalScored) const
 {
 	BallEntity bec = BallEntity(ballEntity);
 	Simulator::Update(bec, 1.0 / Constants::Rules.TICKS_PER_SECOND, isGoalScored);
 	if (!bec.IsArenaCollided)
 	{
-		ballEntity = bec;
-		return;
+		return bec;
 	}
 
-	Simulator::Tick(ballEntity);
-	ballEntity.IsArenaCollided = false;
+	bec = BallEntity(ballEntity);
+
+	Simulator::Tick(bec);
+	bec.IsArenaCollided = false;
+	return bec;
 }
 
 void MyStrategy::SimulateTickRobot(RobotEntity & robotEntity, bool& isArenaCollided) const
@@ -311,7 +313,7 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 	auto const collisionTicks = int(collisionT.value() * Constants::Rules.TICKS_PER_SECOND);
 	for (int i = 1; i <= collisionTicks; ++i)
 	{
-		SimulateTickBall(ballEntity, isGoalScored);
+		ballEntity = SimulateTickBall(ballEntity, isGoalScored);
 	}
 
 	auto const timeLeft = collisionT.value() - collisionTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND;
@@ -395,7 +397,7 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 
 	for (int t = 1; t <= BallMoveTicks; ++t)
 	{
-		SimulateTickBall(ballEntity, isGoalScored);
+		ballEntity = SimulateTickBall(ballEntity, isGoalScored);
 		if (isGoalScored) return true;
 		const auto isZIncreasing = ballEntity.Position.Z * directionCoeff > z * directionCoeff;		
 		if (!isZIncreasing) return false;
@@ -607,8 +609,8 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 		else
 		{
 			bool isGoalScored = false;
-			SimulateTickBall(ballEntity, isGoalScored);
-			_ballEntities[t]= ballEntity;
+			ballEntity = SimulateTickBall(ballEntity, isGoalScored);
+			_ballEntities[t] = ballEntity;
 		}
 
 		std::optional<double> curCollisionT = std::nullopt;
@@ -815,7 +817,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		else
 		{
 			bool isGoalScored;
-			SimulateTickBall(ballEntity, isGoalScored);
+			ballEntity = SimulateTickBall(ballEntity, isGoalScored);
 			_ballEntities[t]= ballEntity;
 		}
 
@@ -1070,7 +1072,7 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const Ball& ball, const std::
 		else
 		{
 			bool isGoalScored = false;
-			SimulateTickBall(ball_entity, isGoalScored);
+			ball_entity = SimulateTickBall(ball_entity, isGoalScored);
 			_ballEntities[t] = ball_entity;
 		}
 

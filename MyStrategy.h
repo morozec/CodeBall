@@ -63,7 +63,7 @@ public:
 
 	void InitAction(model::Action& action, int id);
 	model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos);	
-	void SimulateTickBall(BallEntity& ballEntity, bool& isGoalScored) const;
+	BallEntity SimulateTickBall(const BallEntity& ballEntity, bool& isGoalScored) const;
 	void SimulateTickRobot(RobotEntity& robotEntity, bool& isArenaCollided) const;
 	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity, 
 		std::optional<double>& collisionT) const;
