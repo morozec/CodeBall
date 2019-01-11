@@ -102,7 +102,7 @@ public:
 		bool isMeGoalPossible,
 		int startAttackTick,
 		const Vector3D& defenderPoint,
-		std::optional<double>& collisionT, Vector3D& bestBallVelocity);
+		std::optional<double>& collisionT, Vector3D& bestBallVelocity, bool& isDefender);
 	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, const BallEntity& ballEntity, int t,
 		int directionCoeff,
 		std::optional<double>& collisionT, std::optional<Vector3D>& bestBallVelocity);
