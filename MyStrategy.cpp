@@ -853,9 +853,16 @@ bool MyStrategy::IsOkDefenderPosToJump(
 			if (isCollisionGoalPossible) return false;
 		}
 
-		if (collisionBallVelocity == std::nullopt || ballEntity2.Velocity.Z < collisionBallVelocity.value().Z)
-			collisionBallVelocity = ballEntity2.Velocity;
+		/*if (collisionBallVelocity == std::nullopt || ballEntity2.Velocity.Z < collisionBallVelocity.value().Z)
+			collisionBallVelocity = ballEntity2.Velocity;*/
 	}
+
+	auto const hitE = (_hitEs[0] + _hitEs[1]) / 2.0;
+	RobotEntity re3 = RobotEntity(robotEntity);
+	BallEntity ballEntity3 = BallEntity(moveTBallEntity);
+	Simulator::Update(re3, ballEntity3,
+		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored);
+	collisionBallVelocity = ballEntity3.Velocity;
 
 	jumpCollisionT = jumpCollisionTCur;
 	return true;
@@ -1258,11 +1265,19 @@ bool MyStrategy::IsOkPosToJump(
 			if (IsGoalBallDirection2(prevBallEntity, directionCoeff)) 
 				return false;
 
-		if (bestBallVelocity == std::nullopt || ballEntity2.Velocity.Z < bestBallVelocity.value().Z)
-			bestBallVelocity = ballEntity2.Velocity;
+		/*if (bestBallVelocity == std::nullopt || ballEntity2.Velocity.Z < bestBallVelocity.value().Z)
+			bestBallVelocity = ballEntity2.Velocity;*/
 
 	}
 	collisionT = jumpCollisionT;
+
+	auto const hitE = (_hitEs[0] + _hitEs[1]) / 2.0;
+	RobotEntity re3 = RobotEntity(robotEntity);
+	BallEntity ballEntity3 = BallEntity(ballEntity);
+	Simulator::Update(re3, ballEntity3,
+		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored);
+	bestBallVelocity = ballEntity3.Velocity;
+
 	return true;
 }
 
