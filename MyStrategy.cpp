@@ -1226,7 +1226,7 @@ bool MyStrategy::IsOkPosToJump(
 {
 	const auto directionCoeff = 1;
 
-	if (Helper::GetLength2(robotEntity.Position, ballEntity.Position) > _maxStrikeDist2 + EPS)
+	if (ballEntity.Velocity.Z <=0 && Helper::GetLength2(robotEntity.Position, ballEntity.Position) > _maxStrikeDist2 + EPS)
 	{
 		collisionT = std::nullopt;
 		return false;
