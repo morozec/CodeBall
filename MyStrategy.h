@@ -57,6 +57,7 @@ private:
 	std::map<int, model::Action> _actions;
 	std::map<int, BallEntity> _ballEntities;
 	std::optional<double> _oppStrikeTime;
+	int _goalScoringTick;
 
 	std::vector<Sphere> _drawSpheres;
 public:

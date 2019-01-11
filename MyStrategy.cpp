@@ -37,6 +37,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		}
 
 		_oppStrikeTime = GetOppStrikeTime(game.ball, opp_robots);
+		_goalScoringTick = -1;
 	}	
 
 	if (!_isFirstRobot)
@@ -1085,6 +1086,9 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	int bestT = -1;
 	for (int t = startAttackTick; t <= startAttackTick + BallMoveTicks; ++t)
 	{
+		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
+			return movePoint;
+
 		auto ballEntity = _ballEntities[t];		
 
 		if (IsPenaltyArea(ballEntity.Position, false))//включаем режим защитника
@@ -1412,6 +1416,8 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 	{
 		ballEntity =  SimulateTickBall(ballEntity, isGoalScored);
 		_ballEntities[afterCollisionTick + i] = ballEntity;
+		if (_goalScoringTick == -1 && ballEntity.Position.Z > Constants::Rules.arena.depth / 2 + Constants::Rules.BALL_RADIUS)
+			_goalScoringTick = afterCollisionTick + i;
 	}
 
 	return afterCollisionTick;
