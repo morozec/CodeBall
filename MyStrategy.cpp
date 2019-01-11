@@ -1026,6 +1026,8 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 	int t, int directionCoeff, std::optional<double>& collisionT, std::optional<Vector3D>& bestBallVelocity)
 {
 	collisionT = std::nullopt;
+	bestBallVelocity = std::nullopt;
+
 	PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
 		Helper::GetRobotPosition(robot),
 		mePos,
@@ -1187,12 +1189,9 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 		(robot.z - ballEntity.Position.Z);
 	Vector3D rVector2 = Vector3D(x2 - ballEntity.Position.X, 0.0, z2 - ballEntity.Position.Z);
 
-	std::optional<Vector3D> ballVelocity = std::nullopt;
-
 	Vector3D mePos = Vector3D(ballEntity.Position.X, Constants::Rules.ROBOT_MIN_RADIUS, ballEntity.Position.Z);
-	if (IsOkPosToMove(mePos, robot, ballEntity, t, directionCoeff, collisionT, ballVelocity))
+	if (IsOkPosToMove(mePos, robot, ballEntity, t, directionCoeff, collisionT, bestBallVelocity))
 	{
-		bestBallVelocity = ballVelocity;
 		_beforeStrikePoints[robot.id] = mePos;
 		return mePos;
 	}
@@ -1202,9 +1201,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 		Vector3D rVectorMult1 = rVector1 * (i * 1.0 / StrikeSphereStepsCount);
 		Vector3D mePos1 = Vector3D(ballEntity.Position.X + rVectorMult1.X, Constants::Rules.ROBOT_MIN_RADIUS,
 			ballEntity.Position.Z + rVectorMult1.Z);
-		if (IsOkPosToMove(mePos1, robot, ballEntity, t, directionCoeff, collisionT, ballVelocity))
+		if (IsOkPosToMove(mePos1, robot, ballEntity, t, directionCoeff, collisionT, bestBallVelocity))
 		{
-			bestBallVelocity = ballVelocity;
 			_beforeStrikePoints[robot.id] = mePos1;
 			return mePos1;
 		}
@@ -1212,9 +1210,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 		Vector3D rVectorMult2 = rVector2 * (i * 1.0 / StrikeSphereStepsCount);
 		Vector3D mePos2 = Vector3D(ballEntity.Position.X + rVectorMult2.X, Constants::Rules.ROBOT_MIN_RADIUS,
 			ballEntity.Position.Z + rVectorMult2.Z);
-		if (IsOkPosToMove(mePos2, robot, ballEntity, t, directionCoeff, collisionT, ballVelocity))
+		if (IsOkPosToMove(mePos2, robot, ballEntity, t, directionCoeff, collisionT, bestBallVelocity))
 		{
-			bestBallVelocity = ballVelocity;
 			_beforeStrikePoints[robot.id] = mePos2;
 			return mePos2;
 		}
