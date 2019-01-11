@@ -594,8 +594,8 @@ bool MyStrategy::SimulateNoTouchEntitiesCollision(BallEntity & ballEntity, Robot
 
 bool MyStrategy::IsPenaltyArea(const Vector3D & position, bool isDefender) const
 {
-	if (isDefender)
-		return position.Z <= _penaltyAreaZ;
+	/*if (isDefender)
+		return position.Z <= _penaltyAreaZ;*/
 	return  position.Z < 0;
 }
 
