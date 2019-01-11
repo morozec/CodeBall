@@ -889,7 +889,30 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 			GetDefenderStrikeBallVelocity(robot, t, 1, isMeGoalPossible, true, curCollisionT, isPassedBy);
 
 		if (ballVelocity == std::nullopt) continue;
-		//TODO: если враг близко, надо брать минимальное время, а не наилучшую скорость
+
+		if (_oppStrikeTime.has_value() && collisionT.has_value())
+		{
+			if (collisionT.value() > _oppStrikeTime.value())
+			{
+				if (curCollisionT.value() >= collisionT.value())
+					continue;
+				else
+				{
+					bestBallVelocity = ballVelocity.value();
+					collisionT = curCollisionT.value();
+
+					movePoint = Vector3D(_ballEntities[t].Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
+						_ballEntities[t].Position.Z);
+					bestT = t;
+					continue;
+				}
+			}
+			else
+			{
+				if (curCollisionT.value() >= _oppStrikeTime.value())
+					continue;
+			}
+		}
 
 		if (CompareBallVelocities(*ballVelocity, bestBallVelocity) < 0)
 		{			
@@ -1109,11 +1132,32 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			bool isPassedBy = false;
 			std::optional<Vector3D> ballVelocity = 
 				GetDefenderStrikeBallVelocity(robot, t, startAttackTick, isMeGoalPossible, false, curCollisionT, isPassedBy);
-
-
-			//TODO: если враг близко, надо брать минимальное время, а не наилучшую скорость
-
 			if (ballVelocity == std::nullopt) continue;
+
+			if (_oppStrikeTime.has_value() && collisionT.has_value())
+			{
+				if (collisionT.value() > _oppStrikeTime.value())
+				{
+					if (curCollisionT.value() >= collisionT.value())
+						continue;
+					else
+					{
+						bestBallVelocity = ballVelocity.value();
+						collisionT = curCollisionT.value();
+
+						movePoint = Vector3D(_ballEntities[t].Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
+							_ballEntities[t].Position.Z);
+						bestT = t;
+						continue;
+					}
+				}
+				else
+				{
+					if (curCollisionT.value() >= _oppStrikeTime.value())
+						continue;
+				}
+			}
+			
 			if (CompareBallVelocities(ballVelocity.value(), bestBallVelocity) < 0)
 			{
 				bestBallVelocity = ballVelocity.value();
