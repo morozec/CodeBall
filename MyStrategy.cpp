@@ -1232,7 +1232,7 @@ bool MyStrategy::IsOkPosToJump(
 		return false;
 	}
 
-	auto const prevBallEntity = BallEntity(ballEntity);
+	//auto const prevBallEntity = BallEntity(ballEntity);
 
 	std::optional<double> jumpCollisionT = std::nullopt;
 	auto const isCollision = SimulateCollision(ballEntity, robotEntity, jumpCollisionT);
@@ -1257,13 +1257,11 @@ bool MyStrategy::IsOkPosToJump(
 		if (angle * directionCoeff > M_PI / 3) return false; //не бьем под большим углом к горизонтали
 
 		if (!IsGoalBallDirection2(ballEntity2, directionCoeff)) return false;
-		double velocityZ = ballEntity2.Velocity.Z;
+		/*double velocityZ = ballEntity2.Velocity.Z;
 		if (velocityZ * directionCoeff < prevBallEntity.Velocity.Z * directionCoeff)
 			if (IsGoalBallDirection2(prevBallEntity, directionCoeff)) 
-				return false;
+				return false;*/
 
-		/*if (bestBallVelocity == std::nullopt || ballEntity2.Velocity.Z < bestBallVelocity.value().Z)
-			bestBallVelocity = ballEntity2.Velocity;*/
 
 	}
 	collisionT = jumpCollisionT;
@@ -1281,7 +1279,7 @@ bool MyStrategy::IsOkPosToJump(
 bool MyStrategy::IsOkOppPosToJump(BallEntity ballEntity, RobotEntity & robotEntity, std::optional<double>& collisionT) const
 {
 	const auto directionCoeff = -1;
-	auto const prevBallEntity = BallEntity(ballEntity);
+	//auto const prevBallEntity = BallEntity(ballEntity);
 
 	std::optional<double> jumpCollisionT = std::nullopt;
 	auto const isCollision = SimulateCollision(ballEntity, robotEntity, jumpCollisionT);
@@ -1303,10 +1301,10 @@ bool MyStrategy::IsOkOppPosToJump(BallEntity ballEntity, RobotEntity & robotEnti
 		}
 
 		if (!IsGoalBallDirection2(ballEntity2, directionCoeff)) return false;
-		double velocityZ = ballEntity2.Velocity.Z;
+		/*double velocityZ = ballEntity2.Velocity.Z;
 		if (velocityZ * directionCoeff < prevBallEntity.Velocity.Z * directionCoeff)
 			if (IsGoalBallDirection2(prevBallEntity, directionCoeff))
-				return false;
+				return false;*/
 
 	}
 
