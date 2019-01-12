@@ -1620,7 +1620,7 @@ void MyStrategy::InitBallEntities(
 			_ballEntities[t].Position.X,
 			_ballEntities[t].Position.Y,
 			_ballEntities[t].Position.Z,
-			2, 1, 1, 0, 0.25
+			2, 1, 1, 0, 0.5
 		));
 		for (auto re:_robotEntities[t])
 		{
@@ -1628,7 +1628,7 @@ void MyStrategy::InitBallEntities(
 				re.Position.X,
 				re.Position.Y,
 				re.Position.Z,
-				1, 1, 0.5, 0, 0.25
+				1, 1, 0.5, 0, 0.5
 			));
 		}
 		
@@ -1674,6 +1674,23 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 
 		if (_goalScoringTick == -1 && ballEntity.Position.Z > Constants::Rules.arena.depth / 2 + Constants::Rules.BALL_RADIUS)
 			_goalScoringTick = afterCollisionTick + i;
+
+
+		_drawSpheres.push_back(Sphere(
+			_ballEntities[afterCollisionTick + i].Position.X,
+			_ballEntities[afterCollisionTick + i].Position.Y,
+			_ballEntities[afterCollisionTick + i].Position.Z,
+			2, 0, 1, 1, 0.25
+		));
+		for (auto re : _robotEntities[afterCollisionTick + i])
+		{
+			_drawSpheres.push_back(Sphere(
+				re.Position.X,
+				re.Position.Y,
+				re.Position.Z,
+				1, 0, 0.5, 1, 0.25
+			));
+		}
 	}
 
 	return afterCollisionTick;
