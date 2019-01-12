@@ -56,21 +56,23 @@ private:
 	bool _isFirstRobot = false;
 	std::map<int, model::Action> _actions;
 	std::map<int, BallEntity> _ballEntities;
+	std::map<int, std::vector<RobotEntity>> _robotEntities;
 	std::optional<double> _oppStrikeTime;
 	int _goalScoringTick;
 
 	std::vector<Sphere> _drawSpheres;
 	model::Ball _ball;
+	std::vector<model::Robot> _robots;
 public:
 	void Init(const model::Rules& rules);
 
 	void InitAction(model::Action& action, int id);
 
 	void InitJumpingRobotAction(const model::Robot& robot, const model::Ball& ball);
+	//std::vector<RobotEntity> GetJumpRobotEntities();
 
 	model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos);	
-	BallEntity SimulateTickBall(const BallEntity& ballEntity, bool& isGoalScored) const;
-	void SimulateTickRobot(RobotEntity& robotEntity, bool& isArenaCollided) const;
+	BallEntity SimulateTickBall(const BallEntity& ballEntity, std::vector<RobotEntity>& jumpRes, bool& isGoalScored) const;
 	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity, 
 		std::optional<double>& collisionT, int beforeTicks);
 	bool SimulateNoTouchEntitiesCollision(

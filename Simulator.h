@@ -11,6 +11,7 @@
 #include "PositionVelocityContainer.h"	
 #include "RobotEntity.h"	
 #include "BallEntity.h"	
+#include <vector>
 
 class Simulator {
 private:
@@ -28,9 +29,9 @@ public:
 		const Vector3D& startVelocity, int ticks, double velocityCoeff);	
 	static void Move(Entity & e, double deltaTime);
 	static std::optional<double> GetCollisionT(const Vector3D& pR, const Vector3D& vR, const Vector3D& pB, const Vector3D& vB);
-	static void Update(Entity& entity, double deltaTime, bool& isGoalScored);
+	static void Update(BallEntity& entity, std::vector<RobotEntity>& jumpRes, double deltaTime, bool& isGoalScored);
 	static void Update(RobotEntity& robot, BallEntity& ball, double deltaTime, double hitE, bool& isGoalScored);
-	static void Tick(Entity& ball);
+	static void Tick(BallEntity& ball, std::vector<RobotEntity>& jumpRes);
 	static void Tick(RobotEntity& robot, BallEntity ball);
 };
 

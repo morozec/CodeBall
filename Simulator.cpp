@@ -241,11 +241,46 @@ std::optional<double> Simulator::GetCollisionT(const Vector3D & pR, const Vector
 	return collisionT;
 }
 
-void Simulator::Update(Entity& entity, double deltaTime, bool & isGoalScored)
+void Simulator::Update(BallEntity& entity, std::vector<RobotEntity>& jumpRes, double deltaTime, bool & isGoalScored)
 {
 	Move(entity, deltaTime);
+	for (auto & re : jumpRes)
+	{
+		Move(re, deltaTime);
+		re.SetRadiusChangeSpeed(
+			abs(re.Radius - Constants::Rules.ROBOT_MAX_RADIUS) < Eps ? Constants::Rules.ROBOT_MAX_JUMP_SPEED : 0);
+	}	
+	
+
+	const auto hitE = (Constants::Rules.MAX_HIT_E + Constants::Rules.MIN_HIT_E) / 2.0;
+
+	for (int i = 0; i < jumpRes.size(); ++i)
+	{
+		for (int j = 0; j < i; ++j)
+		{
+			CollideEntities(jumpRes[i], jumpRes[j], hitE);
+		}
+	}
+	
+	for (auto & re : jumpRes)
+		CollideEntities(re, entity, hitE);
+
+	for (auto & re : jumpRes)
+	{
+		std::optional<Vector3D> collisionNormal = CollideWithArena(re);
+		if (collisionNormal == std::nullopt)
+			re.Touch = false;
+		else
+		{
+			re.Touch = true;
+			re.TouchNormal = *collisionNormal;
+		}
+	}	
+
 	CollideWithArena(entity);
-	if (entity.Radius < Constants::Rules.BALL_RADIUS - Eps) return;
+
+
+	//if (entity.Radius < Constants::Rules.BALL_RADIUS - Eps) return; //пережитк для робота
 
 	if (abs(entity.Position.Z) > Constants::Rules.arena.depth / 2 + entity.Radius)
 		isGoalScored = true;
@@ -336,13 +371,13 @@ void Simulator::Update(RobotEntity& robot, BallEntity& ball, double deltaTime, d
 	}*/
 }
 
-void Simulator::Tick(Entity& entity)
+void Simulator::Tick(BallEntity& entity, std::vector<RobotEntity>& jumpRes)
 {
 	double deltaTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	bool isGoalScored = false;
 	for (int i = 0; i < Constants::Rules.MICROTICKS_PER_TICK; ++i)
 	{
-		Update(entity, deltaTime / Constants::Rules.MICROTICKS_PER_TICK, isGoalScored);
+		Update(entity, jumpRes, deltaTime / Constants::Rules.MICROTICKS_PER_TICK, isGoalScored);
 	}
 }
 
