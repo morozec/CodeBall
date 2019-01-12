@@ -136,7 +136,7 @@ public:
 	void InitBallEntities(const model::Ball& ball, const std::vector<model::Robot>& robots,
 		std::map<int, std::optional<double>>& collisionTimes,
 		std::map<int, Vector3D>& bestBallVelocities);
-	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity, const model::Ball& ball);
+	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity);
 
 
     MyStrategy();
