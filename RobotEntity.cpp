@@ -12,6 +12,7 @@ RobotEntity::RobotEntity(const model::Robot & robot)
 	Nitro = robot.nitro_amount;
 	IsCollided = false;
 	IsArenaCollided = false;
+	Id = robot.id;
 }
 
 RobotEntity::RobotEntity(const RobotEntity & robotEntity)
@@ -27,9 +28,12 @@ RobotEntity::RobotEntity(const RobotEntity & robotEntity)
 	Action = robotEntity.Action;
 	IsCollided = robotEntity.IsCollided;
 	IsArenaCollided = robotEntity.IsArenaCollided;
+	Id = robotEntity.Id;
 }
 
-RobotEntity::RobotEntity(const Vector3D & position, const Vector3D & velocity, double radius, bool touch, const Vector3D touchNormal, double nitro)
+RobotEntity::RobotEntity(
+	const Vector3D & position, const Vector3D & velocity, double radius, bool touch, 
+	const Vector3D touchNormal, double nitro)
 {
 	Position = position;
 	Velocity = velocity;
@@ -39,6 +43,7 @@ RobotEntity::RobotEntity(const Vector3D & position, const Vector3D & velocity, d
 	Nitro = nitro;
 	IsCollided = false;
 	IsArenaCollided = false;
+	Id = -1;
 }
 
 double RobotEntity::GetMass()

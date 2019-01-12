@@ -72,7 +72,8 @@ public:
 	//std::vector<RobotEntity> GetJumpRobotEntities();
 
 	model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos);	
-	BallEntity SimulateTickBall(const BallEntity& ballEntity, std::vector<RobotEntity>& jumpRes, bool& isGoalScored) const;
+	BallEntity SimulateTickBall(
+		const BallEntity& ballEntity, std::vector<RobotEntity>& jumpRes, bool& isGoalScored, bool discardIsCollided) const;
 	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity, 
 		std::optional<double>& collisionT, int beforeTicks);
 	bool SimulateNoTouchEntitiesCollision(

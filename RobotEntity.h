@@ -25,6 +25,7 @@ struct RobotEntity :Entity {
 	Vector3D TouchNormal;
 	double Nitro;
 	model::Action Action;
+	int Id;
 };
 
 #endif
