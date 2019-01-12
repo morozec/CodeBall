@@ -611,9 +611,10 @@ bool MyStrategy::SimulateNoTouchEntitiesCollision(
 
 	//TODO: Неточно, т.к. может быть коллизи¤ м¤ча с ареной или коллизи¤ робота с ареной
 	ballEntity = BallEntity(collisionTickBe);
+	std::vector<RobotEntity> res = std::vector<RobotEntity>();//предполагаем, что за столь малое время коллизий с роботами не будет
 	bool isGoalScored;
 	Simulator::Update(ballEntity,
-		std::vector<RobotEntity>(),
+		res,
 		mtLeftTime,
 		isGoalScored);
 
