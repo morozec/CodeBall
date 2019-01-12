@@ -55,7 +55,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
 	
 	auto const ballEntity = BallEntity(game.ball);
-	auto const isMeGoalPossible = IsGoalBallDirection2(ballEntity, -1);
+	auto const isMeGoalPossible = IsGoalBallDirection2(ballEntity, -1, 0.0);
 
 	std::vector <Robot> myRobots = std::vector<Robot>();
 	Robot defender{};
@@ -476,7 +476,8 @@ BallEntity MyStrategy::SimulateTickBall(
 
 	Simulator::Update(bec, jumpResC, 1.0 / Constants::Rules.TICKS_PER_SECOND, isGoalScored);
 	if (!bec.IsArenaCollided && !bec.IsCollided)
-	{
+	{	
+
 		bool isJrCollided = false;
 		for (const auto& jr : jumpResC)
 		{
@@ -498,6 +499,9 @@ BallEntity MyStrategy::SimulateTickBall(
 
 	Simulator::Tick(bec, jumpRes);
 	bec.IsArenaCollided = false;
+	bec.IsCollided = false;
+	for (auto& jr : jumpRes)
+		jr.IsCollided = false;
 	return bec;
 }
 
@@ -541,15 +545,17 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 
 
 	//считаем время коллизии
-	collisionT = Simulator::GetCollisionT(robotEntity.Position, robotEntity.Velocity, ballEntity.Position,
+	const auto afterJumpCollisionT = Simulator::GetCollisionT(robotEntity.Position, robotEntity.Velocity, ballEntity.Position,
 		ballEntity.Velocity);
-	if (collisionT == std::nullopt) return false;
+	if (afterJumpCollisionT == std::nullopt) return false;
+
+	collisionT = afterJumpCollisionT.value() + 2.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
 
 	return SimulateNoTouchEntitiesCollision(
 		ballEntity,
 		robotEntity,
+		afterJumpCollisionT.value(),
 		collisionT.value(),
-		collisionT.value() + 2.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
 		beforeTicks);
 	
 }
@@ -644,7 +650,7 @@ int MyStrategy::CompareBallVelocities(const Vector3D & v1, const std::optional<V
 	return v1.Y > v2.value().Y ? -1 : 1;
 }
 
-bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff) const
+bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff, double ballEntityTime)
 {
 	if (startBallEntity.Velocity.Z * directionCoeff <= 0) return false;
 	if (abs(startBallEntity.Velocity.Z) < EPS) return false;
@@ -676,18 +682,39 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 			return false;
 	}
 
-	BallEntity ballEntity = BallEntity(startBallEntity);
+	
 
-	bool isGoalScored = false;
+	bool isGoalScored = false;	
+
+	const auto tick = int(ballEntityTime * Constants::Rules.TICKS_PER_SECOND);
+	const auto nextTick = tick + 1;
+	const auto nextTickTime = nextTick * 1.0 / Constants::Rules.TICKS_PER_SECOND;
+	const auto deltaTime = nextTickTime - ballEntityTime;
+
+	BallEntity ballEntity = BallEntity(startBallEntity);
+	ballEntity.Position.X += ballEntity.Velocity.X * deltaTime;
+	ballEntity.Position.Y += ballEntity.Velocity.Y * deltaTime - Constants::Rules.GRAVITY * deltaTime * deltaTime / 2.0;
+	ballEntity.Position.Z += ballEntity.Velocity.Z * deltaTime;
 	double z = ballEntity.Position.Z;
+
+	std::vector<RobotEntity> jumpResCur = std::vector<RobotEntity>();
+	for (auto & re : _robotEntities[nextTickTime - 1])
+	{
+		jumpResCur.push_back(RobotEntity(re));
+	}
 
 	for (int t = 1; t <= BallMoveTicks; ++t)
 	{
-		ballEntity = SimulateTickBall(ballEntity, std::vector<RobotEntity>(), isGoalScored);
+		ballEntity = SimulateTickBall(ballEntity, jumpResCur, isGoalScored);
 		if (isGoalScored) return true;
 		const auto isZIncreasing = ballEntity.Position.Z * directionCoeff > z * directionCoeff;		
 		if (!isZIncreasing) return false;
 		z = ballEntity.Position.Z;
+
+		jumpResCur.erase(
+			std::remove_if(
+				jumpResCur.begin(), jumpResCur.end(), [](RobotEntity re) {return re.IsArenaCollided; }), jumpResCur.end());
+		
 	}	
 	return false;
 }
@@ -874,7 +901,8 @@ bool MyStrategy::IsOkDefenderPosToJump(
 		if (ballEntity2.Velocity.Z < 0)
 		{
 			if (!isMeGoalPossible) return false;
-			const auto isCollisionGoalPossible = IsGoalBallDirection2(ballEntity2, -1);
+			const auto beTime = beforeTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionTCur.value();
+			const auto isCollisionGoalPossible = IsGoalBallDirection2(ballEntity2, -1, beTime);
 			if (isCollisionGoalPossible) return false;
 		}
 
@@ -998,7 +1026,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me, const model
 		jumpBallVelocity = std::nullopt;
 
 		auto const ballEntity = BallEntity(ball);
-		auto const isGoalPossible = IsGoalBallDirection2(ballEntity, -1);
+		auto const isGoalPossible = IsGoalBallDirection2(ballEntity, -1 , 0);
 		if (startAttackTick == 1 && IsOkDefenderPosToJump(
 			Helper::GetRobotPosition(me),
 			Helper::GetRobotVelocity(me),
@@ -1336,7 +1364,9 @@ bool MyStrategy::IsOkPosToJump(
 		double angle = GetVectorAngleToHorizontal(ballEntity2.Velocity);
 		if (angle * directionCoeff > M_PI / 3) return false; //не бьем под большим углом к горизонтали
 
-		if (!IsGoalBallDirection2(ballEntity2, directionCoeff)) return false;
+		const auto beTime = beforeTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
+
+		if (!IsGoalBallDirection2(ballEntity2, directionCoeff, beTime)) return false;
 		/*double velocityZ = ballEntity2.Velocity.Z;
 		if (velocityZ * directionCoeff < prevBallEntity.Velocity.Z * directionCoeff)
 			if (IsGoalBallDirection2(prevBallEntity, directionCoeff)) 
@@ -1381,7 +1411,8 @@ bool MyStrategy::IsOkOppPosToJump(
 			return false;
 		}
 
-		if (!IsGoalBallDirection2(ballEntity2, directionCoeff)) return false;
+		const auto beTime = beforeTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
+		if (!IsGoalBallDirection2(ballEntity2, directionCoeff, beTime)) return false;
 		/*double velocityZ = ballEntity2.Velocity.Z;
 		if (velocityZ * directionCoeff < prevBallEntity.Velocity.Z * directionCoeff)
 			if (IsGoalBallDirection2(prevBallEntity, directionCoeff))
@@ -1511,15 +1542,14 @@ void MyStrategy::InitBallEntities(
 		ball_entity = SimulateTickBall(ball_entity, jumpResCur, isGoalScored);	
 
 		_ballEntities[t] = ball_entity;
-		_robotEntities[t] = std::vector<RobotEntity>();
-		for (auto re:jumpResCur)
-		{
-			//TODO: проставить collisionTimes, bestBallVelocities для своих
-			if (!re.IsArenaCollided)
-			{
-				_robotEntities[t].push_back(re);
-			}
-		}
+
+		jumpResCur.erase(
+			std::remove_if(
+				jumpResCur.begin(), jumpResCur.end(), [](RobotEntity re) {return re.IsArenaCollided; }), jumpResCur.end());
+
+		_robotEntities[t] = jumpResCur;
+		//TODO: проставить collisionTimes, bestBallVelocities для своих
+
 	}
 
 	/*std::set<int> gotIds = std::set<int>();
