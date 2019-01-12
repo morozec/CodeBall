@@ -907,9 +907,10 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 
 		if (ballVelocity == std::nullopt) continue;
 
+		const auto tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 		if (_oppStrikeTime.has_value() && collisionT.has_value())
 		{
-			if (collisionT.value() > _oppStrikeTime.value())
+			if (collisionT.value() > _oppStrikeTime.value() - tickTime)
 			{
 				if (curCollisionT.value() >= collisionT.value())
 					continue;
@@ -926,7 +927,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 			}
 			else
 			{
-				if (curCollisionT.value() >= _oppStrikeTime.value())
+				if (curCollisionT.value() >= _oppStrikeTime.value() - tickTime)
 					continue;
 			}
 		}
@@ -1154,9 +1155,10 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				GetDefenderStrikeBallVelocity(robot, t, startAttackTick, isMeGoalPossible, false, curCollisionT, isPassedBy);
 			if (ballVelocity == std::nullopt) continue;
 
+			const auto tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 			if (_oppStrikeTime.has_value() && collisionT.has_value())
 			{
-				if (collisionT.value() > _oppStrikeTime.value())
+				if (collisionT.value() > _oppStrikeTime.value() - tickTime)
 				{
 					if (curCollisionT.value() >= collisionT.value())
 						continue;
@@ -1173,7 +1175,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				}
 				else
 				{
-					if (curCollisionT.value() >= _oppStrikeTime.value())
+					if (curCollisionT.value() >= _oppStrikeTime.value() - tickTime)
 						continue;
 				}
 			}
