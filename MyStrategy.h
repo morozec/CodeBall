@@ -71,8 +71,8 @@ public:
 	BallEntity SimulateTickBall(const BallEntity& ballEntity, bool& isGoalScored) const;
 	void SimulateTickRobot(RobotEntity& robotEntity, bool& isArenaCollided) const;
 	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity, 
-		std::optional<double>& collisionT) const;
-	bool SimulateNoTouchEntitiesCollision(BallEntity& ballEntity, RobotEntity& robotEntity, double collisionT) const;
+		std::optional<double>& collisionT);
+	bool SimulateNoTouchEntitiesCollision(BallEntity& ballEntity, RobotEntity& robotEntity, double collisionT);
 
 	bool IsPenaltyArea(const Vector3D& position, bool isDefender) const;
 	double GetVectorAngleToHorizontal(const Vector3D& v) const;
@@ -113,14 +113,14 @@ public:
 		const model::Robot& robot, int t, int directionCoeff, 
 		std::optional<double>& collisionT, std::optional<Vector3D>& bestBallVelocity);
 	bool IsOkPosToJump(
-		BallEntity ballEntity,
+		BallEntity& ballEntity,
 		RobotEntity& robotEntity,
 		std::optional<double>& collisionT, std::optional<Vector3D>& bestBallVelocity);
 
 	bool IsOkOppPosToJump(
-		BallEntity ballEntity,
+		BallEntity& ballEntity,
 		RobotEntity& robotEntity,
-		std::optional<double>& collisionT) const;
+		std::optional<double>& collisionT);
 
 	static Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position);
 	std::optional<double> GetOppStrikeTime(const model::Ball& ball, const std::vector<model::Robot>& oppRobots);
