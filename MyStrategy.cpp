@@ -30,6 +30,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	std::map<int, Vector3D> bestBallVelocities = std::map<int, Vector3D>();//TODO:если робот в воздухе - тут фигня
 	if (_isFirstRobot)
 	{
+		_oppStrikeTime = std::nullopt;
+		_drawSpheres = std::vector<Sphere>();
 		InitBallEntities(game.ball, game.robots, collisionTimes, bestBallVelocities);
 		_actions = std::map<int, model::Action > ();
 
@@ -48,7 +50,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		InitAction(action, me.id);
 		return;
 	}
-	_drawSpheres = std::vector<Sphere>();
+	
 
 	
 	auto const ballEntity = BallEntity(game.ball);
@@ -930,7 +932,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 		_drawSpheres.push_back(Sphere((*movePoint).X, (*movePoint).Y, (*movePoint).Z, 0.25, 0, 0, 1, 0.5));
 		_drawSpheres.push_back(Sphere(
 			_ballEntities[bestT].Position.X, _ballEntities[bestT].Position.Y, _ballEntities[bestT].Position.Z,
-			Constants::Rules.BALL_RADIUS, 0, 0, 1, 0.5));
+			Constants::Rules.BALL_RADIUS, 0, 0, 1, 0));
 	}
 	
 	return movePoint;
@@ -1099,7 +1101,7 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 			_drawSpheres.push_back(Sphere(pvContainer.Position.X, pvContainer.Position.Y, pvContainer.Position.Z, 1,
 				color, color, color, 0.5));
 			_drawSpheres.push_back(Sphere(ballEntity.Position.X, ballEntity.Position.Y, ballEntity.Position.Z,
-				Constants::Rules.BALL_RADIUS, 0, 1, 0, 0.5));
+				Constants::Rules.BALL_RADIUS, 0, 1, 0, 0));
 		}
 		collisionT = jumpCollisionT;
 		bestBallVelocity = ballVelocity;
@@ -1190,7 +1192,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		_drawSpheres.push_back(Sphere((*movePoint).X, (*movePoint).Y, (*movePoint).Z, 0.25, 1, 0, 0, 0.5));
 		_drawSpheres.push_back(Sphere(
 			_ballEntities[bestT].Position.X, _ballEntities[bestT].Position.Y, _ballEntities[bestT].Position.Z,
-			Constants::Rules.BALL_RADIUS, 1, 0, 0, 0.5));
+			Constants::Rules.BALL_RADIUS, 1, 0, 0, 0));
 	}
 
 	return movePoint;
@@ -1522,6 +1524,16 @@ void MyStrategy::InitBallEntities(
 			bestBallVelocities[bestRobot.id] = ballVelocity;
 		}
 	}
+
+	for (auto t = 1; t <= BallMoveTicks; ++t)
+	{
+		_drawSpheres.push_back(Sphere(
+			_ballEntities[t].Position.X,
+			_ballEntities[t].Position.Y,
+			_ballEntities[t].Position.Z,
+			2, 1, 1, 0, 0.25
+		));
+	}
 }
 
 int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity)
@@ -1568,9 +1580,10 @@ std::string MyStrategy::custom_rendering()
 		res += "\"a\":" + std::to_string(ds.a);
 		
 		res += "}";
-		res += "}";
-		if (i < _drawSpheres.size() - 1) res += ",";
+		res += "},";
+		//if (i < _drawSpheres.size() - 1) res += ",";
 	}
+	res += "{\"Text\": \"" + (_oppStrikeTime.has_value() ? std::to_string(*_oppStrikeTime * 60) : "-1") + "\"}";
 	res += "]";
 	return res;
 }
