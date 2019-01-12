@@ -105,9 +105,9 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				auto bestBallVelocity = Helper::GetBallVelocity(_ball);
 				Action robotAction = SetDefenderAction(
 					robot, game.ball, robot.id==defender.id ? _myGates : _beforeMyGates, isMeGoalPossible, collisionT, bestBallVelocity);
-				collisionTimes[defender.id] = collisionT;
-				bestBallVelocities[defender.id] = bestBallVelocity;
-				_actions[defender.id] = robotAction;
+				collisionTimes[robot.id] = collisionT;
+				bestBallVelocities[robot.id] = bestBallVelocity;
+				_actions[robot.id] = robotAction;
 			}
 		}
 		else
@@ -121,9 +121,9 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				Action robotAction = SetAttackerAction(
 					robot, game.ball, isMeGoalPossible, maxCollisionTick + AttackerAddTicks,
 					robot.id == defender.id ? _myGates : _beforeMyGates, collisionT, bestBallVelocity, isDefender);
-				collisionTimes[defender.id] = collisionT;
-				bestBallVelocities[defender.id] = bestBallVelocity;
-				_actions[defender.id] = robotAction;
+				collisionTimes[robot.id] = collisionT;
+				bestBallVelocities[robot.id] = bestBallVelocity;
+				_actions[robot.id] = robotAction;
 			}
 		}
 
@@ -438,11 +438,12 @@ BallEntity MyStrategy::SimulateTickBall(
 	bec = BallEntity(ballEntity);
 
 	Simulator::Tick(bec, jumpRes);
-	bec.IsArenaCollided = false;
+	bec.IsArenaCollided = false;	
+	bec.IsCollided = false;
+
 	if (discardIsCollided)
-		bec.IsCollided = false;
-	for (auto& jr : jumpRes)
-		jr.IsCollided = false;
+		for (auto& jr : jumpRes)
+			jr.IsCollided = false;
 	return bec;
 }
 
@@ -640,7 +641,7 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 	double z = ballEntity.Position.Z;
 
 	std::vector<RobotEntity> jumpResCur = std::vector<RobotEntity>();
-	for (auto & re : _robotEntities[nextTickTime - 1])
+	for (auto & re : _robotEntities[nextTick])
 	{
 		jumpResCur.push_back(RobotEntity(re));
 	}
@@ -773,7 +774,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikeBallVelocity(const model::R
 			curJumpCollisionT, collisionBallVelocity))
 		{			
 
-			if (CompareBallVelocities(*collisionBallVelocity, bestBallVelocity) < 0)
+			if (CompareBallVelocities(collisionBallVelocity.value(), bestBallVelocity) < 0)
 			{
 				double curCollisionT = moveT * 1.0 / Constants::Rules.TICKS_PER_SECOND + curJumpCollisionT.value();
 				if (bestBallVelocity != std::nullopt &&
@@ -1501,7 +1502,7 @@ void MyStrategy::InitBallEntities(
 
 				if (isTeammate)
 				{
-					collisionTimes[-1] = t * 1.0 / Constants::Rules.TICKS_PER_SECOND;//TODO
+					collisionTimes[re.Id] = t * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 				}
 				re.IsCollided = false;
 			}
