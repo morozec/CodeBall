@@ -60,6 +60,7 @@ private:
 	int _goalScoringTick;
 
 	std::vector<Sphere> _drawSpheres;
+	model::Ball _ball;
 public:
 	void Init(const model::Rules& rules);
 
@@ -71,8 +72,9 @@ public:
 	BallEntity SimulateTickBall(const BallEntity& ballEntity, bool& isGoalScored) const;
 	void SimulateTickRobot(RobotEntity& robotEntity, bool& isArenaCollided) const;
 	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity, 
-		std::optional<double>& collisionT);
-	bool SimulateNoTouchEntitiesCollision(BallEntity& ballEntity, RobotEntity& robotEntity, double collisionT);
+		std::optional<double>& collisionT, int beforeTicks);
+	bool SimulateNoTouchEntitiesCollision(
+		BallEntity& ballEntity, RobotEntity& robotEntity, double robotCollisionT, double ballCollisionT, int beforeTicks);
 
 	bool IsPenaltyArea(const Vector3D& position, bool isDefender) const;
 	double GetVectorAngleToHorizontal(const Vector3D& v) const;
@@ -92,6 +94,7 @@ public:
 		const Vector3D& moveTBePosition, const Vector3D& moveTBeVelocity,
 		bool isMeGoalPossible,
 		bool isDefender,
+		int beforeTicks,
 		std::optional<double>& jumpCollisionT, std::optional<Vector3D>& collisionBallVelocity);
 	std::optional<Vector3D> GetDefenderMovePoint(const model::Robot& robot, const model::Ball& ball,
 		bool isMeGoalPossible,
@@ -115,11 +118,13 @@ public:
 	bool IsOkPosToJump(
 		BallEntity& ballEntity,
 		RobotEntity& robotEntity,
+		int beforeTicks,
 		std::optional<double>& collisionT, std::optional<Vector3D>& bestBallVelocity);
 
 	bool IsOkOppPosToJump(
 		BallEntity& ballEntity,
 		RobotEntity& robotEntity,
+		int beforeTicks,
 		std::optional<double>& collisionT);
 
 	static Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position);
