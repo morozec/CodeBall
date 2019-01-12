@@ -65,8 +65,7 @@ public:
 
 	void InitAction(model::Action& action, int id);
 
-	void InitJumpingRobotAction(const model::Robot& robot, const model::Ball& ball,
-		std::map<int, std::optional<double>>& collisionTimes, std::map<int, Vector3D>& bestBallVelocities);
+	void InitJumpingRobotAction(const model::Robot& robot, const model::Ball& ball);
 
 	model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos);	
 	BallEntity SimulateTickBall(const BallEntity& ballEntity, bool& isGoalScored) const;
@@ -127,7 +126,9 @@ public:
 	std::optional<double> GetOppStrikeTime(const model::Ball& ball, const std::vector<model::Robot>& oppRobots);
 	static model::Robot get_nearest_ball_robot(const BallEntity& ball_entity, const std::vector<model::Robot>& oppRobots);
 
-	void InitBallEntities(const model::Ball& ball);
+	void InitBallEntities(const model::Ball& ball, const std::vector<model::Robot>& robots,
+		std::map<int, std::optional<double>>& collisionTimes,
+		std::map<int, Vector3D>& bestBallVelocities);
 	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity);
 
 

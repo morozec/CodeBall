@@ -4,6 +4,7 @@
 #include <cmath>
 #include <sstream>
 #include <algorithm>
+#include <set>
 
 using namespace model;
 
@@ -25,9 +26,11 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		return;
 	}
 
+	std::map<int, std::optional<double>> collisionTimes = std::map<int, std::optional<double>>();
+	std::map<int, Vector3D> bestBallVelocities = std::map<int, Vector3D>();//TODO:если робот в воздухе - тут фигня
 	if (_isFirstRobot)
 	{
-		InitBallEntities(game.ball);
+		InitBallEntities(game.ball, game.robots, collisionTimes, bestBallVelocities);
 		_actions = std::map<int, model::Action > ();
 
 		std::vector<Robot> opp_robots = std::vector<Robot>();
@@ -35,8 +38,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		{
 			if (!robot.is_teammate) opp_robots.push_back(robot);
 		}
-
-		_oppStrikeTime = GetOppStrikeTime(game.ball, opp_robots);
+		if (!_oppStrikeTime.has_value())//м.б. установлено в InitBallEntities
+			_oppStrikeTime = GetOppStrikeTime(game.ball, opp_robots);
 		_goalScoringTick = -1;
 	}	
 
@@ -47,14 +50,13 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	}
 	_drawSpheres = std::vector<Sphere>();
 
-	std::map<int, std::optional<double>> collisionTimes = std::map<int, std::optional<double>>();
-	std::map<int, Vector3D> bestBallVelocities = std::map<int, Vector3D>();//TODO:если робот в воздухе - тут фигня
+	
 	auto const ballEntity = BallEntity(game.ball);
 	auto const isMeGoalPossible = IsGoalBallDirection2(ballEntity, -1);
 
 	std::vector <Robot> myRobots = std::vector<Robot>();
 	Robot defender{};
-	std::vector<Robot> attackes = std::vector<Robot>();
+	std::vector<Robot> attackers = std::vector<Robot>();
 	bool isJumping = false;
 
 
@@ -65,7 +67,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		if (!robot.touch)
 		{
 			isJumping = true;
-			InitJumpingRobotAction(robot, game.ball, collisionTimes, bestBallVelocities);
+			InitJumpingRobotAction(robot, game.ball);
 		}
 
 		bool meIsDefender = true;
@@ -78,7 +80,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		if (meIsDefender)
 			defender = robot;
 		else
-			attackes.push_back(robot);
+			attackers.push_back(robot);
 	}
 
 	bool isDefender = false;
@@ -140,7 +142,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				bestBallVelocities[defender.id] = bestBallVelocity;
 				_actions[defender.id] = robotAction;
 			}
-			for (auto attacker:attackes)
+			for (auto attacker:attackers)
 			{
 				if (!attacker.touch) continue;
 
@@ -156,7 +158,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	else
 	{
 		
-		for (auto attacker : attackes)
+		for (auto attacker : attackers)
 		{
 			Vector3D attBestBallVelocity = Helper::GetBallVelocity(game.ball);
 			std::optional<double> attCollisionT = std::nullopt;
@@ -188,7 +190,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			{
 				const auto afterCollisionTick = UpdateBallEntities(collisionTimes[defender.id].value(), bestBallVelocities[defender.id]);
 
-				for (auto attacker : attackes)
+				for (auto attacker : attackers)
 				{
 					Vector3D attBestBallVelocity = Helper::GetBallVelocity(game.ball);
 					std::optional<double> attCollisionT = std::nullopt;
@@ -203,7 +205,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			{
 				int bestAttCollisionTId = -1;
 
-				for (auto attacker : attackes)
+				for (auto attacker : attackers)
 				{
 					Vector3D attBestBallVelocity = Helper::GetBallVelocity(game.ball);
 					std::optional<double> attCollisionT = std::nullopt;
@@ -428,8 +430,7 @@ void MyStrategy::InitAction(model::Action& action, int id)
 	action.use_nitro = _actions[id].use_nitro;
 }
 
-void MyStrategy::InitJumpingRobotAction(const Robot& robot,  const Ball& ball, 
-	std::map<int, std::optional<double>>& collisionTimes, std::map<int, Vector3D>& bestBallVelocities)
+void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 {
 	Action robotAction = model::Action();
 
@@ -441,31 +442,8 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot,  const Ball& ball,
 	Simulator::Tick(re, BallEntity(ball));
 	if (!re.IsArenaCollided) robotAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
 	_actions[robot.id] = robotAction;
-	auto collisionT = Simulator::GetCollisionT(
-		Helper::GetRobotPosition(robot),
-		Helper::GetRobotVelocity(robot),
-		Helper::GetBallPosition(ball),
-		Helper::GetBallVelocity(ball));
-	collisionTimes[robot.id] = collisionT;
 
-	if (collisionT != std::nullopt)
-	{
-		auto collisionBe = BallEntity(ball);
-		auto collisionRe = RobotEntity(robot);
-		collisionRe.Action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-		const auto isCollision = SimulateNoTouchEntitiesCollision(collisionBe, collisionRe, collisionT.value());
-		if (isCollision)
-		{
-			auto delta = collisionBe.Position - collisionRe.Position;
-			auto dl = delta.Length();
-
-			const auto hitE = (_hitEs[0] + _hitEs[1]) / 2;
-			bool isGoalScored;
-			Simulator::Update(collisionRe, collisionBe,
-				1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored);
-			bestBallVelocities[robot.id] = collisionBe.Velocity;
-		}//TODO: если !isCollision, надо сбросить bestBallVelocities[defender.id] в null
-	}
+	//collisionTimes, bestBallVelocities установятся в InitBallEntities
 }
 
 model::Action MyStrategy::GetDefaultAction(const model::Robot & me, const Vector3D & defaultPos)
@@ -1426,15 +1404,79 @@ model::Robot MyStrategy::get_nearest_ball_robot(const BallEntity& ball_entity, c
 
 }
 
-void MyStrategy::InitBallEntities(const model::Ball& ball)
+void MyStrategy::InitBallEntities(
+	const model::Ball& ball, const std::vector<Robot>& robots,
+	std::map<int, std::optional<double>>& collisionTimes,
+	std::map<int, Vector3D>& bestBallVelocities)
 {
 	_ballEntities = std::map<int, BallEntity>();
 	auto ball_entity = BallEntity(ball);
 	bool isGoalScored = false;
+
 	for (auto t = 1; t <= BallMoveTicks; ++t)
-	{		
+	{
 		ball_entity = SimulateTickBall(ball_entity, isGoalScored);
 		_ballEntities[t] = ball_entity;
+	}
+
+	std::set<int> gotIds = std::set<int>();
+	auto const ballVelocity = Helper::GetBallVelocity(ball);
+
+	while (true)
+	{
+		auto minCollisionT = std::numeric_limits<double>::max();
+		auto needCalc = false;
+		Robot bestRobot{};
+		for (auto robot : robots)
+		{
+			if (robot.touch) continue;
+
+			if (gotIds.find(robot.id) != gotIds.end()) continue;
+			gotIds.insert(robot.id);
+
+			auto collisionT = Simulator::GetCollisionT(
+				Helper::GetRobotPosition(robot),
+				Helper::GetRobotVelocity(robot),
+				Helper::GetBallPosition(ball),
+				Helper::GetBallVelocity(ball));
+			if (robot.is_teammate)
+			{
+				collisionTimes[robot.id] = collisionT;
+				bestBallVelocities[robot.id] = ballVelocity;
+			}
+
+			if (!collisionT.has_value()) continue;
+			if (!robot.is_teammate) _oppStrikeTime = collisionT;
+
+			needCalc = true;
+			if (collisionT.value() < minCollisionT)
+			{
+				minCollisionT = collisionT.value();
+				bestRobot = robot;
+			}
+		}
+
+		if (!needCalc) break;
+
+		auto collisionBe = BallEntity(ball);
+		auto collisionRe = RobotEntity(bestRobot);
+		collisionRe.Action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+		const auto isCollision = SimulateNoTouchEntitiesCollision(collisionBe, collisionRe, minCollisionT);
+		if (isCollision)
+		{			
+			const auto hitE = (_hitEs[0] + _hitEs[1]) / 2;
+			Simulator::Update(collisionRe, collisionBe,
+				1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored);
+			if (bestRobot.is_teammate)
+				bestBallVelocities[bestRobot.id] = collisionBe.Velocity;
+
+			UpdateBallEntities(minCollisionT, collisionBe.Velocity);
+		}
+		else if (bestRobot.is_teammate)
+		{
+			collisionTimes[bestRobot.id] = std::nullopt;
+			bestBallVelocities[bestRobot.id] = ballVelocity;
+		}
 	}
 }
 
