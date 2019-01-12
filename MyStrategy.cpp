@@ -106,7 +106,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
 		if (bestCollisionTimeId >= 0 || isCollisionTime && !defender.touch)
 		{
-			const auto afterCollisionTick = UpdateBallEntities(collisionTimes[bestCollisionTimeId].value(), bestBallVelocities[bestCollisionTimeId]);
+			const auto afterCollisionTick = UpdateBallEntities
+			(collisionTimes[bestCollisionTimeId].value(), bestBallVelocities[bestCollisionTimeId], game.ball);
 			for (auto robot:myRobots)
 			{
 				if (!robot.touch) continue;
@@ -190,7 +191,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
 			if (collisionT != std::nullopt && (_oppStrikeTime == std::nullopt || collisionT.value() < _oppStrikeTime.value()))
 			{
-				const auto afterCollisionTick = UpdateBallEntities(collisionTimes[defender.id].value(), bestBallVelocities[defender.id]);
+				const auto afterCollisionTick = UpdateBallEntities(
+					collisionTimes[defender.id].value(), bestBallVelocities[defender.id], game.ball);
 
 				for (auto attacker : attackers)
 				{
@@ -227,7 +229,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				if (bestAttCollisionTId >= 0 &&
 					(_oppStrikeTime == std::nullopt || collisionTimes[bestAttCollisionTId].value() < _oppStrikeTime.value()))
 				{
-					const auto afterCollisionTick = UpdateBallEntities(collisionTimes[bestAttCollisionTId].value(), bestBallVelocities[bestAttCollisionTId]);
+					const auto afterCollisionTick = UpdateBallEntities(
+						collisionTimes[bestAttCollisionTId].value(), bestBallVelocities[bestAttCollisionTId], game.ball);
 
 					Vector3D defBestBallVelocity = Helper::GetBallVelocity(game.ball);
 					std::optional<double> defCollisionT = std::nullopt;
@@ -1516,7 +1519,7 @@ void MyStrategy::InitBallEntities(
 			if (bestRobot.is_teammate)
 				bestBallVelocities[bestRobot.id] = collisionBe.Velocity;
 
-			UpdateBallEntities(minCollisionT, collisionBe.Velocity);
+			UpdateBallEntities(minCollisionT, collisionBe.Velocity, ball);
 		}
 		else if (bestRobot.is_teammate)
 		{
@@ -1536,11 +1539,12 @@ void MyStrategy::InitBallEntities(
 	}
 }
 
-int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity)
+int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity,
+	const model::Ball& ball)
 {
 	auto const preCollisionTick = int(collisionTime * Constants::Rules.TICKS_PER_SECOND);
 	auto const afterCollisionTick = preCollisionTick + 1;
-	auto ballEntity = _ballEntities[preCollisionTick];
+	auto ballEntity = preCollisionTick == 0? BallEntity(ball) : _ballEntities[preCollisionTick];
 	const auto beforeCollisionDeltaTime = collisionTime - preCollisionTick * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	bool isGoalScored;
 	Simulator::Update(ballEntity, beforeCollisionDeltaTime, isGoalScored);
