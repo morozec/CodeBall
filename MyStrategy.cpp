@@ -114,7 +114,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				Vector3D bestBallVelocity = Helper::GetBallVelocity(game.ball);
 				std::optional<double> collisionT = std::nullopt;
 				const Action robotAction = SetAttackerAction(
-					robot, game.ball, isMeGoalPossible, afterCollisionTick + AttackerAddTicks, 
+					robot, game.ball, isMeGoalPossible, 0 + AttackerAddTicks, //TODO: время начала атаки
 					robot.id == defender.id ? _myGates : _beforeMyGates,
 					collisionT, bestBallVelocity, isDefender);
 				collisionTimes[robot.id] = collisionT;
