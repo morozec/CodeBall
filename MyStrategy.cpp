@@ -467,40 +467,50 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 
 	//симулируем отрыв от земли - на это надо 2 микротика
 	bool isGoalScored = false;
-	Simulator::Update(robotEntity, ballEntity,
+	/*Simulator::Update(robotEntity, ballEntity,
 		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
 		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
 	Simulator::Update(robotEntity, ballEntity,
 		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
 		(Constants::Rules.MIN_HIT_E + Constants::Rules.MAX_HIT_E) / 2.0, isGoalScored);
-	//const auto mtTime = 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
-	//for (int i = 0; i < 2; ++i)
-	//{
-	//	Simulator::Update(robotEntity,
-	//		mtTime,
-	//		isGoalScored);
-	//}
-	////TODO: здесь теоретически мяч может врезаться в стену	
-	//ballEntity.Position.X += ballEntity.Velocity.X * 2 * mtTime;
-	//ballEntity.Position.Y += ballEntity.Velocity.Y * 2 * mtTime - Constants::Rules.GRAVITY * (2 * mtTime) * (2 * mtTime) / 2;
-	//ballEntity.Position.Z += ballEntity.Velocity.Z * 2 * mtTime;
-	//ballEntity.Velocity.Y -= Constants::Rules.GRAVITY * 2 * mtTime;
-
+	*/
 
 	//считаем время коллизии
-	const auto afterJumpCollisionT = Simulator::GetCollisionT(robotEntity.Position, robotEntity.Velocity, ballEntity.Position,
-		ballEntity.Velocity);
-	if (afterJumpCollisionT == std::nullopt) return false;
 
-	collisionT = afterJumpCollisionT.value() + 2.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+	auto jumpRes = std::vector<RobotEntity>();
+	for (const auto & re : _robotEntities[beforeTicks])
+	{
+		jumpRes.push_back(RobotEntity(re));
+	}
+	jumpRes.push_back(robotEntity);
+
+	Simulator::Update(
+		ballEntity,
+		jumpRes,
+		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
+		isGoalScored);
+	Simulator::Update(
+		ballEntity,
+		jumpRes,
+		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
+		isGoalScored);
+
+	std::optional<double> afterJumpCollisionT = std::nullopt;
+	const auto isCol = SimulateFullCollision(ballEntity, jumpRes, afterJumpCollisionT);
+	if (isCol)
+		collisionT = afterJumpCollisionT.value() +
+		2.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+	return isCol;
+
+	
+	/*collisionT = afterJumpCollisionT.value() + twoMtsTime;
 
 	return SimulateNoTouchEntitiesCollision(
 		ballEntity,
 		robotEntity,
 		afterJumpCollisionT.value(),
 		collisionT.value(),
-		beforeTicks);
-	
+		beforeTicks);	*/
 }
 
 bool MyStrategy::SimulateNoTouchEntitiesCollision(
@@ -565,6 +575,73 @@ bool MyStrategy::SimulateNoTouchEntitiesCollision(
 		isGoalScored);
 
 	return true;
+}
+
+
+bool MyStrategy::SimulateFullCollision(
+	BallEntity & be, std::vector<RobotEntity>& res, std::optional<double>& collisionT) const
+{
+	bool isGoalScored;
+	double t = 0;
+	while (true)
+	{
+		auto minCollisionT = std::numeric_limits<double>::max();
+		Entity* e1 = nullptr;
+		Entity* e2 = nullptr;
+
+		for (auto & re : res)
+		{
+			const auto curCollisionT = Simulator::GetCollisionT(
+				re.Position, re.Velocity, be.Position, be.Velocity, re.Radius, be.Radius);
+			if (curCollisionT == std::nullopt) continue;
+			if (curCollisionT.value() < minCollisionT)
+			{
+				minCollisionT = curCollisionT.value();
+				e1 = &re;
+				e2 = &be;
+			}
+		}
+
+		for (auto i = 0; i < res.size(); ++i)
+		{
+			auto reI = res.at(i);
+			for (int j = 0; j < i; ++j)
+			{
+				auto reJ = res.at(j);
+				const auto curCollisionT = Simulator::GetCollisionT(
+					reI.Position, reI.Velocity, reJ.Position, reJ.Velocity, reI.Radius, reJ.Radius);
+				if (curCollisionT == std::nullopt) continue;
+				if (curCollisionT.value() < minCollisionT)
+				{
+					minCollisionT = curCollisionT.value();
+					e1 = &reI;
+					e2 = &reJ;
+				}
+			}			
+		}
+		if (e1 == nullptr && e2 == nullptr)
+		{
+			collisionT = std::nullopt;
+			return false;
+		}
+
+		t += minCollisionT;
+		const auto minCollisionMicroTicks = int(
+			minCollisionT * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
+		const auto beforCollisionTime =
+			minCollisionMicroTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+
+		Simulator::Update(be, res, beforCollisionTime, isGoalScored);
+
+		if (e2 == &be) 
+		{
+			collisionT = t;
+			return true;//выходим за микротик до коллизии с мячом
+		}
+		Simulator::Update(
+			be, res, 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK, isGoalScored);
+	}
+	throw "WHY AM I HERE?";
 }
 
 bool MyStrategy::IsPenaltyArea(const Vector3D & position, bool isDefender) const

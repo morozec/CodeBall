@@ -11,6 +11,7 @@ struct Constants
 {
 public:
 	static model::Rules Rules;
+	static int MAX_ROBOTS_COUNT;
 };
 
 #endif

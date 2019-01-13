@@ -224,14 +224,15 @@ PositionVelocityContainer Simulator::GetRobotPVContainer(
 	return PositionVelocityContainer(position, velocity, isPassedBy);
 }
 
-std::optional<double> Simulator::GetCollisionT(const Vector3D & pR, const Vector3D & vR, const Vector3D & pB, const Vector3D & vB)
+std::optional<double> Simulator::GetCollisionT(
+	const Vector3D & pR, const Vector3D & vR, const Vector3D & pB, const Vector3D & vB, double r1, double r2)
 {
 	double bDiv2 = (vB.X - vR.X) * (pB.X - pR.X) + (vB.Y - vR.Y) * (pB.Y - pR.Y) +
 		(vB.Z - vR.Z) * (pB.Z - pR.Z);
 	double a = (vB.X - vR.X) * (vB.X - vR.X) + (vB.Y - vR.Y) * (vB.Y - vR.Y) + (vB.Z - vR.Z) * (vB.Z - vR.Z);
 	double c = (pB.X - pR.X) * (pB.X - pR.X) + (pB.Y - pR.Y) * (pB.Y - pR.Y) + (pB.Z - pR.Z) * (pB.Z - pR.Z) -
-		(Constants::Rules.BALL_RADIUS + Constants::Rules.ROBOT_MAX_RADIUS) *
-		(Constants::Rules.BALL_RADIUS + Constants::Rules.ROBOT_MAX_RADIUS);
+		(r1 + r2) *
+		(r1 + r2);
 
 	double d1 = bDiv2 * bDiv2 - a * c;
 	if (d1 < 0) return std::nullopt; // no collision

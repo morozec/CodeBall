@@ -79,6 +79,8 @@ public:
 	bool SimulateNoTouchEntitiesCollision(
 		BallEntity& ballEntity, RobotEntity& robotEntity, double robotCollisionT, double ballCollisionT, int beforeTicks);
 
+	bool SimulateFullCollision(BallEntity & be, std::vector<RobotEntity>& res, std::optional<double>& collisionT) const;
+
 	bool IsPenaltyArea(const Vector3D& position, bool isDefender) const;
 	double GetVectorAngleToHorizontal(const Vector3D& v) const;
 	int CompareBallVelocities(const Vector3D& v1, const std::optional<Vector3D>& v2);
@@ -137,6 +139,8 @@ public:
 		std::map<int, Vector3D>& bestBallVelocities);
 	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity);
 
+
+	
 
     MyStrategy();
     void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;

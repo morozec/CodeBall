@@ -11,6 +11,7 @@
 #include "model/Robot.h"
 
 struct RobotEntity :Entity {
+	RobotEntity() { Touch = true; Nitro = 0; Id = -1; };
 	RobotEntity(const model::Robot& robot);
 	RobotEntity(const RobotEntity& robotEntity);
 	RobotEntity(const Vector3D& position, const Vector3D& velocity, double radius, bool touch,
