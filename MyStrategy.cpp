@@ -478,11 +478,12 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 	//считаем время коллизии
 
 	auto jumpRes = std::vector<RobotEntity>();
+	jumpRes.push_back(robotEntity);
 	for (const auto & re : _robotEntities[beforeTicks])
 	{
 		jumpRes.push_back(RobotEntity(re));
 	}
-	jumpRes.push_back(robotEntity);
+	
 
 	Simulator::Update(
 		ballEntity,
@@ -497,6 +498,7 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 
 	std::optional<double> afterJumpCollisionT = std::nullopt;
 	const auto isCol = SimulateFullCollision(ballEntity, jumpRes, afterJumpCollisionT);
+	robotEntity = jumpRes[0];
 	if (isCol)
 		collisionT = afterJumpCollisionT.value() +
 		2.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
