@@ -1472,7 +1472,8 @@ void MyStrategy::InitBallEntities(
 		if (!robot.touch)
 		{
 			auto re = RobotEntity(robot);
-			re.Action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+			if (abs(robot.radius - Constants::Rules.ROBOT_MAX_RADIUS) < EPS)
+				re.Action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
 			_robotEntities[0].push_back(re);
 		}
 	}	
