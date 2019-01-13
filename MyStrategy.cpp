@@ -642,10 +642,11 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 	double z = ballEntity.Position.Z;
 
 	std::vector<RobotEntity> jumpResCur = std::vector<RobotEntity>();
-	for (auto & re : _robotEntities[nextTick])
-	{
-		jumpResCur.push_back(RobotEntity(re));
-	}
+	if (_robotEntities.count(nextTick) > 0)
+		for (auto & re : _robotEntities.at(nextTick))
+		{
+			jumpResCur.push_back(RobotEntity(re));
+		}
 
 	for (int t = 1; t <= BallMoveTicks; ++t)
 	{
@@ -1458,11 +1459,12 @@ void MyStrategy::InitBallEntities(
 
 	_robotEntities = std::map<int, std::vector<RobotEntity>>();
 	_robotEntities[0] = std::vector<RobotEntity>();
-	for (auto robot : _robots)
+	for (auto & robot : _robots)
 	{
 		if (!robot.touch)
 		{
-			const auto re = RobotEntity(robot);
+			auto re = RobotEntity(robot);
+			re.Action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
 			_robotEntities[0].push_back(re);
 		}
 	}	

@@ -247,8 +247,9 @@ void Simulator::Update(BallEntity& entity, std::vector<RobotEntity>& jumpRes, do
 	for (auto & re : jumpRes)
 	{
 		Move(re, deltaTime);
-		re.SetRadiusChangeSpeed(
-			abs(re.Radius - Constants::Rules.ROBOT_MAX_RADIUS) < Eps ? Constants::Rules.ROBOT_MAX_JUMP_SPEED : 0);
+
+		re.Radius = GetRobotRadius(re.Action.jump_speed);
+		re.SetRadiusChangeSpeed(re.Action.jump_speed);
 	}	
 	
 
