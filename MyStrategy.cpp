@@ -482,8 +482,7 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 	for (const auto & re : _robotEntities[beforeTicks])
 	{
 		jumpRes.push_back(RobotEntity(re));
-	}
-	
+	}	
 
 	Simulator::Update(
 		ballEntity,
@@ -495,6 +494,8 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 		jumpRes,
 		1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
 		isGoalScored);
+
+	jumpRes[0].IsArenaCollided = false;
 
 	std::optional<double> afterJumpCollisionT = std::nullopt;
 	const auto isCol = SimulateFullCollision(ballEntity, jumpRes, afterJumpCollisionT);
@@ -1689,6 +1690,9 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 {
 	auto const preCollisionTick = int(collisionTime * Constants::Rules.TICKS_PER_SECOND);
 	auto const afterCollisionTick = preCollisionTick + 1;
+
+	if (_ballEntities.count(preCollisionTick) == 0) return afterCollisionTick;
+
 	auto ballEntity = BallEntity(_ballEntities.at(preCollisionTick));
 	auto robotEntities = std::vector<RobotEntity>();
 	for (const auto & re : _robotEntities.at(preCollisionTick))
