@@ -14,7 +14,6 @@ struct BallEntity :Entity {
 	BallEntity() = default; //TODO:убрать
 	BallEntity(const model::Ball& ball);
 	BallEntity(const BallEntity& ballEntity);
-	BallEntity(const Vector3D& position, const Vector3D& velocity);
 
 	virtual double GetMass() override;
 	virtual double GetRadiusChangeSpeed() const override;

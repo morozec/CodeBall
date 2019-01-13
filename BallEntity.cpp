@@ -18,15 +18,6 @@ BallEntity::BallEntity(const BallEntity & ballEntity)
 	IsArenaCollided = ballEntity.IsArenaCollided;
 }
 
-BallEntity::BallEntity(const Vector3D & position, const Vector3D & velocity)
-{
-	Radius = Constants::Rules.BALL_RADIUS;
-	Position = position;
-	Velocity = velocity;
-	IsCollided = false;
-	IsArenaCollided = false;
-}
-
 double BallEntity::GetMass()
 {
 	return Constants::Rules.BALL_MASS;
