@@ -242,7 +242,7 @@ std::optional<double> Simulator::GetCollisionT(
 	return collisionT;
 }
 
-void Simulator::Update(BallEntity& entity, std::vector<RobotEntity>& jumpRes, double deltaTime, bool & isGoalScored)
+void Simulator::Update(BallEntity& entity, std::vector<RobotEntity>& jumpRes, double deltaTime, double hitE, bool & isGoalScored)
 {
 	Move(entity, deltaTime);
 	for (auto & re : jumpRes)
@@ -253,8 +253,6 @@ void Simulator::Update(BallEntity& entity, std::vector<RobotEntity>& jumpRes, do
 		re.SetRadiusChangeSpeed(re.Action.jump_speed);
 	}	
 	
-
-	const auto hitE = (Constants::Rules.MAX_HIT_E + Constants::Rules.MIN_HIT_E) / 2.0;
 
 	for (int i = 0; i < jumpRes.size(); ++i)
 	{
@@ -373,13 +371,13 @@ void Simulator::Update(RobotEntity& robot, BallEntity& ball, double deltaTime, d
 	}*/
 }
 
-void Simulator::Tick(BallEntity& entity, std::vector<RobotEntity>& jumpRes)
+void Simulator::Tick(BallEntity& entity, std::vector<RobotEntity>& jumpRes, double hitE)
 {
 	double deltaTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	bool isGoalScored = false;
 	for (int i = 0; i < Constants::Rules.MICROTICKS_PER_TICK; ++i)
 	{
-		Update(entity, jumpRes, deltaTime / Constants::Rules.MICROTICKS_PER_TICK, isGoalScored);
+		Update(entity, jumpRes, deltaTime / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored);
 	}
 }
 
