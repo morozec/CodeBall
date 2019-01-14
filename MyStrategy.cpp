@@ -602,6 +602,8 @@ bool MyStrategy::SimulateFullCollision(
 
 		for (auto & re : res)
 		{
+			if (re.IsArenaCollided) continue;
+
 			auto curCollisionT = Simulator::GetCollisionT(
 				re.Position, re.Velocity, be.Position, be.Velocity, re.Radius, be.Radius);
 			if (curCollisionT == std::nullopt) continue;
@@ -631,9 +633,11 @@ bool MyStrategy::SimulateFullCollision(
 		for (auto i = 0; i < res.size(); ++i)
 		{
 			auto reI = res.at(i);
+			if (reI.IsArenaCollided) continue;
 			for (int j = 0; j < i; ++j)
 			{
 				auto reJ = res.at(j);
+				if (reJ.IsArenaCollided) continue;
 				const auto curCollisionT = Simulator::GetCollisionT(
 					reI.Position, reI.Velocity, reJ.Position, reJ.Velocity, reI.Radius, reJ.Radius);
 				if (curCollisionT == std::nullopt) continue;
@@ -647,8 +651,7 @@ bool MyStrategy::SimulateFullCollision(
 		}
 		if (e1 == nullptr && e2 == nullptr)
 		{			
-
-			if (!res[0].IsCollided) return false;
+			if (!res[0].IsCollided) return false;//полет был бесполезен
 			return true;
 		}
 
@@ -661,12 +664,12 @@ bool MyStrategy::SimulateFullCollision(
 		double hitE = (_hitEs[0] + _hitEs[1]) / 2.0;
 
 		Simulator::Update(be, res, beforCollisionTime, hitE, isGoalScored);
-		if (be.IsArenaCollided && !be.IsCollided) return false;
-		if (res[0].IsArenaCollided && !res[0].IsCollided) return false;
+		if (be.IsArenaCollided) return false; //м€ч ударилс€ об арену до удара о робота
+		if (res[0].IsArenaCollided && !res[0].IsCollided) return false; //наш робот ударилс€ об арену до удара по роботу/м€чу
 
 		if (e2 == &be) 
 		{
-			if (!res[0].IsCollided && e1 != &res[0]) return false;
+			if (!res[0].IsCollided && e1 != &res[0]) return false;//коллизи€ с м€чом произойдет до моего вмешательства
 			return true;//выходим за микротик до коллизии с м€чом
 		}
 		Simulator::Update(
