@@ -602,9 +602,24 @@ bool MyStrategy::SimulateFullCollision(
 
 		for (auto & re : res)
 		{
-			const auto curCollisionT = Simulator::GetCollisionT(
+			auto curCollisionT = Simulator::GetCollisionT(
 				re.Position, re.Velocity, be.Position, be.Velocity, re.Radius, be.Radius);
 			if (curCollisionT == std::nullopt) continue;
+
+			//наработки по учету реального положени€ м€ча
+			/*auto fullCollisionTime = beforeTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK + addTime + curCollisionT.value();
+			auto fullCollisionTicks = int(fullCollisionTime * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
+			if (_ballEntities.count(fullCollisionTime) == 0) continue;
+			auto fctBe = BallEntity(_ballEntities.at(fullCollisionTime));
+			auto deltaTime = fullCollisionTime - fullCollisionTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+			fctBe.Position.X += fctBe.Velocity.X * deltaTime;
+			fctBe.Position.Y += fctBe.Velocity.Y * deltaTime - Constants::Rules.GRAVITY * deltaTime * deltaTime / 2;
+			fctBe.Position.Z += fctBe.Velocity.Z * deltaTime;
+
+			curCollisionT = Simulator::GetCollisionT(
+				re.Position, re.Velocity, fctBe.Position, fctBe.Velocity, re.Radius, fctBe.Radius);
+			if (curCollisionT == std::nullopt) continue;*/
+
 			if (curCollisionT.value() < minCollisionT)
 			{
 				minCollisionT = curCollisionT.value();
@@ -632,6 +647,7 @@ bool MyStrategy::SimulateFullCollision(
 		}
 		if (e1 == nullptr && e2 == nullptr)
 		{			
+
 			if (!res[0].IsCollided) return false;
 			return true;
 		}
@@ -645,6 +661,8 @@ bool MyStrategy::SimulateFullCollision(
 		double hitE = (_hitEs[0] + _hitEs[1]) / 2.0;
 
 		Simulator::Update(be, res, beforCollisionTime, hitE, isGoalScored);
+		if (be.IsArenaCollided && !be.IsCollided) return false;
+		if (res[0].IsArenaCollided && !res[0].IsCollided) return false;
 
 		if (e2 == &be) 
 		{
@@ -911,7 +929,7 @@ bool MyStrategy::IsOkDefenderPosToJump(
 	//TODO: подумать о целесообразности
 	if (robotEntity.Velocity.Y < 0) return false;//не бьем на излете
 	if (robotEntity.Position.Y >= moveTBallEntity.Position.Y) return false;//не бьем сверху-вниз
-	if (robotEntity.IsArenaCollided) return false;
+	//if (robotEntity.IsArenaCollided) return false;
 
 	//коллизи§ вне штрафной площади
 	if (!IsPenaltyArea(moveTBallEntity.Position, isDefender))
