@@ -1555,6 +1555,7 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const std::vector<model::Robo
 		return collisionT;
 	}
 
+	std::optional<double> minT = std::nullopt;
 	//TODO: может прыгнуть позже, тогда итоговое время станет меньше (т.к. будет время на разгон)
 	for( auto t = 1; t <= BallMoveTicks; ++t)
 	{
@@ -1566,11 +1567,14 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const std::vector<model::Robo
 		if (movePoint != std::nullopt)
 		{
 			collisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
-			return collisionT;
+			if (!minT.has_value() || collisionT.value() < minT.value())
+			{
+				minT = collisionT;
+			}
 		}
 
 	}
-	return std::nullopt;
+	return minT;
 }
 
 model::Robot MyStrategy::get_nearest_ball_robot(const BallEntity& ball_entity, const std::vector<model::Robot>& oppRobots)
