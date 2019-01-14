@@ -47,7 +47,7 @@ private:
 	Vector3D _myGates;
 	Vector3D _beforeMyGates;
 	double _distToFollowBall;
-	double _hitEs[2];
+	
 	
 	std::map<int, Vector3D> _beforeStrikePoints;
 
@@ -61,9 +61,12 @@ private:
 	int _goalScoringTick;
 
 	std::vector<Sphere> _drawSpheres;
+	
+public:
+	double _hitEs[2];
 	model::Ball _ball;
 	std::vector<model::Robot> _robots;
-public:
+
 	void Init(const model::Rules& rules);
 
 	void InitAction(model::Action& action, int id);
@@ -134,7 +137,7 @@ public:
 	std::optional<double> GetOppStrikeTime(const std::vector<model::Robot>& oppRobots);
 	static model::Robot get_nearest_ball_robot(const BallEntity& ball_entity, const std::vector<model::Robot>& oppRobots);
 
-	void InitBallEntities(const model::Ball& ball, const std::vector<model::Robot>& robots,
+	void InitBallEntities(
 		std::map<int, std::optional<double>>& collisionTimes,
 		std::map<int, Vector3D>& bestBallVelocities);
 	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity);

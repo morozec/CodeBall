@@ -34,7 +34,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		_robots = game.robots;
 		_oppStrikeTime = std::nullopt;
 		_drawSpheres = std::vector<Sphere>();
-		InitBallEntities(game.ball, game.robots, collisionTimes, bestBallVelocities);
+		InitBallEntities(collisionTimes, bestBallVelocities);
 		_actions = std::map<int, model::Action > ();
 
 		std::vector<Robot> opp_robots = std::vector<Robot>();
@@ -480,7 +480,7 @@ bool MyStrategy::SimulateCollision(BallEntity & ballEntity, RobotEntity & robotE
 
 	auto jumpRes = std::vector<RobotEntity>();
 	jumpRes.push_back(robotEntity);
-	for (const auto & re : _robotEntities[beforeTicks])
+	for (const auto & re : _robotEntities.at(beforeTicks))
 	{
 		jumpRes.push_back(RobotEntity(re));
 	}
@@ -1570,13 +1570,12 @@ model::Robot MyStrategy::get_nearest_ball_robot(const BallEntity& ball_entity, c
 }
 
 void MyStrategy::InitBallEntities(
-	const model::Ball& ball, const std::vector<Robot>& robots,
 	std::map<int, std::optional<double>>& collisionTimes,
 	std::map<int, Vector3D>& bestBallVelocities)
 {
 	bool isGoalScored = false;
 	_ballEntities = std::map<int, BallEntity>();	
-	auto ball_entity = BallEntity(ball);
+	auto ball_entity = BallEntity(_ball);
 	_ballEntities[0] = ball_entity;
 
 	_robotEntities = std::map<int, std::vector<RobotEntity>>();
@@ -1610,7 +1609,7 @@ void MyStrategy::InitBallEntities(
 			if (re.IsCollided)
 			{
 				bool isTeammate = false;
-				for (auto & r : robots)
+				for (auto & r : _robots)
 				{
 					if (r.id == re.Id)
 					{
