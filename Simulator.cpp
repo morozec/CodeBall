@@ -53,11 +53,11 @@ std::optional<Vector3D> Simulator::CollideWithArena(Entity & e)
 	if (penetration > 0)
 	{
 		e.Position.Add(dan.Normal * penetration);
+		e.IsArenaCollided = true;
 		double velocity = e.Velocity * dan.Normal - e.GetRadiusChangeSpeed();
 		if (velocity < 0)
 		{
-			e.Velocity.Sub(dan.Normal * ((1 + e.GetArenaE()) * velocity));
-			e.IsArenaCollided = true;
+			e.Velocity.Sub(dan.Normal * ((1 + e.GetArenaE()) * velocity));			
 			return dan.Normal;
 		}
 	}
