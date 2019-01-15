@@ -985,13 +985,20 @@ bool MyStrategy::IsOkDefenderPosToJump(
 	for (int i = 0; i < 3; ++i)
 	{
 		auto beCur = resBes.at(i);
-		auto const jumpCollisionTCur = resCollisionTimes.at(i);
+		auto const jumpCollisionTCur = resCollisionTimes.at(i);		
 
 		if (i == 0)
 		{
 			collisionBallVelocity = Vector3D(beCur.Velocity);
 			jumpCollisionT = jumpCollisionTCur;
 		}
+
+		if (!beCur.IsCollided)
+		{
+			if (_isNoCollisionMeGoalPossible) return false;
+			continue;
+		}
+		beCur.IsCollided = false;
 
 		if (beCur.Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)
 			return false;
@@ -1428,7 +1435,7 @@ bool MyStrategy::IsOkPosToJump(
 	auto ballEntity = BallEntity(_ballEntities.at(beforeTicks));
 	std::vector<BallEntity> resBes;
 	std::vector<double> resCollisionTimes;
-	auto const isCollision = SimulateCollision(ballEntity, robotEntity, _allHitEs, 3, resBes, resCollisionTimes, beforeTicks, true, true);
+	auto const isCollision = SimulateCollision(ballEntity, robotEntity, _allHitEs, 3, resBes, resCollisionTimes, beforeTicks, true, false);
 	if (!isCollision) return false;
 
 	for (int i = 0; i < 3; ++i)
@@ -1441,6 +1448,13 @@ bool MyStrategy::IsOkPosToJump(
 			bestBallVelocity = Vector3D(beCur.Velocity);
 			collisionT = jumpCollisionTCur;
 		}
+
+		if (!beCur.IsCollided)
+		{
+			if (!_isNoCollisionGoalPossible) return false;
+			continue;
+		}
+		beCur.IsCollided = false;
 
 		//коллизи¤ в штрафной площади
 		if (IsPenaltyArea(beCur.Position, false))
@@ -1465,7 +1479,7 @@ bool MyStrategy::IsOkOppPosToJump(
 	auto ballEntity = BallEntity(_ballEntities.at(beforeTicks));
 	std::vector<BallEntity> resBes;
 	std::vector<double> resCollisionTimes;
-	auto const isCollision = SimulateCollision(ballEntity, robotEntity, _averageHitE, 1, resBes, resCollisionTimes, beforeTicks, true, true);
+	auto const isCollision = SimulateCollision(ballEntity, robotEntity, _averageHitE, 1, resBes, resCollisionTimes, beforeTicks, true, false);
 	if (!isCollision) return false;
 
 	for (int i = 0; i < 1; ++i)
