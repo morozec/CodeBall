@@ -973,7 +973,8 @@ bool MyStrategy::IsOkDefenderPosToJump(
 
 		if (!beCur.IsCollided)
 		{
-			if (_isNoCollisionMeGoalPossible) return false;
+			if (_isNoCollisionMeGoalPossible) return false;//нет смысла бить по роботу - без роботов мяч летит в мои ворота
+			if (!_isMeGoalPossible) return false; //нет смысла бить по роботу - сейчас мяч не летит в мои ворота
 			continue;
 		}
 		beCur.IsCollided = false;
@@ -1427,7 +1428,8 @@ bool MyStrategy::IsOkPosToJump(
 
 		if (!beCur.IsCollided)
 		{
-			if (!_isNoCollisionGoalPossible) return false;
+			if (!_isNoCollisionGoalPossible) return false; //не смысла бить по роботу - без роботов мяч не летит в вопрота
+			if (_isGoalPossible) return true;//нет смысла бить по роботу - мяч летит в ворота
 			continue;
 		}
 		beCur.IsCollided = false;
