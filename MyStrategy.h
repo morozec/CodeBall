@@ -64,6 +64,8 @@ private:
 	
 public:
 	double _hitEs[2];
+	double _allHitEs[3];
+	double _averageHitE[1];
 	model::Ball _ball;
 	std::vector<model::Robot> _robots;
 
@@ -78,11 +80,13 @@ public:
 	BallEntity SimulateTickBall(
 		const BallEntity& ballEntity, std::vector<RobotEntity>& jumpRes, bool& isGoalScored, bool discardIsCollided) const;
 	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity,
-		std::optional<double>& collisionT, std::vector<RobotEntity>& jumpingRes, int beforeTicks, bool forbidNegativeVy, bool forbidDownStrike);
+	                       const double hitEs[], int hitEsSize,
+		std::vector<BallEntity>& resBes, std::vector<double>& resCollisionTimes,
+		int beforeTicks, bool forbidNegativeVy, bool forbidDownStrike);
 	bool SimulateNoTouchEntitiesCollision(
 		BallEntity& ballEntity, RobotEntity& robotEntity, double robotCollisionT, double ballCollisionT, int beforeTicks);
 
-	bool SimulateFullCollision(BallEntity & be, std::vector<RobotEntity>& res, double& collisionT, bool forbidNegativeVy, bool forbidDownStrike) const;
+	bool SimulateFullCollision(BallEntity & be, std::vector<RobotEntity>& res, double& collisionT, double hitE, bool forbidNegativeVy, bool forbidDownStrike) const;
 
 	bool IsPenaltyArea(const Vector3D& position, bool isDefender) const;
 	double GetVectorAngleToHorizontal(const Vector3D& v) const;
