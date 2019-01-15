@@ -1578,7 +1578,7 @@ void MyStrategy::InitBallEntities(
 		}
 	}	
 	
-	bool gotCollision = false;
+	bool gotOppCollision = false;
 	for (auto t = 1; t <= BallMoveTicks; ++t)
 	{
 		std::vector<RobotEntity> jumpResCur = std::vector<RobotEntity>();
@@ -1602,12 +1602,11 @@ void MyStrategy::InitBallEntities(
 
 		_ballEntities[t] = ball_entity;
 
-		bool isReCollided = false;
+		bool isOppCollided = false;
 		for (auto& re : jumpResCur)//TODO: считать только коллизию с мячом, а не друг с другом
 		{
 			if (re.IsCollided)
-			{
-				isReCollided = true;
+			{				
 				bool isTeammate = false;
 				for (auto & r : _robots)
 				{
@@ -1622,14 +1621,18 @@ void MyStrategy::InitBallEntities(
 				{
 					collisionTimes[re.Id] = t * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 				}
+				else
+				{
+					isOppCollided = true;
+				}
 				re.IsCollided = false;
 			}
 		}
 
-		if (!gotCollision)
+		if (!gotOppCollision)
 		{
-			if (isReCollided)
-				gotCollision = true;
+			if (isOppCollided)
+				gotOppCollision = true;
 			else
 			{
 				if (!_isNoCollisionGoalPossible && ball_entity.Position.Z > Constants::Rules.arena.depth / 2 + ball_entity.Radius)
@@ -1654,19 +1657,23 @@ void MyStrategy::InitBallEntities(
 
 
 	//если была коллизия с роботом, считаем еще раз без роботов
-	std::vector<RobotEntity> noRes = std::vector<RobotEntity>();
-	for (auto t = 1; t <= BallMoveTicks; ++t)
-	{		
-		ball_entity = SimulateTickBall(ball_entity, noRes, isGoalScored, false);
-
-		if (!_isNoCollisionGoalPossible && ball_entity.Position.Z > Constants::Rules.arena.depth / 2 + ball_entity.Radius)
+	if (gotOppCollision)
+	{
+		ball_entity = BallEntity(_ball);
+		std::vector<RobotEntity> noRes = std::vector<RobotEntity>();
+		for (auto t = 1; t <= BallMoveTicks; ++t)
 		{
-			_isNoCollisionGoalPossible = true;
-		}
+			ball_entity = SimulateTickBall(ball_entity, noRes, isGoalScored, false);
 
-		if (!_isNoCollisionMeGoalPossible && ball_entity.Position.Z < -Constants::Rules.arena.depth / 2 - ball_entity.Radius)
-		{
-			_isNoCollisionMeGoalPossible = true;
+			if (!_isNoCollisionGoalPossible && ball_entity.Position.Z > Constants::Rules.arena.depth / 2 + ball_entity.Radius)
+			{
+				_isNoCollisionGoalPossible = true;
+			}
+
+			if (!_isNoCollisionMeGoalPossible && ball_entity.Position.Z < -Constants::Rules.arena.depth / 2 - ball_entity.Radius)
+			{
+				_isNoCollisionMeGoalPossible = true;
+			}
 		}
 	}
 
