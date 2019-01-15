@@ -96,7 +96,7 @@ public:
 	bool IsPenaltyArea(const Vector3D& position, bool isDefender) const;
 	double GetVectorAngleToHorizontal(const Vector3D& v) const;
 	int CompareBallVelocities(const Vector3D& v1, const std::optional<Vector3D>& v2);
-	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff, double ballEntityTime);
+	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff);
 
 	model::Action SetDefenderAction(const model::Robot& me,
 		const Vector3D& defenderPoint,

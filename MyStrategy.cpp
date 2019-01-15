@@ -768,7 +768,7 @@ int MyStrategy::CompareBallVelocities(const Vector3D & v1, const std::optional<V
 	return v1.Y > v2.value().Y ? -1 : 1;
 }
 
-bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff, double ballEntityTime)
+bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff)
 {
 	if (startBallEntity.Velocity.Z * directionCoeff <= 0) return false;
 	if (abs(startBallEntity.Velocity.Z) < EPS) return false;
@@ -798,42 +798,20 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 		const auto timeToRoof = -b1 - sqrt(d1);
 		if (timeToRoof >= 0 && timeToRoof < timeToGates) 
 			return false;
-	}
-
-	
+	}	
 
 	bool isGoalScored = false;	
-
-	const auto tick = int(ballEntityTime * Constants::Rules.TICKS_PER_SECOND);
-	const auto nextTick = tick + 1;
-	const auto nextTickTime = nextTick * 1.0 / Constants::Rules.TICKS_PER_SECOND;
-	const auto deltaTime = nextTickTime - ballEntityTime;
-
 	BallEntity ballEntity = BallEntity(startBallEntity);
-	ballEntity.Position.X += ballEntity.Velocity.X * deltaTime;
-	ballEntity.Position.Y += ballEntity.Velocity.Y * deltaTime - Constants::Rules.GRAVITY * deltaTime * deltaTime / 2.0;
-	ballEntity.Position.Z += ballEntity.Velocity.Z * deltaTime;
 	double z = ballEntity.Position.Z;
-
-	std::vector<RobotEntity> jumpResCur = std::vector<RobotEntity>();
-	//TODO: роботы могут обновиться после коллизии
-	if (_robotEntities.count(nextTick) > 0)
-		for (auto & re : _robotEntities.at(nextTick))
-		{
-			jumpResCur.push_back(RobotEntity(re));
-		}
+	std::vector<RobotEntity> emptyJumpRes = std::vector<RobotEntity>();	
 
 	for (int t = 1; t <= BallMoveTicks; ++t)
 	{
-		ballEntity = SimulateTickBall(ballEntity, jumpResCur, isGoalScored, true);
+		ballEntity = SimulateTickBall(ballEntity, emptyJumpRes, isGoalScored, true);
 		if (isGoalScored) return true;
 		const auto isZIncreasing = ballEntity.Position.Z * directionCoeff > z * directionCoeff;		
 		if (!isZIncreasing) return false;
 		z = ballEntity.Position.Z;
-
-		jumpResCur.erase(
-			std::remove_if(
-				jumpResCur.begin(), jumpResCur.end(), [](RobotEntity re) {return re.IsArenaCollided; }), jumpResCur.end());
 		
 	}	
 	return false;
@@ -1010,8 +988,7 @@ bool MyStrategy::IsOkDefenderPosToJump(
 		if (beCur.Velocity.Z < 0)
 		{
 			if (!_isMeGoalPossible) return false;
-			const auto beTime = beforeTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionTCur;
-			const auto isCollisionGoalPossible = IsGoalBallDirection2(beCur, -1, beTime);
+			const auto isCollisionGoalPossible = IsGoalBallDirection2(beCur, -1);
 			if (isCollisionGoalPossible) return false;
 		}
 	}	
@@ -1121,7 +1098,6 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		jumpCollisionT = std::nullopt;
 		jumpBallVelocity = std::nullopt;
 
-		auto const isGoalPossible = IsGoalBallDirection2(_ballEntities.at(0), -1 , 0);
 		if (startAttackTick == 1 && IsOkDefenderPosToJump(
 			Helper::GetRobotPosition(me),
 			Helper::GetRobotVelocity(me),
@@ -1462,9 +1438,7 @@ bool MyStrategy::IsOkPosToJump(
 
 		double angle = GetVectorAngleToHorizontal(beCur.Velocity);
 		if (angle * directionCoeff > M_PI / 3) return false; //TODO: не бьем под большим углом к горизонтали
-
-		const auto beTime = beforeTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionTCur;
-		if (!IsGoalBallDirection2(beCur, directionCoeff, beTime)) return false;
+		if (!IsGoalBallDirection2(beCur, directionCoeff)) return false;
 	}
 	return true;
 }
@@ -1488,9 +1462,7 @@ bool MyStrategy::IsOkOppPosToJump(
 		auto const jumpCollisionTCur = resCollisionTimes.at(i);
 		
 		collisionT = jumpCollisionTCur;		
-
-		const auto beTime = beforeTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionTCur;
-		if (!IsGoalBallDirection2(beCur, directionCoeff, beTime)) return false;
+		if (!IsGoalBallDirection2(beCur, directionCoeff)) return false;
 	}	
 	return true;
 }
