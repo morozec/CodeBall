@@ -242,7 +242,9 @@ std::optional<double> Simulator::GetCollisionT(
 	return collisionT;
 }
 
-void Simulator::Update(BallEntity& entity, std::vector<RobotEntity>& jumpRes, double deltaTime, double hitE, bool & isGoalScored)
+void Simulator::UpdateOnAir(
+	BallEntity& entity, std::vector<RobotEntity>& jumpRes, double deltaTime, double hitE, bool & isGoalScored,
+	bool simulateArenaCollision)
 {
 	Move(entity, deltaTime);
 	for (auto & re : jumpRes)
@@ -251,8 +253,8 @@ void Simulator::Update(BallEntity& entity, std::vector<RobotEntity>& jumpRes, do
 
 		re.Radius = GetRobotRadius(re.Action.jump_speed);
 		re.SetRadiusChangeSpeed(re.Action.jump_speed);
-	}	
-	
+	}
+
 
 	for (int i = 0; i < jumpRes.size(); ++i)
 	{
@@ -261,23 +263,25 @@ void Simulator::Update(BallEntity& entity, std::vector<RobotEntity>& jumpRes, do
 			CollideEntities(jumpRes[i], jumpRes[j], hitE);
 		}
 	}
-	
+
 	for (auto & re : jumpRes)
 		CollideEntities(re, entity, hitE);
 
-	for (auto & re : jumpRes)
+	if (simulateArenaCollision)
 	{
-		std::optional<Vector3D> collisionNormal = CollideWithArena(re);
-		if (collisionNormal == std::nullopt)
-			re.Touch = false;
-		else
+		for (auto & re : jumpRes)
 		{
-			re.Touch = true;
-			re.TouchNormal = *collisionNormal;
+			std::optional<Vector3D> collisionNormal = CollideWithArena(re);
+			if (collisionNormal == std::nullopt)
+				re.Touch = false;
+			else
+			{
+				re.Touch = true;
+				re.TouchNormal = *collisionNormal;
+			}
 		}
-	}	
-
-	CollideWithArena(entity);
+		CollideWithArena(entity);
+	}
 
 
 	//if (entity.Radius < Constants::Rules.BALL_RADIUS - Eps) return; //пережитк для робота
@@ -377,7 +381,7 @@ void Simulator::Tick(BallEntity& entity, std::vector<RobotEntity>& jumpRes, doub
 	bool isGoalScored = false;
 	for (int i = 0; i < Constants::Rules.MICROTICKS_PER_TICK; ++i)
 	{
-		Update(entity, jumpRes, deltaTime / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored);
+		UpdateOnAir(entity, jumpRes, deltaTime / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored, true);
 	}
 }
 
@@ -396,4 +400,64 @@ void Simulator::Tick(RobotEntity& robot, BallEntity ball)
 		if (pack.Alive) continue;
 		pack.RespawnTicks -= 1;
 	}*/
+}
+
+void Simulator::simulate_jump_start(RobotEntity& re)
+{
+
+	//set velocity
+	Vector3D targetVelocity = Helper::GetAcionTargetVelocity(re.Action);	
+	Vector3D targetVelocityChange = targetVelocity - re.Velocity;
+	double tvcLength2 = targetVelocityChange.Length2();
+	const double mtTime = 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+	const double a = Constants::Rules.ROBOT_ACCELERATION;
+
+	if (tvcLength2 > Eps2)
+	{
+		targetVelocityChange.Normalize();
+		re.Velocity.Add(Helper::Clamp2(targetVelocityChange * (a * mtTime),
+			tvcLength2));
+	}
+
+	//update pos
+	re.Position.X += re.Velocity.X * mtTime;
+	re.Position.Z += re.Velocity.Z * mtTime;
+
+	//update radius
+	re.Radius = GetRobotRadius(re.Action.jump_speed);
+	re.SetRadiusChangeSpeed(re.Action.jump_speed);
+
+	//collide with arena
+	double penetration = Constants::Rules.ROBOT_MAX_RADIUS - Constants::Rules.ROBOT_MIN_RADIUS;
+
+	re.Position.Y += penetration;
+	re.IsArenaCollided = true;
+	Vector3D danNormal = Vector3D(0, 1, 0);
+	double velocity = -re.GetRadiusChangeSpeed();
+	if (velocity < 0)
+	{
+		re.Velocity.Sub(danNormal * ((1 + re.GetArenaE()) * velocity));
+	}
+
+	
+	//2nd tick set velocity
+	targetVelocityChange = targetVelocity - re.Velocity;
+	tvcLength2 = targetVelocityChange.Length2();
+	if (tvcLength2 > Eps2)
+	{
+		targetVelocityChange.Normalize();
+		re.Velocity.Add(Helper::Clamp2(targetVelocityChange * (a * mtTime),
+			tvcLength2));
+	}
+
+	//update pos
+	re.Position.X += re.Velocity.X * mtTime;
+	re.Position.Y += re.Velocity.Y * mtTime - Constants::Rules.GRAVITY * mtTime * mtTime / 2.0;
+	re.Position.Z += re.Velocity.Z * mtTime;
+
+	//update v_y
+	re.Velocity.Y -= Constants::Rules.GRAVITY * mtTime;
+
+	re.Touch = false;
+
 }
