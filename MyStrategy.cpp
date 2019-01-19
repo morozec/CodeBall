@@ -1619,7 +1619,7 @@ bool MyStrategy::IsOkPosToJump(
 		if (!beCur.IsCollided)
 		{
 			if (!_isNoCollisionGoalPossible) return false; //не смысла бить по роботу - без роботов мяч не летит в вопрота
-			if (_isGoalPossible) return true;//нет смысла бить по роботу - мяч летит в ворота
+			if (_isGoalPossible) return false;//нет смысла бить по роботу - мяч летит в ворота
 			continue;
 		}
 		beCur.IsCollided = false;
