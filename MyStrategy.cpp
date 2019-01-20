@@ -222,7 +222,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			_actions[defender.id] = defRobotAction;
 		}
 
-		//TODO: проверять, что опередим врага
 		else if (!isDefender)//нашли точку для атаки ворот. защитник идет на ворота
 		{
 			Action robotAction = GetDefaultAction(defender, _myGates);
@@ -1021,8 +1020,8 @@ bool MyStrategy::IsOkDefenderPosToJump(
 			return false;
 
 		//коллизи¤ вне штрафной площади
-		if (!IsPenaltyArea(beCur.Position, isDefender))
-			return false;
+		/*if (!IsPenaltyArea(beCur.Position, isDefender))
+			return false;*/
 
 		if (beCur.Velocity.Z < 0)
 		{
@@ -1389,7 +1388,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 {
 	isDefenderSavedPointOk = false;
 	std::optional<Vector3D> movePoint = std::nullopt;
-	isDefender = true;
+	isDefender = false;
 	isStrikeDefender = false;
 	const auto tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 
@@ -1432,6 +1431,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	int bestT = -1;
 	int isB2GoalDirection = -1;
 	bestGoalTime = std::numeric_limits<double>::max();
+	auto gotOppFasterAttackPoint = false;
 	for (int t = startAttackTick; t <= startAttackTick + BallMoveTicks; ++t)
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
@@ -1440,7 +1440,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 		auto ballEntity = _ballEntities.at(t);		
 
-		if (!isDefender && IsPenaltyArea(ballEntity.Position, false))//включаем режим защитника
+		if (!gotOppFasterAttackPoint && IsPenaltyArea(ballEntity.Position, false))//включаем режим защитника
 		{
 			std::optional<double> curCollisionT = std::nullopt;
 			bool isPassedBy = false;
@@ -1465,6 +1465,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 						movePoint = Vector3D(be.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 							be.Position.Z);
 						bestT = t;
+						isDefender = true;
 
 						
 						if (IsGoalBallDirection2(bestBallEntity, 1, true, goalTime))
@@ -1472,11 +1473,13 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 							_defenderMovePoints[robot.id] = std::pair<int, int>();
 							_defenderMovePoints[robot.id].first = t;
 							_defenderMovePoints[robot.id].second = bestMoveT;
+							isStrikeDefender = true;
 						}
 						else
 						{
 							if (_defenderMovePoints.count(robot.id) > 0)
 								_defenderMovePoints.erase(robot.id);
+							isStrikeDefender = false;
 						}
 
 						continue;
@@ -1498,17 +1501,20 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				movePoint = Vector3D(be.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 					be.Position.Z);
 				bestT = t;
+				isDefender = true;
 
 				if (IsGoalBallDirection2(bestBallEntity, 1, true, goalTime))
 				{
 					_defenderMovePoints[robot.id] = std::pair<int, int>();
 					_defenderMovePoints[robot.id].first = t;
 					_defenderMovePoints[robot.id].second = bestMoveT;
+					isStrikeDefender = true;
 				}
 				else
 				{
 					if (_defenderMovePoints.count(robot.id) > 0)
 						_defenderMovePoints.erase(robot.id);
+					isStrikeDefender = false;
 				}
 			}
 		}
@@ -1518,18 +1524,51 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			std::optional<BallEntity> curBallEntity = std::nullopt;
 			double goalTime;
 			const auto attackMovePoint = GetAttackerStrikePoint(robot, t, 1, jumpCollisionT, curBallEntity, goalTime);
-			if (attackMovePoint != std::nullopt)
-			{
-				auto const fullTime = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + goalTime;
-				if (fullTime < bestGoalTime)
-				{
-					bestGoalTime = fullTime;
-					movePoint = attackMovePoint;
+			
+			if (attackMovePoint == std::nullopt)
+				continue;
 
-					bestBallEntity = curBallEntity.value();
-					collisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
-					isDefender = false;
+			const auto curCollisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
+			auto const fullGoalTime = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + goalTime;
+
+			if (_oppStrikeTime.has_value() && collisionT.has_value())
+			{
+				if (collisionT.value() > _oppStrikeTime.value() - tickTime)
+				{
+					if (curCollisionT >= collisionT.value())
+						continue;
+					else
+					{
+						bestGoalTime = fullGoalTime;
+						movePoint = attackMovePoint;
+						bestBallEntity = curBallEntity.value();
+						collisionT = curCollisionT;
+						isDefender = false;
+						isStrikeDefender = false;
+						if (curCollisionT < _oppStrikeTime.value() - tickTime)
+							gotOppFasterAttackPoint = true;
+
+						continue;
+					}
 				}
+				else
+				{
+					if (curCollisionT >= _oppStrikeTime.value() - tickTime)
+						continue;
+				}
+			}
+
+			
+			if (fullGoalTime < bestGoalTime)
+			{
+				bestGoalTime = fullGoalTime;
+				movePoint = attackMovePoint;
+				bestBallEntity = curBallEntity.value();
+				collisionT = curCollisionT;
+				isDefender = false;
+				isStrikeDefender = false;
+				if (!_oppStrikeTime.has_value() || curCollisionT < _oppStrikeTime.value() - tickTime)
+					gotOppFasterAttackPoint = true;
 			}
 		}
 	}
@@ -1668,8 +1707,8 @@ bool MyStrategy::IsOkPosToJump(
 		beCur.IsArenaCollided = false;
 
 		//коллизи¤ в штрафной площади
-		if (IsPenaltyArea(beCur.Position, false))
-			return false;
+		/*if (IsPenaltyArea(beCur.Position, false))
+			return false;*/
 
 		//double angle = GetVectorAngleToHorizontal(beCur.Velocity);
 		//if (angle * directionCoeff > M_PI / 3) return false; //TODO: не бьем под большим углом к горизонтали
