@@ -1113,6 +1113,11 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 						_defenderMovePoints[robot.id].first = t;
 						_defenderMovePoints[robot.id].second = bestMoveT;
 					}
+					else
+					{
+						if (_defenderMovePoints.count(robot.id) > 0)
+							_defenderMovePoints.erase(robot.id);
+					}
 
 					continue;
 				}
@@ -1137,6 +1142,11 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 				_defenderMovePoints[robot.id] = std::pair<int, int>();
 				_defenderMovePoints[robot.id].first = t;
 				_defenderMovePoints[robot.id].second =bestMoveT;
+			}
+			else
+			{
+				if (_defenderMovePoints.count(robot.id) > 0)
+					_defenderMovePoints.erase(robot.id);
 			}
 		}
 	}
@@ -1463,6 +1473,11 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 							_defenderMovePoints[robot.id].first = t;
 							_defenderMovePoints[robot.id].second = bestMoveT;
 						}
+						else
+						{
+							if (_defenderMovePoints.count(robot.id) > 0)
+								_defenderMovePoints.erase(robot.id);
+						}
 
 						continue;
 					}
@@ -1489,6 +1504,11 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 					_defenderMovePoints[robot.id] = std::pair<int, int>();
 					_defenderMovePoints[robot.id].first = t;
 					_defenderMovePoints[robot.id].second = bestMoveT;
+				}
+				else
+				{
+					if (_defenderMovePoints.count(robot.id) > 0)
+						_defenderMovePoints.erase(robot.id);
 				}
 			}
 		}
