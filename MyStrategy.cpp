@@ -1556,7 +1556,6 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 	{
 		if (_beforeStrikePoints[robot.id].first == t)
 		{
-			double goalTime;
 			if (IsOkPosToMove(_beforeStrikePoints[robot.id].second, robot, t, directionCoeff, collisionT, bestBallEntity, goalTime))
 			{
 				return _beforeStrikePoints[robot.id].second;
