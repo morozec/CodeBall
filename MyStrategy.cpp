@@ -706,13 +706,14 @@ int MyStrategy::CompareDefenderBallEntities(const BallEntity & b1, const std::op
 
 	const double v1HorAngle = GetVectorAngleToHorizontal(b1.Velocity);
 	const double v2HorAngle = GetVectorAngleToHorizontal(b2Value.Velocity);
+	double goalTime;
 	if (v1HorAngle > M_PI / 9 && v2HorAngle > M_PI / 9)
 	{
-		const auto isGoalDirection1 = IsGoalBallDirection2(b1, 1, true);
+		const auto isGoalDirection1 = IsGoalBallDirection2(b1, 1, true, goalTime);
 		bool isGoalDirection2;
 		if (isB2GoalDirection == -1)
 		{
-			isGoalDirection2 = IsGoalBallDirection2(b2Value, 1, true);
+			isGoalDirection2 = IsGoalBallDirection2(b2Value, 1, true, goalTime);
 			isB2GoalDirection = isGoalDirection2 ? 1 : 0;
 		}
 		else 
@@ -1077,6 +1078,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 	std::optional<Vector3D> movePoint = std::nullopt;
 	int bestT = -1;
 	int isB2GoalDirection = -1;
+	double goalTime;
 
 	for (int t = 1; t <= BallMoveTicks; ++t)
 	{
@@ -1105,7 +1107,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 					movePoint = Vector3D(be.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 						be.Position.Z);
 					bestT = t;
-					if (IsGoalBallDirection2(bestBallEntity, 1, true))
+					if (IsGoalBallDirection2(bestBallEntity, 1, true, goalTime))
 					{
 						_defenderMovePoints[robot.id] = std::pair<int, int>();
 						_defenderMovePoints[robot.id].first = t;
@@ -1130,7 +1132,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderMovePoint(const model::Robot & ro
 			movePoint = Vector3D(be.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 				be.Position.Z);
 			bestT = t;
-			if (IsGoalBallDirection2(bestBallEntity, 1, true))
+			if (IsGoalBallDirection2(bestBallEntity, 1, true, goalTime))
 			{
 				_defenderMovePoints[robot.id] = std::pair<int, int>();
 				_defenderMovePoints[robot.id].first = t;
@@ -1159,26 +1161,26 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	model::Action action = model::Action();
 
 	Vector3D targetVelocity;
-	RobotEntity robotEntity = RobotEntity(me);
+	RobotEntity robotEntity = RobotEntity(me);	
 
-	
-
+	bool isDefenderSavedPointOk;
 	double moveBestGoalTime = 0;
 	std::optional<Vector3D> movePoint =
-		GetAttackerMovePoint(me, startAttackTick, collisionT, isDefender, bestBallVelocity, moveBestGoalTime);
+		GetAttackerMovePoint(
+			me, startAttackTick, collisionT, isDefender, isStrikeDefender, bestBallEntity, isDefenderSavedPointOk, moveBestGoalTime);
 
 	std::optional<double> jumpCollisionT = std::nullopt;
 	std::optional<BallEntity> jump_ball_entity = std::nullopt;
 	double jumpBestGoalTime = 0;
 	if (startAttackTick == 1 && IsOkPosToJump(robotEntity, 0, jumpCollisionT, jump_ball_entity, jumpBestGoalTime))
 	{
-if (movePoint == std::nullopt || jumpBestGoalTime < moveBestGoalTime)
+		if (movePoint == std::nullopt || jumpBestGoalTime < moveBestGoalTime)
 		{
-		isDefender = false;
-		isStrikeDefender = false;
-		collisionT = jumpCollisionT;
-		bestBallEntity = jump_ball_entity.value();
-}
+			isDefender = false;
+			isStrikeDefender = false;
+			collisionT = jumpCollisionT;
+			bestBallEntity = jump_ball_entity.value();
+
 
 			targetVelocity =
 				Helper::GetTargetVelocity(me.x, 0, me.z, _ball.x, 0, _ball.z, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
@@ -1435,7 +1437,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				GetDefenderStrikeBallEntity(robot, t, startAttackTick, t, false, curCollisionT, isPassedBy, bestMoveT);
 			if (ball_entity == std::nullopt) continue;
 
-			
+			double goalTime;
 			if (_oppStrikeTime.has_value() && collisionT.has_value())
 			{
 				if (collisionT.value() > _oppStrikeTime.value() - tickTime)
@@ -1452,7 +1454,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 							be.Position.Z);
 						bestT = t;
 
-						if (IsGoalBallDirection2(bestBallEntity, 1, true))
+						
+						if (IsGoalBallDirection2(bestBallEntity, 1, true, goalTime))
 						{
 							_defenderMovePoints[robot.id] = std::pair<int, int>();
 							_defenderMovePoints[robot.id].first = t;
@@ -1479,7 +1482,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 					be.Position.Z);
 				bestT = t;
 
-				if (IsGoalBallDirection2(bestBallEntity, 1, true))
+				if (IsGoalBallDirection2(bestBallEntity, 1, true, goalTime))
 				{
 					_defenderMovePoints[robot.id] = std::pair<int, int>();
 					_defenderMovePoints[robot.id].first = t;
@@ -1491,8 +1494,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		{
 			std::optional<double> jumpCollisionT = std::nullopt;
 			std::optional<BallEntity> curBallEntity = std::nullopt;
-			const auto attackMovePoint = GetAttackerStrikePoint(robot, t, 1, jumpCollisionT, curBallEntity);
-			double goalTime = 0;
+			double goalTime;
+			const auto attackMovePoint = GetAttackerStrikePoint(robot, t, 1, jumpCollisionT, curBallEntity, goalTime);
 			if (attackMovePoint != std::nullopt)
 			{
 				auto const fullTime = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + goalTime;
@@ -1500,11 +1503,11 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				{
 					bestGoalTime = fullTime;
 					movePoint = attackMovePoint;
-				
-				bestBallEntity = curBallEntity.value();
-				collisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
-				isDefender = false;				
-}
+
+					bestBallEntity = curBallEntity.value();
+					collisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
+					isDefender = false;
+				}
 			}
 		}
 	}
@@ -1531,7 +1534,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 	{
 		if (_beforeStrikePoints[robot.id].first == t)
 		{
-			if (IsOkPosToMove(_beforeStrikePoints[robot.id].second, robot, t, directionCoeff, collisionT, bestBallEntity))
+			double goalTime;
+			if (IsOkPosToMove(_beforeStrikePoints[robot.id].second, robot, t, directionCoeff, collisionT, bestBallEntity, goalTime))
 			{
 				return _beforeStrikePoints[robot.id].second;
 			}			
@@ -1734,7 +1738,7 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const std::vector<model::Robo
 			if (!robot.touch) continue;
 			std::optional<double> jumpCollisionT = std::nullopt;
 			std::optional<BallEntity> bestBallEntity = std::nullopt;
-			auto movePoint = GetAttackerStrikePoint(robot, t, -1, jumpCollisionT, bestBallEntity);
+			auto movePoint = GetAttackerStrikePoint(robot, t, -1, jumpCollisionT, bestBallEntity, goalTime);
 			if (movePoint != std::nullopt)
 			{
 				collisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
