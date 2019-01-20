@@ -698,22 +698,21 @@ double MyStrategy::GetVectorAngleToHorizontal(const Vector3D & v) const
 int MyStrategy::CompareDefenderBallEntities(const BallEntity & b1, const std::optional<BallEntity>& b2, int& isB2GoalDirection) const
 {
 	if (b2 == std::nullopt) return -1;
-	if (b1.Velocity.Z * b2.value().Velocity.Z < 0)
+	const auto b2Value = b2.value();
+	if (b1.Velocity.Z * b2Value.Velocity.Z < 0)
 	{
-		return b1.Velocity.Z > 0 ? -1 : 1;
+		return abs(b1.Velocity.Z) > abs(b2Value.Velocity.Z) ? -1 : 1;
 	}
 
-	double v1HorAngle = GetVectorAngleToHorizontal(b1.Velocity);
-	double v2HorAngle = GetVectorAngleToHorizontal(b2.value().Velocity);
+	const double v1HorAngle = GetVectorAngleToHorizontal(b1.Velocity);
+	const double v2HorAngle = GetVectorAngleToHorizontal(b2Value.Velocity);
 	if (v1HorAngle > M_PI / 9 && v2HorAngle > M_PI / 9)
 	{
-		//return abs(b1.Velocity.Z) > abs(b2.value().Velocity.Z) ? -1 : 1;
-
 		const auto isGoalDirection1 = IsGoalBallDirection2(b1, 1, true);
 		bool isGoalDirection2;
 		if (isB2GoalDirection == -1)
 		{
-			isGoalDirection2 = IsGoalBallDirection2(b2.value(), 1, true);
+			isGoalDirection2 = IsGoalBallDirection2(b2Value, 1, true);
 			isB2GoalDirection = isGoalDirection2 ? 1 : 0;
 		}
 		else 
@@ -722,7 +721,7 @@ int MyStrategy::CompareDefenderBallEntities(const BallEntity & b1, const std::op
 
 		if (isGoalDirection1 && isGoalDirection2 || !isGoalDirection1 && !isGoalDirection2)
 		{
-			if (abs(b1.Velocity.Z) > abs(b2.value().Velocity.Z))
+			if (abs(b1.Velocity.Z) > abs(b2Value.Velocity.Z))
 			{
 				isB2GoalDirection = isGoalDirection1;
 				return -1;
@@ -736,7 +735,7 @@ int MyStrategy::CompareDefenderBallEntities(const BallEntity & b1, const std::op
 		}
 		return 1;
 	}
-	return b1.Velocity.Y > b2.value().Velocity.Y ? -1 : 1;
+	return b1.Velocity.Y > b2Value.Velocity.Y ? -1 : 1;
 }
 
 bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff, bool considerBoardSide) const
