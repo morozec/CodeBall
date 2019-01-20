@@ -188,7 +188,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		}*/
 
 
-
+		auto gotStriker = false;
 		for (auto & attacker : attackers) //ищем точку, из которой нап может пробить по воротам противника
 		{
 			BallEntity attBestBallEntity = BallEntity(game.ball);
@@ -201,6 +201,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			{
 				bestAttCollisionTId = attacker.id;
 			}
+			if (!isDefender && attCollisionT != std::nullopt)
+				gotStriker = true;
 
 			collisionTimes[attacker.id] = attCollisionT;
 			bestBallEntities[attacker.id] = attBestBallEntity;
@@ -222,7 +224,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			_actions[defender.id] = defRobotAction;
 		}
 
-		else if (!isDefender)//нашли точку для атаки ворот. защитник идет на ворота
+		else if (gotStriker)//нашли точку для атаки ворот. защитник идет на ворота
 		{
 			Action robotAction = GetDefaultAction(defender, _myGates);
 			collisionTimes[defender.id] = std::nullopt;
