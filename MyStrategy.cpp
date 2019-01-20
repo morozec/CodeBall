@@ -1181,7 +1181,6 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 			collisionT = jumpCollisionT;
 			bestBallEntity = jump_ball_entity.value();
 
-
 			targetVelocity =
 				Helper::GetTargetVelocity(me.x, 0, me.z, _ball.x, 0, _ball.z, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
 			action.target_velocity_x = targetVelocity.X;
@@ -1232,7 +1231,10 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		}
 	}
 
-	if (isDefender)
+	//не защитник, либо не нашли точку удара для робота с защитной точкой перед воротами
+	const auto isForward = !isDefender || movePoint == std::nullopt && &defenderPoint == &_beforeMyGates;
+
+	if (!isForward)
 	{
 		jumpCollisionT = std::nullopt;
 		jump_ball_entity = std::nullopt;
@@ -1544,7 +1546,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 	}
 
 	//код, чтобы сразу отбросить лишние варианты. TODO: оптимизировать
-	if (directionCoeff == 1)
+	/*if (directionCoeff == 1)
 	{
 		double robotBallDist = sqrt((ballEntity.Position.X - robot.x)* (ballEntity.Position.X - robot.x) +
 			(ballEntity.Position.Z - robot.z)* (ballEntity.Position.Z - robot.z));
@@ -1556,7 +1558,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 			collisionT = std::nullopt;
 			return std::nullopt;
 		}
-	}
+	}*/
 
 	double div = (ballEntity.Position.X - robot.x) / (ballEntity.Position.Z - robot.z);
 	double tmp = _moveSphereRadius / sqrt(1 + div * div);
@@ -1650,8 +1652,8 @@ bool MyStrategy::IsOkPosToJump(
 		if (IsPenaltyArea(beCur.Position, false))
 			return false;
 
-		double angle = GetVectorAngleToHorizontal(beCur.Velocity);
-		if (angle * directionCoeff > M_PI / 3) return false; //TODO: не бьем под большим углом к горизонтали
+		//double angle = GetVectorAngleToHorizontal(beCur.Velocity);
+		//if (angle * directionCoeff > M_PI / 3) return false; //TODO: не бьем под большим углом к горизонтали
 
 		double ballFlyTime = 0;
 		if (!IsGoalBallDirection2(beCur, directionCoeff, false, ballFlyTime)) return false;
