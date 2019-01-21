@@ -96,229 +96,231 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			attackers.push_back(robot);
 	}
 
-	bool isDefender = false;
-	bool isStrikeDefender = false;
+	//bool isDefender = false;
+	//bool isStrikeDefender = false;
 	if (isJumping)
 	{
-		if (_isMeGoalPossible)
+		//if (_isMeGoalPossible)
+		//{
+		//	//защищаем ворота, начиная с 1 тика
+		//	for (auto & robot : myRobots)
+		//	{
+		//		if (!robot.touch) continue;
+		//		std::optional<double> collisionT = std::nullopt;
+		//		auto best_ball_entity = BallEntity(_ball);
+		//		Action robotAction = SetDefenderAction(
+		//			robot, robot.id==defender.id ? _myGates : _beforeMyGates, collisionT, best_ball_entity);
+		//		collisionTimes[robot.id] = collisionT;
+		//		bestBallEntities[robot.id] = best_ball_entity;
+		//		_actions[robot.id] = robotAction;
+		//	}
+		//}
+		//else
+		//{
+		//	//идем в атаку, начиная с последнего тика коллизии прыгающего
+		//	for (auto & robot : myRobots)
+		//	{
+		//		if (!robot.touch) continue;
+		//		std::optional<double> collisionT = std::nullopt;
+		//		auto bestBallEntity = BallEntity(_ball);
+		//		Action robotAction = SetAttackerAction(
+		//			robot, maxCollisionTick == -1 ? 1 : maxCollisionTick + AttackerAddTicks,
+		//			robot.id == defender.id ? _myGates : _beforeMyGates, collisionT, bestBallEntity, isDefender, isStrikeDefender);
+		//		collisionTimes[robot.id] = collisionT;
+		//		bestBallEntities[robot.id] = bestBallEntity;
+		//		_actions[robot.id] = robotAction;
+		//	}
+		//}
+
+		//идем в атаку, начиная с последнего тика коллизии прыгающего
+		for (auto & robot : myRobots)
 		{
-			//защищаем ворота, начиная с 1 тика
-			for (auto & robot : myRobots)
-			{
-				if (!robot.touch) continue;
-				std::optional<double> collisionT = std::nullopt;
-				auto best_ball_entity = BallEntity(_ball);
-				Action robotAction = SetDefenderAction(
-					robot, robot.id==defender.id ? _myGates : _beforeMyGates, collisionT, best_ball_entity);
-				collisionTimes[robot.id] = collisionT;
-				bestBallEntities[robot.id] = best_ball_entity;
-				_actions[robot.id] = robotAction;
-			}
-		}
-		else
-		{
-			//идем в атаку, начиная с последнего тика коллизии прыгающего
-			for (auto & robot : myRobots)
-			{
-				if (!robot.touch) continue;
-				std::optional<double> collisionT = std::nullopt;
-				auto bestBallEntity = BallEntity(_ball);
-				Action robotAction = SetAttackerAction(
-					robot, maxCollisionTick == -1 ? 1 : maxCollisionTick + AttackerAddTicks,
-					robot.id == defender.id ? _myGates : _beforeMyGates, collisionT, bestBallEntity, isDefender, isStrikeDefender);
-				collisionTimes[robot.id] = collisionT;
-				bestBallEntities[robot.id] = bestBallEntity;
-				_actions[robot.id] = robotAction;
-			}
+			if (!robot.touch) continue;
+			BallEntityContainer* bec = nullptr;
+			bool isDefender;
+			const Action robotAction = SetAttackerAction(
+				robot, maxCollisionTick == -1 ? 1 : maxCollisionTick + AttackerAddTicks,
+				robot.id == defender.id ? _myGates : _beforeMyGates, bec, isDefender);
+			_actions[robot.id] = robotAction;
 		}
 		
 	}
 	else
 	{		
-		int strikeDefenderId = -1;
-		int bestAttCollisionTId = -1;
-		/*
-		std::map<int, bool> isDefenders = std::map<int, bool>();
-
-		for (auto & robot: myRobots)
+		int bestBecPRobotId = -1;
+		std::set<int> notNullBecPRobotIds = std::set<int>();
+		BallEntityContainer* bestBecP = nullptr;
+		for (auto& robot:myRobots)
 		{
-			BallEntity attBestBallEntity = BallEntity(game.ball);
-			std::optional<double> attCollisionT = std::nullopt;
-
-			const Action attRobotAction = SetAttackerAction(
-				robot, 1, _beforeMyGates, attCollisionT, attBestBallEntity, isDefender, isStrikeDefender);
-			isDefenders[robot.id] = isDefender;
-
-			if (attCollisionT != std::nullopt && (bestAttCollisionTId == -1 || attCollisionT.value() < collisionTimes[bestAttCollisionTId].value()))
+			if (!robot.touch) continue;
+			bool isDefender;
+			BallEntityContainer* curBestBecP = nullptr;
+			const auto attAction = SetAttackerAction(robot, 1, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBecP, isDefender);
+			if (curBestBecP != nullptr)
 			{
-				bestAttCollisionTId = robot.id;
-			}
-
-			collisionTimes[robot.id] = attCollisionT;
-			bestBallEntities[robot.id] = attBestBallEntity;
-			_actions[robot.id] = attRobotAction;
-			if (isStrikeDefender)
-				strikeDefenderId = robot.id;
-		}
-		if (strikeDefenderId != -1)
-		{
-			for (auto & robot : myRobots)
-			{
-				if (robot.id == strikeDefenderId) continue;
-				const auto afterCollisionTick = UpdateBallEntities(
-					collisionTimes[strikeDefenderId].value(), bestBallEntities[strikeDefenderId].Velocity);
-
-				auto curBestBallEntity = BallEntity(game.ball);
-				std::optional<double> curCollisionT = std::nullopt;
-				const Action curRobotAction = SetAttackerAction(
-					robot, afterCollisionTick + AttackerAddTicks, _myGates, curCollisionT, curBestBallEntity, isDefender, isStrikeDefender);
-				collisionTimes[robot.id] = curCollisionT;
-				bestBallEntities[robot.id] = curBestBallEntity;
-				_actions[robot.id] = curRobotAction;
-			}
-		}
-		else
-		{
-			int goodNotDefenderId = -1;
-			for (auto & robot:myRobots)
-			{
-				if (isDefenders[robot.id]) continue;
-
-			}
-		}*/
-
-
-		auto gotStriker = false;
-		for (auto & attacker : attackers) //ищем точку, из которой нап может пробить по воротам противника
-		{
-			BallEntity attBestBallEntity = BallEntity(game.ball);
-			std::optional<double> attCollisionT = std::nullopt;
-
-			const Action attRobotAction = SetAttackerAction(
-				attacker, 1, _beforeMyGates, attCollisionT, attBestBallEntity, isDefender, isStrikeDefender);
-
-			if (attCollisionT != std::nullopt && (bestAttCollisionTId == -1 || attCollisionT.value() < collisionTimes[bestAttCollisionTId].value()))
-			{
-				bestAttCollisionTId = attacker.id;
-			}
-			if (!isDefender && attCollisionT != std::nullopt)
-				gotStriker = true;
-
-			collisionTimes[attacker.id] = attCollisionT;
-			bestBallEntities[attacker.id] = attBestBallEntity;
-			_actions[attacker.id] = attRobotAction;
-			if (isStrikeDefender)
-				strikeDefenderId = attacker.id;
-		}
-		if (isStrikeDefender)//нап бьет по воротам из зоны защиты. защитнику можно идти вперед
-		{
-			const auto afterCollisionTick = UpdateBallEntities(
-				collisionTimes[strikeDefenderId].value(), bestBallEntities[strikeDefenderId].Velocity);
-
-			auto defBestBallEntity = BallEntity(game.ball);
-			std::optional<double> defCollisionT = std::nullopt;
-			const Action defRobotAction = SetAttackerAction(
-				defender, afterCollisionTick + AttackerAddTicks, _myGates, defCollisionT, defBestBallEntity, isDefender, isStrikeDefender);
-			collisionTimes[defender.id] = defCollisionT;
-			bestBallEntities[defender.id] = defBestBallEntity;
-			_actions[defender.id] = defRobotAction;
-		}
-
-		else if (gotStriker)//нашли точку для атаки ворот. защитник идет на ворота
-		{
-			Action robotAction = GetDefaultAction(defender, _myGates);
-			collisionTimes[defender.id] = std::nullopt;
-			bestBallEntities[defender.id] = BallEntity(game.ball);
-			_actions[defender.id] = robotAction;
-		}
-		else //не нашли точку для атаки ворот.
-		{
-			auto bestBallentity = BallEntity(game.ball);
-			std::optional<double> collisionT = std::nullopt;
-			Action robotAction = SetDefenderAction(
-				defender, _myGates, collisionT, bestBallentity);
-			collisionTimes[defender.id] = collisionT;
-			bestBallEntities[defender.id] = bestBallentity;
-			_actions[defender.id] = robotAction;
-
-			//нашли точку для защитника, в которой он опередет напа врага
-			if (collisionT != std::nullopt && (_oppStrikeTime == std::nullopt || collisionT.value() < _oppStrikeTime.value()))
-			{
-				const auto afterCollisionTick = UpdateBallEntities(
-					collisionTimes[defender.id].value(), bestBallEntities[defender.id].Velocity);
-				//наши напы ориентируются на обновленную траекторию
-				for (auto & attacker : attackers)
+				notNullBecPRobotIds.insert(robot.id);
+				if (bestBecP == nullptr || CompareBeContainers(*curBestBecP, *bestBecP) < 0)
 				{
-					auto attBestBallEntity = BallEntity(game.ball);
-					std::optional<double> attCollisionT = std::nullopt;
-					const Action attRobotAction = SetAttackerAction(
-						attacker, afterCollisionTick + AttackerAddTicks, _beforeMyGates, attCollisionT, attBestBallEntity, isDefender, isStrikeDefender);
-					collisionTimes[attacker.id] = attCollisionT;
-					bestBallEntities[attacker.id] = attBestBallEntity;
-					_actions[attacker.id] = attRobotAction;
+					bestBecP = curBestBecP;
+					bestBecPRobotId = robot.id;
 				}
-			} 
-			else//защитник не опередит врага
-			{					
-				//нашли точку для напа, в которой он опередет напа врага
-				if (bestAttCollisionTId >= 0 &&
-					(_oppStrikeTime == std::nullopt || collisionTimes[bestAttCollisionTId].value() < _oppStrikeTime.value()))
-				{
-					//защитник идет в атаку
-					//TODO: он перестает идти в опр. момент
-
-					const auto afterCollisionTick = UpdateBallEntities(
-						collisionTimes[bestAttCollisionTId].value(), bestBallEntities[bestAttCollisionTId].Velocity);
-
-					auto defBestBallEntity = BallEntity(game.ball);
-					std::optional<double> defCollisionT = std::nullopt;
-					const Action defRobotAction = SetAttackerAction(
-						defender, afterCollisionTick + AttackerAddTicks, _myGates, defCollisionT, defBestBallEntity, isDefender, isStrikeDefender);
-					collisionTimes[defender.id] = defCollisionT;
-					bestBallEntities[defender.id] = defBestBallEntity;
-					_actions[defender.id] = defRobotAction;
-				}
-				else //нап не опередит врага
-				{
-					//будем выбивать мяч как можно раньше. не факт, что враг прыгнет
-					//выбиваем оптимальный Action. Action другого робота сбрасываем на дефолтный
-					for (Robot & robot : myRobots)
-					{
-						if (!robot.touch) continue;
-
-						Robot otherRobot{};
-						for (Robot r : game.robots)
-						{
-							if (!r.is_teammate || r.id == robot.id) continue;
-							otherRobot = r;
-							break;
-						}
-
-						if (collisionTimes[robot.id] != std::nullopt && collisionTimes[otherRobot.id] != std::nullopt)
-						{
-							if (_oppStrikeTime == std::nullopt ||
-								std::max(*collisionTimes[robot.id], *collisionTimes[otherRobot.id]) < _oppStrikeTime.value())
-							{
-								int isB2GoalDirection = -1;
-								if (!otherRobot.touch ||  //если один уже в воздухе, оптимизация не имеет смысла
-									CompareDefenderBallEntities(bestBallEntities[robot.id], bestBallEntities[otherRobot.id], isB2GoalDirection) > 0)
-								{
-									_actions[robot.id] =
-										GetDefaultAction(robot, robot.z < otherRobot.z ? _myGates : _beforeMyGates);
-								}
-							}
-
-							else if (*collisionTimes[robot.id] > *collisionTimes[otherRobot.id])
-							{
-								_actions[robot.id] =
-									GetDefaultAction(robot, robot.z < otherRobot.z ? _myGates : _beforeMyGates);
-							}
-						}
-					}
-				}
-
 			}
+			_actions[robot.id] = attAction;
 		}
+
+		for (auto & robot:myRobots)
+		{
+			if (!robot.touch) continue;
+			if (notNullBecPRobotIds.find(robot.id) == notNullBecPRobotIds.end()) continue;
+			if (robot.id == bestBecPRobotId) continue;
+
+			const auto collisionTime = (*bestBecP).collisionTime;
+			const auto afterCollisionTick = UpdateBallEntities(collisionTime, (*bestBecP).ResBallEntity.Velocity);
+
+			bool isDefender;
+			BallEntityContainer* curBestBecP = nullptr;
+			const Action attAction = SetAttackerAction(
+				robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBecP, isDefender);
+			_actions[robot.id] = attAction;
+		}
+
+
+
+
+	//	int strikeDefenderId = -1;
+	//	int bestAttCollisionTId = -1;
+	//	
+	//	auto gotStriker = false;
+	//	for (auto & attacker : attackers) //ищем точку, из которой нап может пробить по воротам противника
+	//	{
+	//		BallEntity attBestBallEntity = BallEntity(game.ball);
+	//		std::optional<double> attCollisionT = std::nullopt;
+
+	//		const Action attRobotAction = SetAttackerAction(
+	//			attacker, 1, _beforeMyGates, attCollisionT, attBestBallEntity, isDefender, isStrikeDefender);
+
+	//		if (attCollisionT != std::nullopt && (bestAttCollisionTId == -1 || attCollisionT.value() < collisionTimes[bestAttCollisionTId].value()))
+	//		{
+	//			bestAttCollisionTId = attacker.id;
+	//		}
+	//		if (!isDefender && attCollisionT != std::nullopt)
+	//			gotStriker = true;
+
+	//		collisionTimes[attacker.id] = attCollisionT;
+	//		bestBallEntities[attacker.id] = attBestBallEntity;
+	//		_actions[attacker.id] = attRobotAction;
+	//		if (isStrikeDefender)
+	//			strikeDefenderId = attacker.id;
+	//	}
+	//	if (isStrikeDefender)//нап бьет по воротам из зоны защиты. защитнику можно идти вперед
+	//	{
+	//		const auto afterCollisionTick = UpdateBallEntities(
+	//			collisionTimes[strikeDefenderId].value(), bestBallEntities[strikeDefenderId].Velocity);
+
+	//		auto defBestBallEntity = BallEntity(game.ball);
+	//		std::optional<double> defCollisionT = std::nullopt;
+	//		const Action defRobotAction = SetAttackerAction(
+	//			defender, afterCollisionTick + AttackerAddTicks, _myGates, defCollisionT, defBestBallEntity, isDefender, isStrikeDefender);
+	//		collisionTimes[defender.id] = defCollisionT;
+	//		bestBallEntities[defender.id] = defBestBallEntity;
+	//		_actions[defender.id] = defRobotAction;
+	//	}
+
+	//	else if (gotStriker)//нашли точку для атаки ворот. защитник идет на ворота
+	//	{
+	//		Action robotAction = GetDefaultAction(defender, _myGates);
+	//		collisionTimes[defender.id] = std::nullopt;
+	//		bestBallEntities[defender.id] = BallEntity(game.ball);
+	//		_actions[defender.id] = robotAction;
+	//	}
+	//	else //не нашли точку для атаки ворот.
+	//	{
+	//		auto bestBallentity = BallEntity(game.ball);
+	//		std::optional<double> collisionT = std::nullopt;
+	//		Action robotAction = SetDefenderAction(
+	//			defender, _myGates, collisionT, bestBallentity);
+	//		collisionTimes[defender.id] = collisionT;
+	//		bestBallEntities[defender.id] = bestBallentity;
+	//		_actions[defender.id] = robotAction;
+
+	//		//нашли точку для защитника, в которой он опередет напа врага
+	//		if (collisionT != std::nullopt && (_oppStrikeTime == std::nullopt || collisionT.value() < _oppStrikeTime.value()))
+	//		{
+	//			const auto afterCollisionTick = UpdateBallEntities(
+	//				collisionTimes[defender.id].value(), bestBallEntities[defender.id].Velocity);
+	//			//наши напы ориентируются на обновленную траекторию
+	//			for (auto & attacker : attackers)
+	//			{
+	//				auto attBestBallEntity = BallEntity(game.ball);
+	//				std::optional<double> attCollisionT = std::nullopt;
+	//				const Action attRobotAction = SetAttackerAction(
+	//					attacker, afterCollisionTick + AttackerAddTicks, _beforeMyGates, attCollisionT, attBestBallEntity, isDefender, isStrikeDefender);
+	//				collisionTimes[attacker.id] = attCollisionT;
+	//				bestBallEntities[attacker.id] = attBestBallEntity;
+	//				_actions[attacker.id] = attRobotAction;
+	//			}
+	//		} 
+	//		else//защитник не опередит врага
+	//		{					
+	//			//нашли точку для напа, в которой он опередет напа врага
+	//			if (bestAttCollisionTId >= 0 &&
+	//				(_oppStrikeTime == std::nullopt || collisionTimes[bestAttCollisionTId].value() < _oppStrikeTime.value()))
+	//			{
+	//				//защитник идет в атаку
+	//				//TODO: он перестает идти в опр. момент
+
+	//				const auto afterCollisionTick = UpdateBallEntities(
+	//					collisionTimes[bestAttCollisionTId].value(), bestBallEntities[bestAttCollisionTId].Velocity);
+
+	//				auto defBestBallEntity = BallEntity(game.ball);
+	//				std::optional<double> defCollisionT = std::nullopt;
+	//				const Action defRobotAction = SetAttackerAction(
+	//					defender, afterCollisionTick + AttackerAddTicks, _myGates, defCollisionT, defBestBallEntity, isDefender, isStrikeDefender);
+	//				collisionTimes[defender.id] = defCollisionT;
+	//				bestBallEntities[defender.id] = defBestBallEntity;
+	//				_actions[defender.id] = defRobotAction;
+	//			}
+	//			else //нап не опередит врага
+	//			{
+	//				//будем выбивать мяч как можно раньше. не факт, что враг прыгнет
+	//				//выбиваем оптимальный Action. Action другого робота сбрасываем на дефолтный
+	//				for (Robot & robot : myRobots)
+	//				{
+	//					if (!robot.touch) continue;
+
+	//					Robot otherRobot{};
+	//					for (Robot r : game.robots)
+	//					{
+	//						if (!r.is_teammate || r.id == robot.id) continue;
+	//						otherRobot = r;
+	//						break;
+	//					}
+
+	//					if (collisionTimes[robot.id] != std::nullopt && collisionTimes[otherRobot.id] != std::nullopt)
+	//					{
+	//						if (_oppStrikeTime == std::nullopt ||
+	//							std::max(*collisionTimes[robot.id], *collisionTimes[otherRobot.id]) < _oppStrikeTime.value())
+	//						{
+	//							int isB2GoalDirection = -1;
+	//							if (!otherRobot.touch ||  //если один уже в воздухе, оптимизация не имеет смысла
+	//								CompareDefenderBallEntities(bestBallEntities[robot.id], bestBallEntities[otherRobot.id], isB2GoalDirection) > 0)
+	//							{
+	//								_actions[robot.id] =
+	//									GetDefaultAction(robot, robot.z < otherRobot.z ? _myGates : _beforeMyGates);
+	//							}
+	//						}
+
+	//						else if (*collisionTimes[robot.id] > *collisionTimes[otherRobot.id])
+	//						{
+	//							_actions[robot.id] =
+	//								GetDefaultAction(robot, robot.z < otherRobot.z ? _myGates : _beforeMyGates);
+	//						}
+	//					}
+	//				}
+	//			}
+
+	//		}
+	//	}
 	}		
 	
 	InitAction(action, me.id);
@@ -407,9 +409,7 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 
 model::Action MyStrategy::GetDefaultAction(const model::Robot & me, const Vector3D & defaultPos)
 {
-	Vector3D targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, defaultPos.X, 0, defaultPos.Z,
-		Constants::Rules.ROBOT_MAX_GROUND_SPEED);
-
+	const auto targetVelocity = GetDefendPointTargetVelocity(me, defaultPos);
 	model::Action action = model::Action();
 	action.target_velocity_x = targetVelocity.X;
 	action.target_velocity_y = 0.0;
@@ -425,9 +425,9 @@ BallEntity MyStrategy::SimulateTickBall(
 	BallEntity bec = BallEntity(ballEntity);
 	std::vector<RobotEntity> jumpResC = std::vector<RobotEntity>();
 	for (const auto& jr : jumpRes)
-		jumpResC.push_back(RobotEntity(jr));
+		jumpResC.push_back(jr);
 
-	double hitE = (_hitEs[0] + _hitEs[1]) / 2.0;
+	const double hitE = (_hitEs[0] + _hitEs[1]) / 2.0;
 	Simulator::UpdateOnAir(bec, jumpResC, 1.0 / Constants::Rules.TICKS_PER_SECOND, hitE, isGoalScored, true);
 	if (!bec.IsArenaCollided && !bec.IsCollided)
 	{	
@@ -1286,8 +1286,6 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	{
 		if (movePoint == std::nullopt)
 		{
-			auto bec = BallEntityContainer(BallEntity(_ball), -1, false, -1);
-			bestBecP = &bec;
 			if (&defenderPoint == &_beforeMyGates && //только нап бежит за мячом				
 				Helper::GetLength2(Helper::GetBallPosition(_ball), Helper::GetRobotPosition(me)) >
 				_distToFollowBall * _distToFollowBall
@@ -1442,6 +1440,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 			if (bestBecP == nullptr || CompareBeContainers(*becP, *bestBecP) < 0)
 			{
+				isDefender = true;
 				bestBecP = becP;
 				if ((*becP).isGoalScored)
 				{
@@ -1470,6 +1469,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), curCollisionT, true, goalTime);
 			if (bestBecP == nullptr || CompareBeContainers(bec, *bestBecP) < 0)
 			{
+				isDefender = false;
 				bestBecP = &bec;
 			}			
 		}
