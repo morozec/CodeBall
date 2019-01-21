@@ -1644,7 +1644,7 @@ bool MyStrategy::IsOkPosToJump(
 		{
 			if (!_isNoCollisionGoalPossible) return false; //не смысла бить по роботу - без роботов мяч не летит в вопрота
 			if (_isGoalPossible) return false;//нет смысла бить по роботу - мяч летит в ворота
-			continue;
+			// TODO: здесь не выходим. надо проверить, что мяч попадет в ворота. может быть удар по роботу, после его коллизии с мячом
 		}
 		beCur.IsCollided = false;
 		beCur.IsArenaCollided = false;
