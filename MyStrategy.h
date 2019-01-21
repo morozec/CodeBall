@@ -6,6 +6,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 #include "Sphere.h"
+#include "BallEntityContainer.h"
 
 
 #ifndef _MY_STRATEGY_H_
@@ -104,36 +105,37 @@ public:
 
 	bool IsPenaltyArea(const Vector3D& position, bool isDefender) const;
 	double GetVectorAngleToHorizontal(const Vector3D& v) const;
-	int CompareDefenderBallEntities(const BallEntity & b1, const std::optional<BallEntity>& b2, int& isB2GoalDirection) const;
+	int CompareDefenderBallEntities(const BallEntity & b1, const BallEntity & b2) const;
+
+	int CompareBeContainers(BallEntityContainer bec1, BallEntityContainer bec2) const;
+
 	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff, bool considerBoardSide, double& goalTime) const;
 
-	model::Action SetDefenderAction(const model::Robot& me,
+	/*model::Action SetDefenderAction(const model::Robot& me,
 		const Vector3D& defenderPoint,
-		std::optional<double>& collisionT, BallEntity& bestBallEntity);
-	std::optional<BallEntity> GetDefenderStrikeBallEntity(
+		std::optional<double>& collisionT, BallEntity& bestBallEntity);*/
+	void GetDefenderStrikeBallEntity(
 		const model::Robot& robot, int t,
 		int startAttackTick,
 		int endAttackTick,
-		bool isDefender,
-		std::optional<double>& collisionT, bool& isPassedBy, int& bestMoveT);
+		BallEntityContainer* & bestBecP, int& bestMoveT);
 	bool IsOkDefenderPosToJump(
 		const Vector3D & robotPosition, const Vector3D & robotVelocity,
-		bool isDefender,
 		int beforeTicks,
 		std::optional<double>& jumpCollisionT, std::optional<BallEntity>& collisionBallEntity);
-	std::optional<Vector3D> GetDefenderMovePoint(const model::Robot& robot,
-		std::optional<double>& collisionT, BallEntity& bestBallEntity, bool& isSavedPointOk);
+	/*std::optional<Vector3D> GetDefenderMovePoint(const model::Robot& robot,
+		std::optional<double>& collisionT, BallEntity& bestBallEntity, bool& isSavedPointOk);*/
 
 	model::Action SetAttackerAction(const model::Robot& me, 
 		int startAttackTick,
 		const Vector3D& defenderPoint,
-		std::optional<double>& collisionT, BallEntity& bestBallEntity, bool& isDefender, bool& isStrikeDefender);
+		BallEntityContainer* & bestBecP, bool& isDefender);
 	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, int t,
 		int directionCoeff,
 		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime);
 	std::optional<Vector3D> GetAttackerMovePoint(const model::Robot& robot, 
 		int startAttackTick,
-		std::optional<double>& collisionT, bool& isDefender, bool& isStrikeDefender, BallEntity& bestBallEntity, bool& isSavedPointOk, double& bestGoalTime);
+		bool & isDefender, bool& isDefenderSavedPointOk, BallEntityContainer* & bestBecP);
 	std::optional<Vector3D> GetAttackerStrikePoint(
 		const model::Robot& robot, int t, int directionCoeff, 
 		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime);
