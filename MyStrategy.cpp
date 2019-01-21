@@ -1241,10 +1241,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		}
 	}
 
-	//не защитник, либо не нашли точку удара для робота с защитной точкой перед воротами
-	const auto isForward = !isDefender || movePoint == std::nullopt && &defenderPoint == &_beforeMyGates;
-
-	if (!isForward)
+	if (isDefender || movePoint == std::nullopt)
 	{
 		jumpCollisionT = std::nullopt;
 		jump_ball_entity = std::nullopt;
@@ -1274,7 +1271,13 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				return action;
 			}
 		}
-		
+	}
+
+	//не защитник, либо не нашли точку удара для робота с защитной точкой перед воротами
+	const auto isForward = !isDefender || movePoint == std::nullopt && &defenderPoint == &_beforeMyGates;
+
+	if (!isForward)
+	{		
 		if (movePoint == std::nullopt) {
 			isOkBestBecP = false;
 			targetVelocity = GetDefendPointTargetVelocity(me, defenderPoint);
@@ -1411,12 +1414,10 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			BallEntityContainer dmpBecP;
 			const bool isOk = GetDefenderStrikeBallEntity(robot, tBall, tJump, tJump + 1, dmpBecP, bestMoveT);
 
-			if (isOk && (!_oppStrikeTime.has_value() || dmpBecP.collisionTime < _oppStrikeTime.value() - tickTime))
+			if (isOk && dmpBecP.isGoalScored && (!_oppStrikeTime.has_value() || dmpBecP.collisionTime < _oppStrikeTime.value() - tickTime))
 			{
 				isDefenderSavedPointOk = true;
 				isDefender = true;
-
-				if (!dmpBecP.isGoalScored) throw "NO GOAL FOR SAVED POINT";
 				bestBecP = dmpBecP;
 
 				const auto be = _ballEntities.at(tBall);
@@ -1881,7 +1882,7 @@ void MyStrategy::InitBallEntities(
 			be.Position.X,
 			be.Position.Y,
 			be.Position.Z,
-			2, 1, 1, 0, 0.5
+			2, 1, 1, 0, 0.25
 		));
 		for (auto & re:_robotEntities.at(t))
 		{
