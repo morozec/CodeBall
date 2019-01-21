@@ -138,7 +138,7 @@ public:
 		bool & isDefender, bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP);
 	std::optional<Vector3D> GetAttackerStrikePoint(
 		const model::Robot& robot, int t, int directionCoeff, 
-		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime);
+		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime, Vector3D& posToSave);
 	bool IsOkPosToJump(
 		RobotEntity& robotEntity,
 		int beforeTicks,
