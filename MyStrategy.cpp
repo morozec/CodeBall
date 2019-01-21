@@ -1253,8 +1253,10 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				isDefender = true;
 				double changeDirVzAttack = 0;
 				auto const isGoal = IsGoalBallDirection2(jump_ball_entity.value(), 1, true, goalTime, changeDirVzAttack);
-				if (!isGoal) throw "NO GOAL FOR SAVED POINT";
-				const auto bec = BallEntityContainer(jump_ball_entity.value(), jumpCollisionT.value(), true, goalTime, changeDirVz);
+				//if (!isGoal) throw "NO GOAL FOR SAVED POINT"; м.б. коллизия
+				
+				const auto bec = BallEntityContainer(
+					jump_ball_entity.value(), jumpCollisionT.value(), true, goalTime, changeDirVz);
 				bestBecP = bec;
 
 				targetVelocity =
