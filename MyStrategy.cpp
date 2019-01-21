@@ -174,8 +174,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				if (!robot.touch) continue;
 				if (robot.id == bestBecPRobotId) continue;
 
-				//TODO: проверить ,что опередим врага
-				if (bestBec.ResBallEntity.Position.Z < 0)//бьем со своей половины - второй идет добивать
+				if (bestBec.ResBallEntity.Position.Z < 0 && (!_oppStrikeTime.has_value() || bestBec.collisionTime < _oppStrikeTime.value()))//бьем со своей половины - второй идет добивать
 				{
 					const auto collisionTime = bestBec.collisionTime;
 					const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity);
