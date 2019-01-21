@@ -1612,12 +1612,12 @@ bool MyStrategy::IsOkPosToJump(
 {
 	const auto directionCoeff = 1;
 
-	if (_ballEntities.at(beforeTicks).Velocity.Z <=0 && 
+	/*if (_ballEntities.at(beforeTicks).Velocity.Z <=0 && 
 		Helper::GetLength2(robotEntity.Position, _ballEntities.at(beforeTicks).Position) > _maxStrikeDist2 + EPS)
 	{
 		collisionT = std::nullopt;
 		return false;
-	}
+	}*/
 
 	//auto const prevBallEntity = BallEntity(ballEntity);
 
