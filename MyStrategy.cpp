@@ -174,15 +174,24 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				if (!robot.touch) continue;
 				if (robot.id == bestBecPRobotId) continue;
 
-				const auto collisionTime = bestBec.collisionTime;
-				const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity);
+				if (bestBec.ResBallEntity.Position.Z < 0)//бьем со своей половины - второй идет добивать
+				{
+					const auto collisionTime = bestBec.collisionTime;
+					const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity);
 
-				bool isDefender;
-				BallEntityContainer curBestBec;
-				bool isOkBestBec;
-				const Action attAction = SetAttackerAction(
-					robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
-				_actions[robot.id] = attAction;
+					bool isDefender;
+					BallEntityContainer curBestBec;
+					bool isOkBestBec;
+					const Action attAction = SetAttackerAction(
+						robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
+					_actions[robot.id] = attAction;
+				}
+				else //бьем с чужой половины - второй идет на ворота
+				{
+					const Action defAction = GetDefaultAction(robot, _myGates);
+					_actions[robot.id] =defAction;
+				}
+				
 			}
 
 
