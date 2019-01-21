@@ -342,11 +342,18 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		_beforeStrikePoints[bsp.first].first--;
 	}
 
+	std::vector<int> removeIds = std::vector<int>();
 	for (auto & dmp : _defenderMovePoints)
 	{
 		_defenderMovePoints[dmp.first].first--;
 		_defenderMovePoints[dmp.first].second--;
+		if (_defenderMovePoints[dmp.first].second <  0 || _defenderMovePoints[dmp.first].first < 0)
+		{
+			removeIds.push_back(dmp.first);
+		}
 	}
+	for (auto removeId : removeIds)
+		_defenderMovePoints.erase(removeId);
 }
 
 
@@ -1229,7 +1236,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		}
 	}
 
-	if (_defenderMovePoints.count(me.id) > 0)
+	if (startAttackTick == 1 && _defenderMovePoints.count(me.id) > 0)
 	{
 		const auto moveTime = _defenderMovePoints[me.id].second;
 		if (moveTime == 0)
