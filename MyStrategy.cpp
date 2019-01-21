@@ -149,8 +149,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	else
 	{		
 		int bestBecPRobotId = -1;
-		std::set<int> notNullBecPRobotIds = std::set<int>();
-		bool resIsOkBestBec = false;
 		BallEntityContainer bestBec;
 		for (auto& robot:myRobots)
 		{
@@ -161,10 +159,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			const auto attAction = SetAttackerAction(robot, 1, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
 			if (isOkBestBec)
 			{
-				notNullBecPRobotIds.insert(robot.id);
-				if (!resIsOkBestBec || CompareBeContainers(curBestBec, bestBec) < 0)
+				if (bestBecPRobotId == -1 || CompareBeContainers(curBestBec, bestBec) < 0)
 				{
-					resIsOkBestBec = true;
 					bestBec = curBestBec;
 					bestBecPRobotId = robot.id;
 				}
@@ -172,22 +168,22 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			_actions[robot.id] = attAction;
 		}
 
-		for (auto & robot:myRobots)
-		{
-			if (!robot.touch) continue;
-			if (notNullBecPRobotIds.find(robot.id) == notNullBecPRobotIds.end()) continue;
-			if (robot.id == bestBecPRobotId) continue;
+		if (bestBecPRobotId != -1)
+			for (auto & robot:myRobots)
+			{
+				if (!robot.touch) continue;
+				if (robot.id == bestBecPRobotId) continue;
 
-			const auto collisionTime = bestBec.collisionTime;
-			const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity);
+				const auto collisionTime = bestBec.collisionTime;
+				const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity);
 
-			bool isDefender;
-			BallEntityContainer curBestBec;
-			bool isOkBestBec;
-			const Action attAction = SetAttackerAction(
-				robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
-			_actions[robot.id] = attAction;
-		}
+				bool isDefender;
+				BallEntityContainer curBestBec;
+				bool isOkBestBec;
+				const Action attAction = SetAttackerAction(
+					robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
+				_actions[robot.id] = attAction;
+			}
 
 
 
