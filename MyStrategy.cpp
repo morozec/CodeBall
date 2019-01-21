@@ -136,11 +136,12 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		for (auto & robot : myRobots)
 		{
 			if (!robot.touch) continue;
-			BallEntityContainer* bec = nullptr;
+			BallEntityContainer bec;
 			bool isDefender;
+			bool isOkBestBec;
 			const Action robotAction = SetAttackerAction(
 				robot, maxCollisionTick == -1 ? 1 : maxCollisionTick + AttackerAddTicks,
-				robot.id == defender.id ? _myGates : _beforeMyGates, bec, isDefender);
+				robot.id == defender.id ? _myGates : _beforeMyGates, bec, isDefender, isOkBestBec);
 			_actions[robot.id] = robotAction;
 		}
 		
@@ -149,19 +150,22 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	{		
 		int bestBecPRobotId = -1;
 		std::set<int> notNullBecPRobotIds = std::set<int>();
-		BallEntityContainer* bestBecP = nullptr;
+		bool resIsOkBestBec = false;
+		BallEntityContainer bestBec;
 		for (auto& robot:myRobots)
 		{
 			if (!robot.touch) continue;
 			bool isDefender;
-			BallEntityContainer* curBestBecP = nullptr;
-			const auto attAction = SetAttackerAction(robot, 1, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBecP, isDefender);
-			if (curBestBecP != nullptr)
+			BallEntityContainer curBestBec;
+			bool isOkBestBec;
+			const auto attAction = SetAttackerAction(robot, 1, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
+			if (isOkBestBec)
 			{
 				notNullBecPRobotIds.insert(robot.id);
-				if (bestBecP == nullptr || CompareBeContainers(*curBestBecP, *bestBecP) < 0)
+				if (!resIsOkBestBec || CompareBeContainers(curBestBec, bestBec) < 0)
 				{
-					bestBecP = curBestBecP;
+					resIsOkBestBec = true;
+					bestBec = curBestBec;
 					bestBecPRobotId = robot.id;
 				}
 			}
@@ -174,13 +178,14 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (notNullBecPRobotIds.find(robot.id) == notNullBecPRobotIds.end()) continue;
 			if (robot.id == bestBecPRobotId) continue;
 
-			const auto collisionTime = (*bestBecP).collisionTime;
-			const auto afterCollisionTick = UpdateBallEntities(collisionTime, (*bestBecP).ResBallEntity.Velocity);
+			const auto collisionTime = bestBec.collisionTime;
+			const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity);
 
 			bool isDefender;
-			BallEntityContainer* curBestBecP = nullptr;
+			BallEntityContainer curBestBec;
+			bool isOkBestBec;
 			const Action attAction = SetAttackerAction(
-				robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBecP, isDefender);
+				robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
 			_actions[robot.id] = attAction;
 		}
 
@@ -906,14 +911,14 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 //	return action;
 //}
 
-void MyStrategy::GetDefenderStrikeBallEntity(const model::Robot & robot, int t,
+bool MyStrategy::GetDefenderStrikeBallEntity(const model::Robot & robot, int t,
 	int startAttackTick,///дл€ сохраненных точек передаем t прыжка
 	int endAttackTick, //дл€ сохраненных точек передаем t прыжка + 1
-	BallEntityContainer* & bestBecP, int& bestMoveT)
+	BallEntityContainer& bestBecP, int& bestMoveT)
 {
 	int isB2GoalDirection = -1;
 	const BallEntity ballEntity = _ballEntities.at(t);
-	bestBecP = nullptr;
+	bool isOk = false;
 
 	Vector3D targetPos = Vector3D(ballEntity.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 		ballEntity.Position.Z);
@@ -934,11 +939,11 @@ void MyStrategy::GetDefenderStrikeBallEntity(const model::Robot & robot, int t,
 
 		if (pvContainer.IsPassedBy)
 		{
-			return; // проскочим целевую точку. дальше все непредсказуемо
+			return isOk; // проскочим целевую точку. дальше все непредсказуемо
 		}
 
 		if (_ballEntities.at(moveT).Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)//м§ч в воротах
-			return;
+			return isOk;
 
 		std::optional<double> curJumpCollisionT = std::nullopt;
 		std::optional<BallEntity> collision_ball_entity = std::nullopt;
@@ -950,20 +955,21 @@ void MyStrategy::GetDefenderStrikeBallEntity(const model::Robot & robot, int t,
 			double goalTime=-1;
 			const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime);
 			const double curCollisionT = moveT * 1.0 / Constants::Rules.TICKS_PER_SECOND + curJumpCollisionT.value();
-			auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime);
+			const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime);
 
-			if (bestBecP == nullptr || CompareBeContainers(bec, *bestBecP) < 0)
+			if (!isOk || CompareBeContainers(bec, bestBecP) < 0)
 			{
 				/*if (best_ball_velocity != std::nullopt &&
 					_oppStrikeTime.has_value() &&
 					curCollisionT > _oppStrikeTime.value())
 					continue;*/
-
-				bestBecP = &bec;
+				isOk = true;
+				bestBecP = bec;
 				bestMoveT = moveT;
 			}
 		}
 	}
+	return isOk;	
 
 }
 
@@ -1159,8 +1165,8 @@ bool MyStrategy::IsOkDefenderPosToJump(
 model::Action MyStrategy::SetAttackerAction(const model::Robot & me, 
 	int startAttackTick,
 	const Vector3D& defenderPoint,
-	BallEntityContainer* &bestBecP,
-	bool& isDefender)
+	BallEntityContainer& bestBecP,
+	bool& isDefender, bool& isOkBestBecP)
 {
 	model::Action action = model::Action();
 
@@ -1178,10 +1184,11 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	if (startAttackTick == 1 && IsOkPosToJump(robotEntity, 0, jumpCollisionT, jump_ball_entity, goalTime))
 	{
 		auto jumpBec = BallEntityContainer(jump_ball_entity.value(), jumpCollisionT.value(), true, goalTime);
-		if (movePoint == std::nullopt || CompareBeContainers(jumpBec, *bestBecP) < 0)
+		if (movePoint == std::nullopt || CompareBeContainers(jumpBec, bestBecP) < 0)
 		{
+			isOkBestBecP = true;
 			isDefender = false;			
-			bestBecP = &jumpBec;
+			bestBecP = jumpBec;
 
 			targetVelocity =
 				Helper::GetTargetVelocity(me.x, 0, me.z, _ball.x, 0, _ball.z, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
@@ -1206,11 +1213,12 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				jumpCollisionT,
 				jump_ball_entity))
 			{
+				isOkBestBecP = true;
 				isDefender = true;
 				auto const isGoal = IsGoalBallDirection2(jump_ball_entity.value(), 1, true, goalTime);
 				if (!isGoal) throw "NO GOAL FOR SAVED POINT";
-				auto bec = BallEntityContainer(jump_ball_entity.value(), jumpCollisionT.value(), true, goalTime);
-				bestBecP = &bec;
+				const auto bec = BallEntityContainer(jump_ball_entity.value(), jumpCollisionT.value(), true, goalTime);
+				bestBecP = bec;
 
 				targetVelocity =
 					Helper::GetTargetVelocity(me.x, 0, me.z, _ball.x, 0, _ball.z, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
@@ -1250,9 +1258,10 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 			auto const isGoal = IsGoalBallDirection2(jump_ball_entity.value(), 1, true, goalTime);
 			auto jumpBec = BallEntityContainer(jump_ball_entity.value(), jumpCollisionT.value(), isGoal, goalTime);
-			if (movePoint == std::nullopt || CompareBeContainers(jumpBec, *bestBecP) < 0)
+			if (movePoint == std::nullopt || CompareBeContainers(jumpBec, bestBecP) < 0)
 			{
-				bestBecP = &jumpBec;
+				isOkBestBecP = true;
+				bestBecP = jumpBec;
 
 				targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, _ball.x, 0, _ball.z,
 					Constants::Rules.ROBOT_MAX_GROUND_SPEED);
@@ -1265,12 +1274,14 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				return action;
 			}
 		}
-
+		
 		if (movePoint == std::nullopt) {
+			isOkBestBecP = false;
 			targetVelocity = GetDefendPointTargetVelocity(me, defenderPoint);
 		}
 		else
 		{
+			isOkBestBecP = true;
 			targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, movePoint.value().X, 0, movePoint.value().Z,
 				Constants::Rules.ROBOT_MAX_GROUND_SPEED);
 		}
@@ -1286,6 +1297,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	{
 		if (movePoint == std::nullopt)
 		{
+			isOkBestBecP = false;
 			if (&defenderPoint == &_beforeMyGates && //только нап бежит за м€чом				
 				Helper::GetLength2(Helper::GetBallPosition(_ball), Helper::GetRobotPosition(me)) >
 				_distToFollowBall * _distToFollowBall
@@ -1297,6 +1309,10 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 			{
 				movePoint = defenderPoint;
 			}
+		}
+		else
+		{
+			isOkBestBecP = true;
 		}
 
 		targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, (*movePoint).X, 0, (*movePoint).Z,
@@ -1376,7 +1392,7 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 
 std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & robot,
 	int startAttackTick,
-	bool & isDefender, bool& isDefenderSavedPointOk, BallEntityContainer* & bestBecP)
+	bool & isDefender, bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP)
 {
 	isDefenderSavedPointOk = false;
 	std::optional<Vector3D> movePoint = std::nullopt;
@@ -1390,18 +1406,17 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 		if (tBall > 0 && tJump > 0 && tBall <= BallMoveTicks) //tBall > BallMoveTicks может получитьс€, если нашли точку дл€ атаки в SetAttAction со StartTick > 1
 		{
-			std::optional<double> curCollisionT = std::nullopt;
 			bool isPassedBy = false;
 			int bestMoveT;
-			BallEntityContainer* dmpBecP = nullptr;
-			GetDefenderStrikeBallEntity(robot, tBall, tJump, tJump + 1, dmpBecP, bestMoveT);
+			BallEntityContainer dmpBecP;
+			const bool isOk = GetDefenderStrikeBallEntity(robot, tBall, tJump, tJump + 1, dmpBecP, bestMoveT);
 
-			if (dmpBecP != nullptr && (!_oppStrikeTime.has_value() || curCollisionT.value() < _oppStrikeTime.value() - tickTime))
+			if (isOk && (!_oppStrikeTime.has_value() || dmpBecP.collisionTime < _oppStrikeTime.value() - tickTime))
 			{
 				isDefenderSavedPointOk = true;
 				isDefender = true;
 
-				if (!(*dmpBecP).isGoalScored) throw "NO GOAL FOR SAVED POINT";
+				if (!dmpBecP.isGoalScored) throw "NO GOAL FOR SAVED POINT";
 				bestBecP = dmpBecP;
 
 				const auto be = _ballEntities.at(tBall);
@@ -1420,7 +1435,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	}
 
 	//int bestT = -1;
-
+	bool isResOk = false;
 	for (int t = startAttackTick; t <= startAttackTick + BallMoveTicks; ++t)
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
@@ -1434,15 +1449,17 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			std::optional<double> curCollisionT = std::nullopt;
 			bool isPassedBy = false;
 			int bestMoveT;
-			BallEntityContainer* becP = nullptr;
-			GetDefenderStrikeBallEntity(robot, t, startAttackTick, t, becP, bestMoveT);
-			if (becP == nullptr) continue;
+			BallEntityContainer becP;
+			const bool isOk = GetDefenderStrikeBallEntity(robot, t, startAttackTick, t, becP, bestMoveT);
+			if (!isOk) continue;
 
-			if (bestBecP == nullptr || CompareBeContainers(*becP, *bestBecP) < 0)
+			if (!isResOk || CompareBeContainers(becP, bestBecP) < 0)
 			{
+				isResOk = true;
+				movePoint = Vector3D(ballEntity.Position.X, Constants::Rules.ROBOT_RADIUS, ballEntity.Position.Z);
 				isDefender = true;
 				bestBecP = becP;
-				if ((*becP).isGoalScored)
+				if (becP.isGoalScored)
 				{
 					_defenderMovePoints[robot.id] = std::pair<int, int>();
 					_defenderMovePoints[robot.id].first = t;
@@ -1467,10 +1484,12 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 			const auto curCollisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
 			BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), curCollisionT, true, goalTime);
-			if (bestBecP == nullptr || CompareBeContainers(bec, *bestBecP) < 0)
+			if (!isResOk || CompareBeContainers(bec, bestBecP) < 0)
 			{
+				isResOk = true;
+				movePoint = attackMovePoint;
 				isDefender = false;
-				bestBecP = &bec;
+				bestBecP = bec;
 			}			
 		}
 	}
