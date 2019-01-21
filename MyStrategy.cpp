@@ -174,6 +174,9 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				if (!robot.touch) continue;
 				if (robot.id == bestBecPRobotId) continue;
 
+				if (_defenderMovePoints.count(robot.id) > 0)
+					_defenderMovePoints.erase(robot.id);
+
 				if (bestBec.ResBallEntity.Position.Z < 0 && (!_oppStrikeTime.has_value() || bestBec.collisionTime < _oppStrikeTime.value()))//бьем со своей половины - второй идет добивать
 				{
 					const auto collisionTime = bestBec.collisionTime;
