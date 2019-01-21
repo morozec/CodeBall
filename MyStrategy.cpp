@@ -1453,7 +1453,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 					be.Position.Z);
 			}
 		}
-		_defenderMovePoints.erase(robot.id);
+		if (tJump != 0)//это прыжок - его обработаем потом
+			_defenderMovePoints.erase(robot.id);
 	}
 
 	//int bestT = -1;
