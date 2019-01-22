@@ -152,6 +152,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	else
 	{		
 		int bestBecPRobotId = -1;
+		bool isLoosingDefender = false;
 		BallEntityContainer bestBec;
 		for (auto& robot:myRobots)
 		{
@@ -162,6 +163,13 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			const auto attAction = SetAttackerAction(robot, 1, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
 			if (isOkBestBec)
 			{
+				if (robot.id == defender.id)
+					if (_oppStrikeTime.has_value() && curBestBec.collisionTime > _oppStrikeTime.value())
+					{
+						isLoosingDefender = true;
+						continue; //не гонимс€ защитником за проигранным м€чом				
+					}
+
 				if (bestBecPRobotId == -1 || CompareBeContainers(curBestBec, bestBec) < 0)
 				{
 					bestBec = curBestBec;
@@ -199,6 +207,11 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				}
 				
 			}
+		else if (isLoosingDefender)
+		{
+			const Action defAction = GetDefaultAction(defender, _myGates);
+			_actions[defender.id] = defAction;
+		}
 
 
 
