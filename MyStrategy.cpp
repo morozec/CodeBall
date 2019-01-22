@@ -718,13 +718,15 @@ double MyStrategy::GetVectorAngleToHorizontal(const Vector3D & v) const
 //-1 - не определено, 0 - нет, 1 - да
 int MyStrategy::CompareDefenderBallEntities(const BallEntityContainer & b1, const BallEntityContainer & b2) const
 {
-	if (b1.ResBallEntity.Velocity.Z > 0 && b2.changeVelocityZ > 0)
+	if (b1.ResBallEntity.Velocity.Z > 0 && b2.ResBallEntity.Velocity.Z > 0)
 	{
+		//return b1.ResBallEntity.Velocity.Z > b2.ResBallEntity.Velocity.Z ? -1 : 1;
+
 		const double v1HorAngle = GetVectorAngleToHorizontal(b1.ResBallEntity.Velocity);
 		const double v2HorAngle = GetVectorAngleToHorizontal(b1.ResBallEntity.Velocity);
 		if (v1HorAngle > M_PI / 9 && v2HorAngle > M_PI / 9)
 		{
-			return b1.ResBallEntity.Velocity.Z > b2.changeVelocityZ ? -1 : 1;
+			return b1.ResBallEntity.Velocity.Z > b2.ResBallEntity.Velocity.Z ? -1 : 1;
 		}
 		return b1.ResBallEntity.Velocity.Y > b2.ResBallEntity.Velocity.Y ? -1 : 1;
 	}
