@@ -830,7 +830,7 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 	int collisions = 0;
 	for (int t = 1; t <= BallMoveTicks; ++t)
 	{		
-		ballEntity = SimulateTickBall(ballEntity, emptyJumpRes, isGoalScored, directionCoeff == -1);
+		ballEntity = SimulateTickBall(ballEntity, emptyJumpRes, isGoalScored, false);
 		if (isGoalScored) {
 			goalTime = t * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 			return true;
@@ -845,9 +845,9 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 		{
 			collisions++;
 			if (collisions > MaxCollisionsToGoalStrike)
-				return false;
-			ballEntity.IsArenaCollided = false;
+				return false;			
 		}
+		ballEntity.IsArenaCollided = false;
 
 		const auto isZIncreasing = ballEntity.Position.Z * directionCoeff > z * directionCoeff;		
 		if (!isZIncreasing) 
