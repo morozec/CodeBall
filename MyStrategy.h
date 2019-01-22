@@ -104,7 +104,7 @@ public:
 
 	bool SimulateFullCollision(BallEntity & be, std::vector<RobotEntity>& res, double& collisionT, double hitE, bool forbidNegativeVy, bool forbidDownStrike) const;
 
-	bool IsPenaltyArea(const Vector3D& position, bool isDefender) const;
+	bool IsPenaltyArea(const Vector3D& position) const;
 	double GetVectorAngleToHorizontal(const Vector3D& v) const;
 	int CompareDefenderBallEntities(const BallEntityContainer & b1, const BallEntityContainer & b2) const;
 
@@ -130,13 +130,13 @@ public:
 	model::Action SetAttackerAction(const model::Robot& me, 
 		int startAttackTick,
 		const Vector3D& defenderPoint,
-		BallEntityContainer & bestBecP, bool& isDefender, bool& isOkBestBecP);
+		BallEntityContainer & bestBecP, bool& isOkBestBecP);
 	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, int t,
 		int directionCoeff,
 		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime);
 	std::optional<Vector3D> GetAttackerMovePoint(const model::Robot& robot, 
 		int startAttackTick,
-		bool & isDefender, bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP);
+		bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP);
 	std::optional<Vector3D> GetAttackerStrikePoint(
 		const model::Robot& robot, int t, int directionCoeff, 
 		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime, Vector3D& posToSave);

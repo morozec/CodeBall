@@ -140,11 +140,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		{
 			if (!robot.touch) continue;
 			BallEntityContainer bec;
-			bool isDefender;
 			bool isOkBestBec;
 			const Action robotAction = SetAttackerAction(
 				robot, maxCollisionTick == -1 ? 1 : maxCollisionTick + AttackerAddTicks,
-				robot.id == defender.id ? _myGates : _beforeMyGates, bec, isDefender, isOkBestBec);
+				robot.id == defender.id ? _myGates : _beforeMyGates, bec, isOkBestBec);
 			_actions[robot.id] = robotAction;
 		}
 		
@@ -157,10 +156,9 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		for (auto& robot:myRobots)
 		{
 			if (!robot.touch) continue;
-			bool isDefender;
 			BallEntityContainer curBestBec;
 			bool isOkBestBec;
-			const auto attAction = SetAttackerAction(robot, 1, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
+			const auto attAction = SetAttackerAction(robot, 1, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isOkBestBec);
 			if (isOkBestBec)
 			{
 				if (robot.id == defender.id)
@@ -193,11 +191,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					const auto collisionTime = bestBec.collisionTime;
 					const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity);
 
-					bool isDefender;
 					BallEntityContainer curBestBec;
 					bool isOkBestBec;
 					const Action attAction = SetAttackerAction(
-						robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isDefender, isOkBestBec);
+						robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isOkBestBec);
 					_actions[robot.id] = attAction;
 				}
 				else //бьем с чужой половины - второй идет на ворота
@@ -716,10 +713,8 @@ bool MyStrategy::SimulateFullCollision(
 	throw "WHY AM I HERE?";
 }
 
-bool MyStrategy::IsPenaltyArea(const Vector3D & position, bool isDefender) const
+bool MyStrategy::IsPenaltyArea(const Vector3D & position) const
 {
-	/*if (isDefender)
-		return position.Z <= _penaltyAreaZ;*/
 	return  position.Z < 0;
 }
 
@@ -1236,17 +1231,17 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	int startAttackTick,
 	const Vector3D& defenderPoint,
 	BallEntityContainer& bestBecP,
-	bool& isDefender, bool& isOkBestBecP)
+	bool& isOkBestBecP)
 {
 	model::Action action = model::Action();
 
 	Vector3D targetVelocity;
 	RobotEntity robotEntity = RobotEntity(me);	
 
-	bool isDefenderSavedPointOk;
+	bool isDefenderSavedPointOk;	
 	std::optional<Vector3D> movePoint =
 		GetAttackerMovePoint(
-			me, startAttackTick, isDefender, isDefenderSavedPointOk, bestBecP);
+			me, startAttackTick, isDefenderSavedPointOk, bestBecP);
 
 	std::optional<double> jumpCollisionT = std::nullopt;
 	std::optional<BallEntity> jump_ball_entity = std::nullopt;
@@ -1258,7 +1253,6 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		if (movePoint == std::nullopt || CompareBeContainers(jumpBec, bestBecP) < 0)
 		{
 			isOkBestBecP = true;
-			isDefender = false;			
 			bestBecP = jumpBec;
 
 			targetVelocity =
@@ -1286,7 +1280,6 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				changeDirVz))
 			{
 				isOkBestBecP = true;
-				isDefender = true;
 				double changeDirVzAttack = 0;
 				auto const isGoal = IsGoalBallDirection2(jump_ball_entity.value(), 1, true, goalTime, changeDirVzAttack);
 				//if (!isGoal) throw "NO GOAL FOR SAVED POINT"; м.б. коллизия
@@ -1316,7 +1309,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		}
 	}
 
-	if (isDefender || movePoint == std::nullopt)
+	if (IsPenaltyArea(_ballEntities[0].Position))
 	{
 		jumpCollisionT = std::nullopt;
 		jump_ball_entity = std::nullopt;
@@ -1349,7 +1342,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	}
 
 	//не защитник, либо не нашли точку удара для робота с защитной точкой перед воротами
-	const auto isForward = !isDefender || movePoint == std::nullopt && &defenderPoint == &_beforeMyGates;
+	const auto isForward = &defenderPoint == &_beforeMyGates;
 
 	if (!isForward)
 	{		
@@ -1470,11 +1463,10 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 
 std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & robot,
 	int startAttackTick,
-	bool & isDefender, bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP)
+	bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP)
 {
 	isDefenderSavedPointOk = false;
 	std::optional<Vector3D> movePoint = std::nullopt;
-	isDefender = false;
 	const auto tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 
 	if (_defenderMovePoints.count(robot.id) > 0)
@@ -1492,7 +1484,6 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			if (isOk && dmpBecP.isGoalScored && (!_oppStrikeTime.has_value() || dmpBecP.collisionTime < _oppStrikeTime.value() - tickTime))
 			{
 				isDefenderSavedPointOk = true;
-				isDefender = true;
 				bestBecP = dmpBecP;
 
 				const auto be = _ballEntities.at(tBall);
@@ -1523,7 +1514,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 		auto ballEntity = _ballEntities.at(t);		
 
-		if (IsPenaltyArea(ballEntity.Position, false))//включаем режим защитника
+		if (IsPenaltyArea(ballEntity.Position))//включаем режим защитника
 		{
 			std::optional<double> curCollisionT = std::nullopt;
 			bool isPassedBy = false;
@@ -1536,7 +1527,6 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			{
 				isResOk = true;
 				movePoint = Vector3D(ballEntity.Position.X, Constants::Rules.ROBOT_RADIUS, ballEntity.Position.Z);
-				isDefender = true;
 				bestBecP = becP;
 				if (becP.isGoalScored)
 				{
@@ -1569,7 +1559,6 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				_beforeStrikePoints[robot.id] = std::pair<int, Vector3D>(t, posToSave);
 				isResOk = true;
 				movePoint = attackMovePoint;
-				isDefender = false;
 				bestBecP = bec;
 			}			
 		}
