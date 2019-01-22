@@ -768,8 +768,12 @@ int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContaine
 		return -1;
 	if (bec1.isGoalScored && bec2.isGoalScored)
 	{
+		if (bec1.ResBallEntity.Position.Z > 0 || bec2.ResBallEntity.Position.Z > 0)//чужой половине бьем быстрее
+		{
+			return bec1.GetFullGoalTime() < bec2.GetFullGoalTime() ? -1 : 1;
+		}
+
 		return  bec1.ResBallEntity.Velocity.Y > bec2.ResBallEntity.Velocity.Y ? -1 : 1;
-		//return bec1.GetFullGoalTime() < bec2.GetFullGoalTime() ? -1 : 1;
 	}
 
 	//оба не isGoalScored	
