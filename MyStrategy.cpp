@@ -50,6 +50,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		if (!_oppStrikeTime.has_value())//м.б. установлено в InitBallEntities
 			_oppStrikeTime = GetOppStrikeTime(opp_robots);
 		_goalScoringTick = -1;
+		_meGoalScoringTick = -1;
 	}
 	else
 	{
@@ -383,8 +384,8 @@ void MyStrategy::Init(const model::Rules & rules)
 		0,
 		-rules.arena.depth / 2 + rules.arena.goal_side_radius);
 
-	_myGates = Vector3D(rules.ROBOT_RADIUS * 2.5, rules.ROBOT_RADIUS, -rules.arena.depth / 2 - rules.arena.goal_side_radius);
-	_beforeMyGates = Vector3D(-rules.ROBOT_RADIUS * 2.5, rules.ROBOT_RADIUS, -rules.arena.depth / 2 + rules.arena.corner_radius / 2);
+	_myGates = Vector3D(0, 0, -rules.arena.depth / 2 - rules.arena.goal_side_radius);
+	_beforeMyGates = Vector3D(0, 0, -rules.arena.depth / 2 + rules.arena.corner_radius / 2);
 	_distToFollowBall = rules.arena.depth / 3;
 
 
@@ -1499,6 +1500,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
 			return movePoint;
+		if (_meGoalScoringTick >= 0 && t >= _meGoalScoringTick)
+			return movePoint;
 		if (_ballEntities.count(t) == 0) return movePoint;
 
 		auto ballEntity = _ballEntities.at(t);		
@@ -1857,6 +1860,7 @@ void MyStrategy::InitBallEntities(
 		if (!_isMeGoalPossible && ball_entity.Position.Z < -Constants::Rules.arena.depth / 2 - ball_entity.Radius)
 		{
 			_isMeGoalPossible = true;
+			_meGoalScoringTick = t;
 		}
 
 
@@ -2001,6 +2005,7 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 				jumpResCur.begin(), jumpResCur.end(), [](RobotEntity re) {return re.IsArenaCollided; }), jumpResCur.end());
 		_robotEntities[afterCollisionTick + i] = jumpResCur;
 
+		//TODO: спорная штука
 		if (_goalScoringTick == -1 && ballEntity.Position.Z > Constants::Rules.arena.depth / 2 + Constants::Rules.BALL_RADIUS)
 			_goalScoringTick = afterCollisionTick + i;
 

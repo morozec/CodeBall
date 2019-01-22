@@ -69,6 +69,7 @@ private:
 	
 public:
 	int _goalScoringTick;
+	int _meGoalScoringTick;
 	Vector3D _myGates;
 	Vector3D _beforeMyGates;
 	std::optional<double> _oppStrikeTime;
