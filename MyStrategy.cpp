@@ -383,8 +383,8 @@ void MyStrategy::Init(const model::Rules & rules)
 		0,
 		-rules.arena.depth / 2 + rules.arena.goal_side_radius);
 
-	_myGates = Vector3D(0, 0, -rules.arena.depth / 2 - rules.arena.goal_side_radius);
-	_beforeMyGates = Vector3D(0, 0, -rules.arena.depth / 2 + rules.arena.corner_radius / 2);
+	_myGates = Vector3D(rules.ROBOT_RADIUS * 2.5, rules.ROBOT_RADIUS, -rules.arena.depth / 2 - rules.arena.goal_side_radius);
+	_beforeMyGates = Vector3D(-rules.ROBOT_RADIUS * 2.5, rules.ROBOT_RADIUS, -rules.arena.depth / 2 + rules.arena.corner_radius / 2);
 	_distToFollowBall = rules.arena.depth / 3;
 
 
