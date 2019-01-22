@@ -830,6 +830,7 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 	double z = ballEntity.Position.Z;
 	std::vector<RobotEntity> emptyJumpRes = std::vector<RobotEntity>();
 
+	bool isFirstArenaCollision = true;
 	int collisions = 0;
 	for (int t = 1; t <= BallMoveTicks; ++t)
 	{		
@@ -839,8 +840,9 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 			return true;
 		}
 
-		if (ballEntity.IsArenaCollided)
+		if (isFirstArenaCollision && ballEntity.IsArenaCollided)
 		{
+			isFirstArenaCollision = false;
 			changeDirVz = ballEntity.Velocity.Z;
 		}
 
