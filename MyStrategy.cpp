@@ -30,6 +30,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	std::map<int, BallEntity> bestBallEntities = std::map<int, BallEntity>();//TODO:если робот в воздухе - тут фигня
 	if (_isFirstRobot)
 	{
+		_meGoalScoringTick = -1;
+		_goalScoringTick = -1;
 		_isGoalPossible = false;
 		_isMeGoalPossible = false;
 		_isNoCollisionGoalPossible = false;
@@ -49,8 +51,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		}
 		if (!_oppStrikeTime.has_value())//м.б. установлено в InitBallEntities
 			_oppStrikeTime = GetOppStrikeTime(opp_robots);
-		_goalScoringTick = -1;
-		_meGoalScoringTick = -1;
+		
+		
 	}
 	else
 	{
