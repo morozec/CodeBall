@@ -142,8 +142,19 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			BallEntityContainer bec;
 			bool isOkBestBec;
 			const Action robotAction = SetAttackerAction(
-				robot, maxCollisionTick == -1 ? 1 : maxCollisionTick + AttackerAddTicks,
+				robot, maxCollisionTick == -1 || _isMeGoalPossible ? 1 : maxCollisionTick + AttackerAddTicks,
 				robot.id == defender.id ? _myGates : _beforeMyGates, bec, isOkBestBec);
+			if (isOkBestBec)
+			{
+				if (robot.id == defender.id)
+					if (_oppStrikeTime.has_value() && bec.collisionTime > _oppStrikeTime.value())
+					{
+						_actions[defender.id] = GetDefaultAction(defender, _myGates);;
+						continue; //не гонимс€ защитником за проигранным м€чом				
+					}
+			}
+
+
 			_actions[robot.id] = robotAction;
 		}
 		
