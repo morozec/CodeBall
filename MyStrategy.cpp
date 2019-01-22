@@ -1517,7 +1517,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
 			return movePoint;
-		if (_meGoalScoringTick >= 0 && t >= _meGoalScoringTick)
+		if (startAttackTick == 1 && _meGoalScoringTick >= 0 && t >= _meGoalScoringTick)
 			return movePoint;
 		if (_ballEntities.count(t) == 0) return movePoint;
 
