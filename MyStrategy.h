@@ -123,7 +123,7 @@ public:
 
 	std::optional<Vector3D> GetDefenderStrikePoint(const model::Robot& robot, int t,
 		int startAttackTick,///для сохраненных точек передаем t прыжка
-		int endAttackTick, //для сохраненных точек передаем t прыжка + 1
+		//int endAttackTick, //для сохраненных точек передаем t прыжка + 1
 		BallEntityContainer& bestBecP, int& bestMoveT, int& bestWaitT);
 
 	bool CanGetToPoint(const Vector3D& targetPoint, const Vector3D& robotPos, const Vector3D& robotVelocity, double time, bool canAccelerate);
@@ -144,7 +144,7 @@ public:
 		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime);
 	std::optional<Vector3D> GetAttackerMovePoint(const model::Robot& robot, 
 		int startAttackTick,
-		bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP);
+		bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT);
 	std::optional<Vector3D> GetAttackerStrikePoint(
 		const model::Robot& robot, int t, int directionCoeff, 
 		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime, Vector3D& posToSave);
