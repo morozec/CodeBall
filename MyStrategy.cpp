@@ -188,6 +188,14 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			_actions[robot.id] = attAction;
 		}
 
+		for (auto& robot:myRobots)
+		{
+			if (robot.id == bestBecPRobotId)
+				continue;
+			if (_defenderMovePoints.count(robot.id) > 0)
+				_defenderMovePoints.erase(robot.id);
+		}
+
 		if (bestBecPRobotId != -1)
 			for (auto & robot:myRobots)
 			{
@@ -384,6 +392,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		if (std::get<0>(times) <  0 || std::get<1>(times) < 0 || std::get<2>(times) < 0)
 		{
 			removeIds.push_back(dmp.first);
+		}
+		else
+		{
+			_defenderMovePoints[dmp.first] = times;
 		}
 	}
 	for (auto removeId : removeIds)
@@ -1605,6 +1617,20 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	int startAttackTick,
 	bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT)
 {
+	if (_isSamePosition &&
+		_defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0)
+	{
+		isDefenderSavedPointOk = true;
+		bestWaitT = std::get<1>(_defenderMovePoints[robot.id]);
+		bestMoveT = std::get<2>(_defenderMovePoints[robot.id]);
+		bestBecP = std::get<3>(_defenderMovePoints[robot.id]);
+		return Helper::GetRobotPosition(robot);
+	}
+
+	if (_defenderMovePoints.count(robot.id) > 0)
+		_defenderMovePoints.erase(robot.id);
+
+
 	isDefenderSavedPointOk = false;
 	std::optional<Vector3D> movePoint = std::nullopt;
 	const auto tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
@@ -1660,6 +1686,9 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 		if (IsPenaltyArea(ballEntity.Position))//включаем режим защитника
 		{
+			if (t > startAttackTick + BallMoveTicks/2)
+				continue;
+
 			std::optional<double> curCollisionT = std::nullopt;
 			bool isPassedBy = false;
 
@@ -1677,16 +1706,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 				isResOk = true;
 				movePoint = bestWaitT == 0 ? defenderMovePoint : Helper::GetRobotPosition(robot);
-				bestBecP = becP;
-				if (becP.isGoalScored)
-				{
-					_defenderMovePoints[robot.id] = std::make_tuple(t, bestWaitT, bestMoveT);
-				}
-				else
-				{
-					if (_defenderMovePoints.count(robot.id) > 0)
-						_defenderMovePoints.erase(robot.id);					
-				}
+				bestBecP = becP;				
+				_defenderMovePoints[robot.id] = std::make_tuple(t, bestWaitT, bestMoveT, becP);
 			}			
 		}
 		else
@@ -1990,10 +2011,49 @@ model::Robot MyStrategy::get_nearest_ball_robot(const BallEntity& ball_entity, c
 
 }
 
+bool MyStrategy::IsSamePosition()
+{
+	bool isSameBall =
+		abs(_ball.x - _ballEntities[1].Position.X) < EPS &&
+		abs(_ball.y - _ballEntities[1].Position.Y) < EPS &&
+		abs(_ball.z - _ballEntities[1].Position.Z) < EPS &&
+		abs(_ball.velocity_x - _ballEntities[1].Velocity.X) < EPS &&
+		abs(_ball.velocity_y - _ballEntities[1].Velocity.Y) < EPS &&
+		abs(_ball.velocity_z - _ballEntities[1].Velocity.Z) < EPS;
+	if (!isSameBall) return false;
+	
+	for (auto & re : _robotEntities[1])
+	{
+		bool gotSame = false;
+		for (auto & robot:_robots)
+		{
+			bool isSameRobot =
+				abs(robot.x - re.Position.X) < EPS &&
+				abs(robot.y - re.Position.Y) < EPS &&
+				abs(robot.z - re.Position.Z) < EPS &&
+				abs(robot.velocity_x - re.Velocity.X) < EPS &&
+				abs(robot.velocity_y - re.Velocity.Y) < EPS &&
+				abs(robot.velocity_z - re.Velocity.Z) < EPS;
+			if (isSameRobot)
+			{
+				gotSame = true;
+				break;
+			}
+		}
+		if (!gotSame)
+			return false;
+	}
+	return true;
+}
+
+
+
 void MyStrategy::InitBallEntities(
 	std::map<int, std::optional<double>>& collisionTimes,
 	std::map<int, BallEntity>& bestBallEntities)
 {
+	_isSamePosition = IsSamePosition();
+	
 	bool isGoalScored = false;
 	_ballEntities = std::map<int, BallEntity>();	
 	auto ball_entity = BallEntity(_ball);
@@ -2018,7 +2078,7 @@ void MyStrategy::InitBallEntities(
 		std::vector<RobotEntity> jumpResCur = std::vector<RobotEntity>();
 		for (auto & re: _robotEntities.at(t-1))
 		{
-			jumpResCur.push_back(RobotEntity(re));
+			jumpResCur.push_back(re);
 		}
 
 		ball_entity = SimulateTickBall(ball_entity, jumpResCur, isGoalScored, false);

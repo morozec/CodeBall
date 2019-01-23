@@ -69,6 +69,7 @@ private:
 	bool _isNoCollisionMeGoalPossible;
 	
 public:
+	bool _isSamePosition;
 	int _goalScoringTick;
 	int _meGoalScoringTick;
 	Vector3D _myGates;
@@ -85,7 +86,7 @@ public:
 	std::map<int, std::vector<RobotEntity>> _robotEntities;
 
 	std::map<int, std::pair<int, Vector3D>> _beforeStrikePoints;
-	std::map<int, std::tuple<int, int, int>> _defenderMovePoints; //id робота: t м€ча, t ожидани€, t прыжка
+	std::map<int, std::tuple<int, int, int, BallEntityContainer>> _defenderMovePoints; //id робота: t м€ча, t ожидани€, t прыжка
 
 
 	void Init(const model::Rules& rules);
@@ -162,6 +163,8 @@ public:
 	static Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position);
 	std::optional<double> GetOppStrikeTime(const std::vector<model::Robot>& oppRobots);
 	static model::Robot get_nearest_ball_robot(const BallEntity& ball_entity, const std::vector<model::Robot>& oppRobots);
+
+	bool IsSamePosition();
 
 	void InitBallEntities(
 		std::map<int, std::optional<double>>& collisionTimes,
