@@ -1710,8 +1710,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			}
 
 			
-			Vector3D posToSave;
-			const auto attackMovePoint = GetAttackerStrikePoint(robot, t, 1, jumpCollisionT, curBallEntity, goalTime, posToSave);
+			const auto attackMovePoint = GetAttackerStrikePoint(robot, t, 1, jumpCollisionT, curBallEntity, goalTime);
 			
 			if (attackMovePoint == std::nullopt)
 				continue;
@@ -1722,7 +1721,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			{
 				bestWaitT = -1;
 				bestMoveT = -1;
-				_beforeStrikePoints[robot.id] = std::pair<int, Vector3D>(t, posToSave);
+				_beforeStrikePoints[robot.id] = std::pair<int, Vector3D>(t, attackMovePoint.value());
 				isResOk = true;
 				movePoint = attackMovePoint;
 				bestBecP = bec;
@@ -1744,7 +1743,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & robot, int t,
 	int directionCoeff,
-	std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime, Vector3D& posToSave)
+	std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime)
 {
 	const BallEntity ballEntity = _ballEntities.at(t);
 	if (_beforeStrikePoints.count(robot.id) > 0)
@@ -1956,15 +1955,14 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const std::vector<model::Robo
 			if (!robot.touch) continue;
 			std::optional<double> jumpCollisionT = std::nullopt;
 			std::optional<BallEntity> bestBallEntity = std::nullopt;
-			Vector3D posToSave;
 			auto movePoint = GetAttackerStrikePoint(
-				robot, t, -1, jumpCollisionT, bestBallEntity, goalTime, posToSave);
+				robot, t, -1, jumpCollisionT, bestBallEntity, goalTime);
 			if (movePoint != std::nullopt)
 			{
 				collisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
 				if (!minT.has_value() || collisionT.value() < minT.value())
 				{
-					_beforeStrikePoints[robot.id] = std::pair<int, Vector3D>(t, posToSave);
+					_beforeStrikePoints[robot.id] = std::pair<int, Vector3D>(t, movePoint.value());
 					minT = collisionT;
 				}
 			}
