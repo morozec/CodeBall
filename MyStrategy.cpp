@@ -138,7 +138,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		//идем в атаку, начина€ с последнего тика коллизии прыгающего
 		for (auto & robot : myRobots)
 		{
-			if (!robot.touch) continue;
+			if (!robot.touch) continue;			
 			BallEntityContainer bec;
 			bool isOkBestBec;
 			const Action robotAction = SetAttackerAction(
@@ -167,6 +167,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		for (auto& robot:myRobots)
 		{
 			if (!robot.touch) continue;
+			if (robot.id != defender.id) continue;
 			BallEntityContainer curBestBec;
 			bool isOkBestBec;
 			const auto attAction = SetAttackerAction(robot, 1, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isOkBestBec);
@@ -193,6 +194,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			{
 				if (!robot.touch) continue;
 				if (robot.id == bestBecPRobotId) continue;
+				if (robot.id != defender.id) continue;
 
 				/*if (_defenderMovePoints.count(robot.id) > 0)
 					_defenderMovePoints.erase(robot.id);*/
@@ -369,9 +371,20 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	std::vector<int> removeIds = std::vector<int>();
 	for (auto & dmp : _defenderMovePoints)
 	{
-		_defenderMovePoints[dmp.first].first--;
-		_defenderMovePoints[dmp.first].second--;
-		if (_defenderMovePoints[dmp.first].second <  0 || _defenderMovePoints[dmp.first].first < 0)
+		auto times = _defenderMovePoints[dmp.first];
+		
+		auto ballT = std::get<0>(times);
+		auto waitT = std::get<1>(times);
+		auto moveT = std::get<2>(times);
+
+		ballT--;
+		if (waitT > 0)
+			waitT--;
+		else
+		{
+			moveT--;
+		}
+		if (ballT <  0 || waitT < 0 || moveT < 0)
 		{
 			removeIds.push_back(dmp.first);
 		}
@@ -797,7 +810,7 @@ int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContaine
 			return bec1.GetFullGoalTime() < bec2.GetFullGoalTime() ? -1 : 1;
 		}
 
-		return  bec1.ResBallEntity.Velocity.Y > bec2.ResBallEntity.Velocity.Y ? -1 : 1;
+		return  bec1.ResBallEntity.Velocity.Y > bec2.ResBallEntity.Velocity.Y ? -1 : 1;//на своей бьем выше
 	}
 
 	//оба не isGoalScored	
@@ -1041,6 +1054,143 @@ bool MyStrategy::GetDefenderStrikeBallEntity(const model::Robot & robot, int t,
 	}
 	return isOk;	
 
+}
+
+std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(const model::Robot & robot, int t,
+	int startAttackTick,///дл€ сохраненных точек передаем t прыжка
+	int endAttackTick, //дл€ сохраненных точек передаем t прыжка + 1
+	BallEntityContainer& bestBecP, int& bestMoveT, int& bestWaitT)
+{
+	std::optional<Vector3D> movePoint = std::nullopt;
+
+	const BallEntity ballEntity = _ballEntities.at(t);
+	//м€ч может подн€тьс€ максимум на 4.8 вверх
+	auto yDist = ballEntity.Position.Y - Constants::Rules.BALL_RADIUS - Constants::Rules.ROBOT_MAX_RADIUS;
+	const auto maxHeight = 4.8;
+	const auto maxHeightTime = 0.5;
+	if (yDist > maxHeight)
+		return movePoint;
+
+	auto vectorToBall = Vector3D(ballEntity.Position.X - _oppGates.X, 0, ballEntity.Position.Z - _oppGates.Z);
+	auto length = vectorToBall.Length();
+	vectorToBall.mult((length + Constants::Rules.BALL_RADIUS) / length);
+	auto goToPoint = Vector3D(_oppGates.X + vectorToBall.X, Constants::Rules.ROBOT_RADIUS, _oppGates.Z + vectorToBall.Z);
+	const auto time = t * 1.0 / Constants::Rules.TICKS_PER_SECOND;
+	/*if (!CanGetToPoint(goToPoint, Helper::GetRobotPosition(robot), Helper::GetRobotVelocity(robot), time, true))
+		return movePoint;*/
+
+	const auto mtTime = 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+
+	auto robotVelocity = Helper::GetRobotVelocity(robot);
+	auto robotVelocityLength = robotVelocity.Length();
+	auto stopA = robotVelocity * (1.0 / robotVelocityLength * (-Constants::Rules.ROBOT_ACCELERATION));
+	
+	auto stopTime = robotVelocityLength / Constants::Rules.ROBOT_ACCELERATION;
+	auto stopMicroTicks = int(stopTime * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
+	auto stopMicroTicksTime = stopMicroTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+
+
+	auto stopVelocity = robotVelocity + stopA * stopMicroTicksTime;
+
+	auto robotPosition = Helper::GetRobotPosition(robot);
+	auto stopPos = robotPosition + robotVelocity * stopMicroTicksTime + stopA * (stopMicroTicksTime * stopMicroTicksTime / 2.0) + stopVelocity * mtTime;
+
+	const auto deltaTicks = endAttackTick - startAttackTick;
+	for (int waitT = 0; waitT < deltaTicks; ++waitT)
+	{
+		Vector3D waitPos;
+		Vector3D waitVelocity;
+		if (waitT * Constants::Rules.MICROTICKS_PER_TICK > stopMicroTicks)
+		{
+			waitPos = stopPos;
+			waitVelocity = Vector3D(0, 0, 0);
+		}
+		else
+		{
+			const auto waitTime = waitT * 1.0 / Constants::Rules.TICKS_PER_SECOND;
+			waitPos = robotPosition + robotVelocity * waitTime + stopA * (waitTime * waitTime / 2.0);
+			waitVelocity = robotVelocity + stopA * waitTime;
+		}
+
+		auto timeToJump = time - waitT * 1.0 / Constants::Rules.TICKS_PER_SECOND;
+		if (!CanGetToPoint(goToPoint, waitPos, waitVelocity, timeToJump, false))
+			continue;
+
+		for (int moveT = startAttackTick; moveT < endAttackTick - waitT; ++moveT)
+		{
+			timeToJump = time - (moveT + waitT) * 1.0 / Constants::Rules.TICKS_PER_SECOND;
+			//if (timeToJump > maxHeightTime)continue; TODO: подумать об этом
+
+			PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
+				waitPos,
+				goToPoint,
+				waitVelocity,
+				moveT,
+				1.0);
+			if (pvContainer.IsPassedBy)
+			{
+				return movePoint; // проскочим целевую точку. дальше все непредсказуемо
+			}
+
+			if (_ballEntities.at(moveT).Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)//м§ч в воротах
+				return movePoint;
+
+
+			if (!CanGetToPoint(goToPoint, pvContainer.Position, pvContainer.Velocity, timeToJump, false))
+				continue;
+
+			std::optional<double> curJumpCollisionT = std::nullopt;
+			std::optional<BallEntity> collision_ball_entity = std::nullopt;
+			double changeDirVz = 0;
+
+			if (IsOkDefenderPosToJump(pvContainer.Position, pvContainer.Velocity,
+				waitT + moveT,
+				curJumpCollisionT, collision_ball_entity, changeDirVz))
+			{
+				double goalTime = -1;
+				double changeDirVzAttack = 0;
+				const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime, changeDirVzAttack);
+				const double curCollisionT = (moveT + waitT) * 1.0 / Constants::Rules.TICKS_PER_SECOND + curJumpCollisionT.value();
+				const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, changeDirVz);
+
+				if (movePoint == std::nullopt || CompareBeContainers(bec, bestBecP) < 0)
+				{
+					movePoint = goToPoint;
+					bestBecP = bec;
+					bestMoveT = moveT;
+					bestWaitT = waitT;
+				}
+			}
+
+		}
+	}
+	
+	
+	return movePoint;
+}
+
+bool MyStrategy::CanGetToPoint(const Vector3D& goToPoint, const Vector3D& robotPos, const Vector3D& robotVelocity, double time, bool canAccelerate)
+{	
+	auto goToPointDist = Vector3D(goToPoint.X - robotPos.X, goToPoint.Y - robotPos.Y, goToPoint.Z - robotPos.Z).Length();
+	auto robotVelocityLength = robotVelocity.Length();
+
+	double speedUpT = 0;
+	if (canAccelerate)
+	{
+		speedUpT = (Constants::Rules.ROBOT_MAX_GROUND_SPEED - robotVelocityLength) / Constants::Rules.ROBOT_ACCELERATION;
+		if (speedUpT > time)
+			speedUpT = time;
+	}
+
+	auto speedUpS = robotVelocityLength * speedUpT + Constants::Rules.ROBOT_ACCELERATION * speedUpT * speedUpT / 2;
+	if (speedUpS < goToPointDist - Constants::Rules.BALL_RADIUS - Constants::Rules.ROBOT_MAX_RADIUS)
+	{
+		auto maxSpeedT = time - speedUpT;
+		auto maxSpeedS = Constants::Rules.ROBOT_MAX_GROUND_SPEED * maxSpeedT;
+		if (speedUpS + maxSpeedS < goToPointDist - Constants::Rules.BALL_RADIUS - Constants::Rules.ROBOT_MAX_RADIUS)
+			return false;
+	}
+	return true;
 }
 
 bool MyStrategy::IsOkDefenderPosToJump(
@@ -1480,38 +1630,40 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	std::optional<Vector3D> movePoint = std::nullopt;
 	const auto tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 
-	if (_defenderMovePoints.count(robot.id) > 0)
-	{
-		const auto tBall = _defenderMovePoints[robot.id].first;
-		const auto tJump = _defenderMovePoints[robot.id].second;
+	//if (_defenderMovePoints.count(robot.id) > 0)
+	//{
+	//	auto times = _defenderMovePoints[robot.id];
+	//	const auto tBall = std::get<0>(times);
+	//	const auto tWait = std::get<1>(times);
+	//	const auto tJump = std::get<2>(times);
 
-		if (tBall > 0 && tJump > 0 && tBall <= BallMoveTicks) //tBall > BallMoveTicks может получитьс€, если нашли точку дл€ атаки в SetAttAction со StartTick > 1
-		{
-			bool isPassedBy = false;
-			int bestMoveT;
-			BallEntityContainer dmpBecP;
-			const bool isOk = GetDefenderStrikeBallEntity(robot, tBall, tJump, tJump + 1, dmpBecP, bestMoveT);
+	//	if (tBall > 0 && tWait >= 0 && tJump > 0 && tBall <= BallMoveTicks) //tBall > BallMoveTicks может получитьс€, если нашли точку дл€ атаки в SetAttAction со StartTick > 1
+	//	{
+	//		bool isPassedBy = false;
+	//		int bestMoveT;
+	//		int bestWaitT;
+	//		BallEntityContainer dmpBecP;
+	//		const auto defenderMovePoint = GetDefenderStrikePoint(robot, tBall, tJump, tJump + 1, dmpBecP, bestMoveT, bestWaitT);
 
-			if (isOk && dmpBecP.isGoalScored && (!_oppStrikeTime.has_value() || dmpBecP.collisionTime < _oppStrikeTime.value() - tickTime))
-			{
-				isDefenderSavedPointOk = true;
-				bestBecP = dmpBecP;
+	//		if (defenderMovePoint != std::nullopt && dmpBecP.isGoalScored && (!_oppStrikeTime.has_value() || dmpBecP.collisionTime < _oppStrikeTime.value() - tickTime))
+	//		{
+	//			isDefenderSavedPointOk = true;
+	//			bestBecP = dmpBecP;
 
-				const auto be = _ballEntities.at(tBall);
-				for (auto it = _defenderMovePoints.cbegin(); it != _defenderMovePoints.cend();)//удал€ем все остальные схраненки
-				{
-					if ((*it).first != robot.id)
-						_defenderMovePoints.erase(it);
-					++it;
-				}
+	//			const auto be = _ballEntities.at(tBall);
+	//			for (auto it = _defenderMovePoints.cbegin(); it != _defenderMovePoints.cend();)//удал€ем все остальные схраненки
+	//			{
+	//				if ((*it).first != robot.id)
+	//					_defenderMovePoints.erase(it);
+	//				++it;
+	//			}
 
-				return Vector3D(be.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
-					be.Position.Z);
-			}
-		}
-		if (tJump != 0)//это прыжок - его обработаем потом
-			_defenderMovePoints.erase(robot.id);
-	}
+	//			return defenderMovePoint;
+	//		}
+	//	}
+	//	if (tJump != 0)//это прыжок - его обработаем потом
+	//		_defenderMovePoints.erase(robot.id);
+	//}
 
 	//int bestT = -1;
 	bool isResOk = false;
@@ -1530,20 +1682,19 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			std::optional<double> curCollisionT = std::nullopt;
 			bool isPassedBy = false;
 			int bestMoveT;
+			int bestWaitT;
 			BallEntityContainer becP;
-			const bool isOk = GetDefenderStrikeBallEntity(robot, t, startAttackTick, t, becP, bestMoveT);
-			if (!isOk) continue;
+			auto defenderMovePoint = GetDefenderStrikePoint(robot, t, startAttackTick, t, becP, bestMoveT, bestWaitT);
+			if (defenderMovePoint == std::nullopt) continue;
 
 			if (!isResOk || CompareBeContainers(becP, bestBecP) < 0)
 			{
 				isResOk = true;
-				movePoint = Vector3D(ballEntity.Position.X, Constants::Rules.ROBOT_RADIUS, ballEntity.Position.Z);
+				movePoint = bestWaitT == 0 ? defenderMovePoint : Helper::GetRobotPosition(robot);
 				bestBecP = becP;
 				if (becP.isGoalScored)
 				{
-					_defenderMovePoints[robot.id] = std::pair<int, int>();
-					_defenderMovePoints[robot.id].first = t;
-					_defenderMovePoints[robot.id].second = bestMoveT;
+					_defenderMovePoints[robot.id] = std::make_tuple(t, bestWaitT, bestMoveT);
 				}
 				else
 				{

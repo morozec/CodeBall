@@ -84,7 +84,7 @@ public:
 	std::map<int, std::vector<RobotEntity>> _robotEntities;
 
 	std::map<int, std::pair<int, Vector3D>> _beforeStrikePoints;
-	std::map<int, std::pair<int, int>> _defenderMovePoints; //id робота: t м€ча, t прыжка
+	std::map<int, std::tuple<int, int, int>> _defenderMovePoints; //id робота: t м€ча, t ожидани€, t прыжка
 
 
 	void Init(const model::Rules& rules);
@@ -120,6 +120,14 @@ public:
 		int startAttackTick,
 		int endAttackTick,
 		BallEntityContainer& bestBecP, int& bestMoveT);
+
+	std::optional<Vector3D> GetDefenderStrikePoint(const model::Robot& robot, int t,
+		int startAttackTick,///дл€ сохраненных точек передаем t прыжка
+		int endAttackTick, //дл€ сохраненных точек передаем t прыжка + 1
+		BallEntityContainer& bestBecP, int& bestMoveT, int& bestWaitT);
+
+	bool CanGetToPoint(const Vector3D& targetPoint, const Vector3D& robotPos, const Vector3D& robotVelocity, double time, bool canAccelerate);
+
 	bool IsOkDefenderPosToJump(
 		const Vector3D & robotPosition, const Vector3D & robotVelocity,
 		int beforeTicks,
