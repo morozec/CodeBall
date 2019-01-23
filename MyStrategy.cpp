@@ -1053,10 +1053,10 @@ bool MyStrategy::GetDefenderStrikeBallEntity(const model::Robot & robot, int t,
 
 }
 
-std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(const model::Robot & robot, int t,
+std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 	int startAttackTick,///для сохраненных точек передаем t прыжка
 	//int endAttackTick, //для сохраненных точек передаем t прыжка + 1
-	BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT)
+	BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT, const StopContainer& stopContainer)
 {
 	std::optional<Vector3D> movePoint = std::nullopt;
 
@@ -1076,37 +1076,23 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(const model::Robot & 
 	/*if (!CanGetToPoint(goToPoint, Helper::GetRobotPosition(robot), Helper::GetRobotVelocity(robot), time, true))
 		return movePoint;*/
 
-	const auto mtTime = 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
-
-	auto robotVelocity = Helper::GetRobotVelocity(robot);
-	auto robotVelocityLength = robotVelocity.Length();
-	auto stopA = robotVelocity * (1.0 / robotVelocityLength * (-Constants::Rules.ROBOT_ACCELERATION));
 	
-	auto stopTime = robotVelocityLength / Constants::Rules.ROBOT_ACCELERATION;
-	auto stopMicroTicks = int(stopTime * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
-	auto stopMicroTicksTime = stopMicroTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
-
-
-	auto stopVelocity = robotVelocity + stopA * stopMicroTicksTime;
-
-	auto robotPosition = Helper::GetRobotPosition(robot);
-	auto stopPos = robotPosition + robotVelocity * stopMicroTicksTime + stopA * (stopMicroTicksTime * stopMicroTicksTime / 2.0) + stopVelocity * mtTime;
 
 	//const auto deltaTicks = endAttackTick - startAttackTick;
 	for (int waitT = 0; waitT < t; ++waitT)
 	{
 		Vector3D waitPos;
 		Vector3D waitVelocity;
-		if (waitT * Constants::Rules.MICROTICKS_PER_TICK > stopMicroTicks)
+		if (waitT * Constants::Rules.MICROTICKS_PER_TICK > stopContainer.stopMicroTicks)
 		{
-			waitPos = stopPos;
+			waitPos = stopContainer.stopPos;
 			waitVelocity = Vector3D(0, 0, 0);
 		}
 		else
 		{
 			const auto waitTime = waitT * 1.0 / Constants::Rules.TICKS_PER_SECOND;
-			waitPos = robotPosition + robotVelocity * waitTime + stopA * (waitTime * waitTime / 2.0);
-			waitVelocity = robotVelocity + stopA * waitTime;
+			waitPos = stopContainer.robotPosition + stopContainer.robotVelocity * waitTime + stopContainer.stopA * (waitTime * waitTime / 2.0);
+			waitVelocity = stopContainer.robotVelocity + stopContainer.stopA * waitTime;
 		}
 
 		auto timeToJump = time - waitT * 1.0 / Constants::Rules.TICKS_PER_SECOND;
@@ -1647,6 +1633,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 	//int bestT = -1;
 	bool isResOk = false;
+	const auto stopContainer = GetStopContainer(robot);
+
 	for (int t = startAttackTick; t <= startAttackTick + BallMoveTicks; ++t)
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
@@ -1666,7 +1654,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			int curBestMoveT;
 			
 			BallEntityContainer becP;
-			auto defenderMovePoint = GetDefenderStrikePoint(robot, t, startAttackTick,becP, curBestWaitT, curBestMoveT);
+			auto defenderMovePoint = GetDefenderStrikePoint(t, startAttackTick,becP, curBestWaitT, curBestMoveT, stopContainer);
 			if (defenderMovePoint == std::nullopt) continue;
 
 			if (!isResOk || CompareBeContainers(becP, bestBecP) < 0)
@@ -2200,6 +2188,26 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 	}
 
 	return afterCollisionTick;
+}
+
+StopContainer MyStrategy::GetStopContainer(const Robot& robot) const
+{
+	const auto mtTime = 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+
+	auto robotVelocity = Helper::GetRobotVelocity(robot);
+	auto robotVelocityLength = robotVelocity.Length();
+	auto stopA = robotVelocity * (1.0 / robotVelocityLength * (-Constants::Rules.ROBOT_ACCELERATION));
+
+	auto stopTime = robotVelocityLength / Constants::Rules.ROBOT_ACCELERATION;
+	auto stopMicroTicks = int(stopTime * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
+	auto stopMicroTicksTime = stopMicroTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+
+
+	auto stopVelocity = robotVelocity + stopA * stopMicroTicksTime;
+
+	auto robotPosition = Helper::GetRobotPosition(robot);
+	auto stopPos = robotPosition + robotVelocity * stopMicroTicksTime + stopA * (stopMicroTicksTime * stopMicroTicksTime / 2.0) + stopVelocity * mtTime;
+	return StopContainer(Helper::GetRobotPosition(robot), Helper::GetRobotVelocity(robot), stopMicroTicks, stopPos, stopA);
 }
 
 std::string MyStrategy::custom_rendering()

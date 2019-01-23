@@ -22,10 +22,10 @@ struct Vector3D {
 	void Add(const Vector3D& v);
 	void mult(double k);
 	
-	Vector3D operator+(const Vector3D& v);
+	Vector3D operator+(const Vector3D& v) const;
 	Vector3D operator-(const Vector3D& v) const;
-	Vector3D operator*(double k);
-	double operator*(const Vector3D& v);
+	Vector3D operator*(double k) const;
+	double operator*(const Vector3D& v) const;
 
 	double angleTo(const Vector3D& v);
 

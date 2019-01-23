@@ -7,6 +7,7 @@
 #endif
 #include "Sphere.h"
 #include "BallEntityContainer.h"
+#include "StopContainer.h"
 
 
 #ifndef _MY_STRATEGY_H_
@@ -121,10 +122,10 @@ public:
 		int endAttackTick,
 		BallEntityContainer& bestBecP, int& bestMoveT);
 
-	std::optional<Vector3D> GetDefenderStrikePoint(const model::Robot& robot, int t,
+	std::optional<Vector3D> GetDefenderStrikePoint(int t,
 		int startAttackTick,///для сохраненных точек передаем t прыжка
 		//int endAttackTick, //для сохраненных точек передаем t прыжка + 1
-		BallEntityContainer& bestBecP, int& bestMoveT, int& bestWaitT);
+		BallEntityContainer& bestBecP, int& bestMoveT, int& bestWaitT, const StopContainer& stopContainer);
 
 	bool CanGetToPoint(const Vector3D& targetPoint, const Vector3D& robotPos, const Vector3D& robotVelocity, double time, bool canAccelerate);
 
@@ -167,7 +168,7 @@ public:
 		std::map<int, BallEntity>& bestBallEntities);
 	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity);
 
-
+	StopContainer GetStopContainer(const model::Robot& robot) const;
 	
 
     MyStrategy();
