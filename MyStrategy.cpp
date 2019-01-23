@@ -200,7 +200,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				if (bestBec.ResBallEntity.Position.Z < 0 && (!_oppStrikeTime.has_value() || bestBec.collisionTime < _oppStrikeTime.value()))//бьем со своей половины - второй идет добивать
 				{
 					const auto collisionTime = bestBec.collisionTime;
-					const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity);
+					const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity, bestBec.isGoalScored);
 
 					BallEntityContainer curBestBec;
 					bool isOkBestBec;
@@ -2137,7 +2137,7 @@ void MyStrategy::InitBallEntities(
 	}
 }
 
-int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity)
+int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity, bool isGoal)
 {
 	auto const preCollisionTick = int(collisionTime * Constants::Rules.TICKS_PER_SECOND);
 	auto const afterCollisionTick = preCollisionTick + 1;
@@ -2187,7 +2187,7 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 			be.Position.X,
 			be.Position.Y,
 			be.Position.Z,
-			2, 0, 1, 1, 0.25
+			2, 0, 1, isGoal ? 0 : 1, 0.25
 		));
 		for (auto & re : _robotEntities.at(afterCollisionTick + i))
 		{

@@ -166,7 +166,7 @@ public:
 	void InitBallEntities(
 		std::map<int, std::optional<double>>& collisionTimes,
 		std::map<int, BallEntity>& bestBallEntities);
-	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity);
+	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity, bool isGoal);
 
 	StopContainer GetStopContainer(const model::Robot& robot) const;
 	
