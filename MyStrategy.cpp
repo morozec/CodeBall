@@ -1116,7 +1116,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 			}
 
 			if (_ballEntities.at(moveT + waitT).Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)//м¤ч в воротах
-				continue;
+				break;
 
 
 			if (!CanGetToPoint(goToPoint, pvContainer.Position, pvContainer.Velocity, timeToJump, false))

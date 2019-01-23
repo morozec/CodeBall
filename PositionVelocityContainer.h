@@ -13,6 +13,8 @@ struct PositionVelocityContainer
 	Vector3D Velocity;
 	bool IsPassedBy;
 
+	PositionVelocityContainer() {};
+
 	PositionVelocityContainer(Vector3D& position, Vector3D& velocity, bool isPassedBy);
 };
 
