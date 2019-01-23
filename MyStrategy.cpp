@@ -403,10 +403,10 @@ void MyStrategy::Init(const model::Rules & rules)
 
 
 	_oppGates = Vector3D(0, 0, rules.arena.depth / 2 + rules.arena.goal_side_radius);
-	_oppGatesLeftCorner = Vector3D(-rules.arena.goal_width / 2,
+	_oppGatesLeftCorner = Vector3D(-rules.arena.goal_width / 2 + Constants::Rules.BALL_RADIUS,
 		0,
 		rules.arena.depth / 2 + rules.arena.goal_side_radius);
-	_oppGatesRightCorner = Vector3D(rules.arena.goal_width / 2,
+	_oppGatesRightCorner = Vector3D(rules.arena.goal_width / 2 - Constants::Rules.BALL_RADIUS,
 		0,
 		rules.arena.depth / 2 + rules.arena.goal_side_radius);
 
@@ -814,7 +814,9 @@ int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContaine
 	return CompareDefenderBallEntities(bec1, bec2);
 }
 
-bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int directionCoeff, bool considerBoardSide , double& goalTime, double& changeDirVz) const
+bool MyStrategy::IsGoalBallDirection2(
+	const BallEntity & startBallEntity, int directionCoeff, bool considerBoardSide , double& goalTime, double& changeDirVz,
+	bool isQuickCalc) const
 {
 	if (startBallEntity.Velocity.Z * directionCoeff <= 0) return false;
 	if (abs(startBallEntity.Velocity.Z) < EPS) return false;
@@ -822,6 +824,17 @@ bool MyStrategy::IsGoalBallDirection2(const BallEntity & startBallEntity, int di
 	const auto ballVelocityZDist = abs(startBallEntity.Velocity.Z) * BallMoveTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	const auto ballToGatesDist = abs(startBallEntity.Position.Z - (Constants::Rules.arena.depth / 2 + startBallEntity.Radius) * directionCoeff);
 	if (ballVelocityZDist < ballToGatesDist) return false;//м€ч не докатитс€ до ворот за 100 тиков
+
+	if (isQuickCalc)
+	{
+		auto leftGatesVector = Vector3D(_oppGatesLeftCorner.X - startBallEntity.Position.X, 0, _oppGatesLeftCorner.Z - startBallEntity.Position.Z);
+		auto rightGatesVector = Vector3D(_oppGatesRightCorner.X - startBallEntity.Position.X, 0, _oppGatesRightCorner.Z - startBallEntity.Position.Z);
+		auto gatesAngle = abs(leftGatesVector.angleTo(rightGatesVector));
+
+		auto velocityVector = Vector3D(startBallEntity.Velocity.X, 0, startBallEntity.Velocity.Z);
+		if (abs(velocityVector.angleTo(leftGatesVector)) < gatesAngle && abs(velocityVector.angleTo(rightGatesVector)) < gatesAngle)
+			return true;
+	}
 	
 	if (!considerBoardSide)
 	{
@@ -1033,7 +1046,7 @@ bool MyStrategy::GetDefenderStrikeBallEntity(const model::Robot & robot, int t,
 		{	
 			double goalTime=-1;
 			double changeDirVzAttack = 0;
-			const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime, changeDirVzAttack);
+			const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime, changeDirVzAttack, true);
 			const double curCollisionT = moveT * 1.0 / Constants::Rules.TICKS_PER_SECOND + curJumpCollisionT.value();
 			const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, changeDirVz);
 
@@ -1132,7 +1145,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 			{
 				double goalTime = -1;
 				double changeDirVzAttack = 0;
-				const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime, changeDirVzAttack);
+				const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime, changeDirVzAttack, true);
 				const double curCollisionT = (moveT + waitT) * 1.0 / Constants::Rules.TICKS_PER_SECOND + curJumpCollisionT.value();
 				const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, changeDirVz);
 
@@ -1230,7 +1243,7 @@ bool MyStrategy::IsOkDefenderPosToJump(
 		{
 			if (!_isMeGoalPossible) return false;
 			double changeDirVzCur = 0;
-			const auto isCollisionGoalPossible = IsGoalBallDirection2(beCur, -1, false, goalTime, changeDirVzCur);
+			const auto isCollisionGoalPossible = IsGoalBallDirection2(beCur, -1, false, goalTime, changeDirVzCur, false);
 			if (i==0)
 			{
 				changeDirVz = changeDirVzCur;
@@ -1858,7 +1871,7 @@ bool MyStrategy::IsOkPosToJump(
 
 		double ballFlyTime = 0;
 		double changeDirVz = 0;
-		if (!IsGoalBallDirection2(beCur, directionCoeff, false, ballFlyTime, changeDirVz)) return false;
+		if (!IsGoalBallDirection2(beCur, directionCoeff, false, ballFlyTime, changeDirVz, false)) return false;
 		if (i==0)
 		{
 			goalTime = ballFlyTime;
@@ -1890,7 +1903,7 @@ bool MyStrategy::IsOkOppPosToJump(
 		
 		collisionT = jumpCollisionTCur;
 		double changeDirVz = 0;
-		if (!IsGoalBallDirection2(beCur, directionCoeff, false, goalTime, changeDirVz)) return false;
+		if (!IsGoalBallDirection2(beCur, directionCoeff, false, goalTime, changeDirVz, false)) return false;
 	}	
 	return true;
 }

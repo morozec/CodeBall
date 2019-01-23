@@ -111,7 +111,7 @@ public:
 
 	int CompareBeContainers(BallEntityContainer bec1, BallEntityContainer bec2) const;
 
-	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff, bool considerBoardSide, double& goalTime, double& changeDirVz) const;
+	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff, bool considerBoardSide, double& goalTime, double& changeDirVz, bool isQuickCalc) const;
 
 	/*model::Action SetDefenderAction(const model::Robot& me,
 		const Vector3D& defenderPoint,
