@@ -2008,12 +2008,16 @@ bool MyStrategy::IsSamePosition()
 		abs(_ball.velocity_y - _ballEntities[1].Velocity.Y) < EPS &&
 		abs(_ball.velocity_z - _ballEntities[1].Velocity.Z) < EPS;
 	if (!isSameBall) return false;
-	
-	for (auto & re : _robotEntities[1])
+
+
+	for (auto & robot : _robots)
 	{
+		if (robot.touch)
+			continue;
+
 		bool gotSame = false;
-		for (auto & robot:_robots)
-		{
+		for (auto & re : _robotEntities[1])
+		{					
 			bool isSameRobot =
 				abs(robot.x - re.Position.X) < EPS &&
 				abs(robot.y - re.Position.Y) < EPS &&
@@ -2025,7 +2029,7 @@ bool MyStrategy::IsSamePosition()
 			{
 				gotSame = true;
 				break;
-			}
+			}		
 		}
 		if (!gotSame)
 			return false;
