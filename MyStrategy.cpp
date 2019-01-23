@@ -167,7 +167,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		for (auto& robot:myRobots)
 		{
 			if (!robot.touch) continue;
-			if (robot.id != defender.id) continue;
 			BallEntityContainer curBestBec;
 			bool isOkBestBec;
 			const auto attAction = SetAttackerAction(robot, 0, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isOkBestBec);
@@ -194,7 +193,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			{
 				if (!robot.touch) continue;
 				if (robot.id == bestBecPRobotId) continue;
-				if (robot.id != defender.id) continue;
 
 				/*if (_defenderMovePoints.count(robot.id) > 0)
 					_defenderMovePoints.erase(robot.id);*/
@@ -1405,11 +1403,11 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		GetAttackerMovePoint(
 			me, startAttackTick, isDefenderSavedPointOk, bestBecP, bestWaitT, bestMoveT);
 
-	std::optional<double> jumpCollisionT = std::nullopt;
+	/*std::optional<double> jumpCollisionT = std::nullopt;
 	std::optional<BallEntity> jump_ball_entity = std::nullopt;
-	double changeDirVz = 0;
-	double goalTime = 0;
-	if (startAttackTick == 0 && IsOkPosToJump(robotEntity, 0, jumpCollisionT, jump_ball_entity, goalTime))
+	double changeDirVz = 0;*/
+	//double goalTime = 0;
+	/*if (startAttackTick == 0 && IsOkPosToJump(robotEntity, 0, jumpCollisionT, jump_ball_entity, goalTime))
 	{
 		auto jumpBec = BallEntityContainer(jump_ball_entity.value(), jumpCollisionT.value(), true, goalTime, 0);
 		if (movePoint == std::nullopt || CompareBeContainers(jumpBec, bestBecP) < 0)
@@ -1426,7 +1424,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 			action.use_nitro = false;
 			return action;
 		}
-	}
+	}*/
 
 	//if (startAttackTick == 1 && _defenderMovePoints.count(me.id) > 0)
 	//{
@@ -1653,7 +1651,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
 			return movePoint;
-		if (startAttackTick == 1 && _meGoalScoringTick >= 0 && t >= _meGoalScoringTick)
+		if (startAttackTick == 0 && _meGoalScoringTick >= 0 && t >= _meGoalScoringTick)
 			return movePoint;
 		if (_ballEntities.count(t) == 0) return movePoint;
 
@@ -1695,6 +1693,23 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			std::optional<double> jumpCollisionT = std::nullopt;
 			std::optional<BallEntity> curBallEntity = std::nullopt;
 			double goalTime;
+
+			if (t == 0)
+			{
+				auto robotEntity = RobotEntity(robot);
+				if (IsOkPosToJump(robotEntity, 0, jumpCollisionT, curBallEntity, goalTime))
+				{
+					BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), jumpCollisionT.value(), true, goalTime, 0);
+					bestWaitT = 0;
+					bestMoveT = 0;
+					isResOk = true;
+					movePoint = robotEntity.Position;
+					bestBecP = bec;
+				}
+				continue;
+			}
+
+			
 			Vector3D posToSave;
 			const auto attackMovePoint = GetAttackerStrikePoint(robot, t, 1, jumpCollisionT, curBallEntity, goalTime, posToSave);
 			
@@ -1743,6 +1758,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 			_beforeStrikePoints.erase(robot.id);			
 		}
 	}
+
+
 
 	//код, чтобы сразу отбросить лишние варианты. TODO: оптимизировать
 	/*if (directionCoeff == 1)
