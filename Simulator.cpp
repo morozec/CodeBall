@@ -95,11 +95,12 @@ PositionVelocityContainer Simulator::GetRobotPVContainer(
 	bool isGettingCloser = false;
 	bool isPassedBy = false;
 
+	const auto tv1Length = Constants::Rules.ROBOT_ACCELERATION * microTickTime;
+
 	//поворачиваем в направлении direction в рамках 1 тика
 	while (getDirectionMicroTicks + Constants::Rules.MICROTICKS_PER_TICK <= ticks * Constants::Rules.MICROTICKS_PER_TICK)
 	{
-		Vector3D tvc1 = Helper::GetTargetVelocity(velocity, targetVelocity,
-			Constants::Rules.ROBOT_ACCELERATION * microTickTime);
+		Vector3D tvc1 = Helper::GetTargetVelocity(velocity, targetVelocity, tv1Length);
 
 		Vector3D newVelocity = Vector3D(
 			velocity.X + tvc1.X * Constants::Rules.MICROTICKS_PER_TICK,
