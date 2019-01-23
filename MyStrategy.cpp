@@ -1101,6 +1101,9 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 
 		for (int moveT = startAttackTick; moveT < t - waitT; ++moveT)
 		{
+			if (_ballEntities.at(moveT + waitT).Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)//м¤ч в воротах
+				break;
+					   
 			timeToJump = time - (moveT + waitT) * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 			//if (timeToJump > maxHeightTime)continue; TODO: подумать об этом
 
@@ -1115,10 +1118,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 				return movePoint; // проскочим целевую точку. дальше все непредсказуемо
 			}
 
-			if (_ballEntities.at(moveT + waitT).Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)//м¤ч в воротах
-				break;
-
-
+		
 			if (!CanGetToPoint(goToPoint, pvContainer.Position, pvContainer.Velocity, timeToJump, false))
 				continue;
 

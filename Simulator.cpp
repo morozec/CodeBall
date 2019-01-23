@@ -101,7 +101,11 @@ PositionVelocityContainer Simulator::GetRobotPVContainer(
 		Vector3D tvc1 = Helper::GetTargetVelocity(velocity, targetVelocity,
 			Constants::Rules.ROBOT_ACCELERATION * microTickTime);
 
-		Vector3D newVelocity = velocity + tvc1 * Constants::Rules.MICROTICKS_PER_TICK;
+		Vector3D newVelocity = Vector3D(
+			velocity.X + tvc1.X * Constants::Rules.MICROTICKS_PER_TICK,
+			velocity.Y + tvc1.Y * Constants::Rules.MICROTICKS_PER_TICK,
+			velocity.Z + tvc1.Z * Constants::Rules.MICROTICKS_PER_TICK);
+
 		double newVelocityPosSign = targetVelocity.X * newVelocity.Z - targetVelocity.Z * newVelocity.X;
 		if (velocityPosSign * newVelocityPosSign <= 0) break;
 

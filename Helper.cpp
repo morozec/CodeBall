@@ -58,7 +58,17 @@ Vector3D Helper::GetTargetVelocity(double x0, double y0, double z0, double x1, d
 
 Vector3D Helper::GetTargetVelocity(const Vector3D & startPos, const Vector3D & targetPos, double velocity)
 {
-	return GetTargetVelocity(startPos.X, startPos.Y, startPos.Z, targetPos.X, targetPos.Y, targetPos.Z, velocity);
+	double dx = targetPos.X - startPos.X;
+	double dy = targetPos.Y - startPos.Y;
+	double dz = targetPos.Z - startPos.Z;
+
+	double length = sqrt(dx * dx + dy * dy + dz * dz);
+	if (abs(length) < EPS)
+		return Vector3D(0, 0, 0);
+	dx = dx / length * velocity;
+	dy = dy / length * velocity;
+	dz = dz / length * velocity;
+	return Vector3D(dx, dy, dz);
 }
 
 Vector3D Helper::GetAcionTargetVelocity(const model::Action & action)
