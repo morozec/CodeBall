@@ -48,6 +48,8 @@ Vector3D Helper::GetTargetVelocity(double x0, double y0, double z0, double x1, d
 	double dz = z1 - z0;
 
 	double length = sqrt(dx * dx + dy * dy + dz * dz);
+	if (abs(length) < EPS)
+		return Vector3D(0, 0, 0);
 	dx = dx / length * velocity;
 	dy = dy / length * velocity;
 	dz = dz / length * velocity;

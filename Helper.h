@@ -12,6 +12,7 @@
 
 class Helper {
 public:
+	inline static double EPS = 1E-5;
 	static double Clamp(double value, double minValue, double maxValue);
 	static Vector3D Clamp(Vector3D v, double maxLength);
 	static Vector3D Clamp2(Vector3D v, double maxLength2);

@@ -377,14 +377,13 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		auto waitT = std::get<1>(times);
 		auto moveT = std::get<2>(times);
 
-		ballT--;
+		std::get<0>(times) = ballT - 1;
 		if (waitT > 0)
-			waitT--;
-		else
-		{
-			moveT--;
-		}
-		if (ballT <  0 || waitT < 0 || moveT < 0)
+			std::get<1>(times) = waitT - 1;
+		else		
+			std::get<2>(times) = moveT - 1;
+		
+		if (std::get<0>(times) <  0 || std::get<1>(times) < 0 || std::get<2>(times) < 0)
 		{
 			removeIds.push_back(dmp.first);
 		}
@@ -1114,7 +1113,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(const model::Robot & 
 
 		auto timeToJump = time - waitT * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 		if (!CanGetToPoint(goToPoint, waitPos, waitVelocity, timeToJump, false))
-			continue;
+			return movePoint;//дальше ждать нет смысла - точно не добежим
 
 		for (int moveT = startAttackTick; moveT < endAttackTick - waitT; ++moveT)
 		{
@@ -1132,8 +1131,8 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(const model::Robot & 
 				return movePoint; // проскочим целевую точку. дальше все непредсказуемо
 			}
 
-			if (_ballEntities.at(moveT).Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)//м¤ч в воротах
-				return movePoint;
+			if (_ballEntities.at(moveT + waitT).Position.Z < -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS)//м¤ч в воротах
+				continue;
 
 
 			if (!CanGetToPoint(goToPoint, pvContainer.Position, pvContainer.Velocity, timeToJump, false))
@@ -1427,48 +1426,48 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		}
 	}
 
-	if (startAttackTick == 1 && _defenderMovePoints.count(me.id) > 0)
-	{
-		const auto moveTime = _defenderMovePoints[me.id].second;
-		if (moveTime == 0)
-		{
-			if (IsOkDefenderPosToJump(
-				Helper::GetRobotPosition(me),
-				Helper::GetRobotVelocity(me),
-				0,
-				jumpCollisionT,
-				jump_ball_entity,
-				changeDirVz))
-			{
-				isOkBestBecP = true;
-				double changeDirVzAttack = 0;
-				auto const isGoal = IsGoalBallDirection2(jump_ball_entity.value(), 1, true, goalTime, changeDirVzAttack);
-				//if (!isGoal) throw "NO GOAL FOR SAVED POINT"; м.б. коллизия
-				
-				const auto bec = BallEntityContainer(
-					jump_ball_entity.value(), jumpCollisionT.value(), true, goalTime, changeDirVz);
-				bestBecP = bec;
+	//if (startAttackTick == 1 && _defenderMovePoints.count(me.id) > 0)
+	//{
+	//	const auto moveTime = _defenderMovePoints[me.id].second;
+	//	if (moveTime == 0)
+	//	{
+	//		if (IsOkDefenderPosToJump(
+	//			Helper::GetRobotPosition(me),
+	//			Helper::GetRobotVelocity(me),
+	//			0,
+	//			jumpCollisionT,
+	//			jump_ball_entity,
+	//			changeDirVz))
+	//		{
+	//			isOkBestBecP = true;
+	//			double changeDirVzAttack = 0;
+	//			auto const isGoal = IsGoalBallDirection2(jump_ball_entity.value(), 1, true, goalTime, changeDirVzAttack);
+	//			//if (!isGoal) throw "NO GOAL FOR SAVED POINT"; м.б. коллизия
+	//			
+	//			const auto bec = BallEntityContainer(
+	//				jump_ball_entity.value(), jumpCollisionT.value(), true, goalTime, changeDirVz);
+	//			bestBecP = bec;
 
-				targetVelocity =
-					Helper::GetTargetVelocity(me.x, 0, me.z, _ball.x, 0, _ball.z, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
-				action.target_velocity_x = targetVelocity.X;
-				action.target_velocity_y = 0.0;
-				action.target_velocity_z = targetVelocity.Z;
-				action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-				action.use_nitro = false;
+	//			targetVelocity =
+	//				Helper::GetTargetVelocity(me.x, 0, me.z, _ball.x, 0, _ball.z, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+	//			action.target_velocity_x = targetVelocity.X;
+	//			action.target_velocity_y = 0.0;
+	//			action.target_velocity_z = targetVelocity.Z;
+	//			action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+	//			action.use_nitro = false;
 
-				for (auto it = _defenderMovePoints.cbegin(); it != _defenderMovePoints.cend();)//удаляем все остальные схраненки
-				{
-					if ((*it).first != me.id)
-						_defenderMovePoints.erase(it);
-					++it;
-				}
+	//			for (auto it = _defenderMovePoints.cbegin(); it != _defenderMovePoints.cend();)//удаляем все остальные схраненки
+	//			{
+	//				if ((*it).first != me.id)
+	//					_defenderMovePoints.erase(it);
+	//				++it;
+	//			}
 
-				return action;
-			}
-			_defenderMovePoints.erase(me.id);
-		}
-	}
+	//			return action;
+	//		}
+	//		_defenderMovePoints.erase(me.id);
+	//	}
+	//}
 
 	if (IsPenaltyArea(_ballEntities[0].Position))
 	{
