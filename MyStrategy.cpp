@@ -1088,23 +1088,25 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 	/*if (!CanGetToPoint(goToPoint, Helper::GetRobotPosition(robot), Helper::GetRobotVelocity(robot), time, true))
 		return movePoint;*/
 
-	
+	double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
+	double microTickTime = tickTime / Constants::Rules.MICROTICKS_PER_TICK;
 
 	//const auto deltaTicks = endAttackTick - startAttackTick;
 	for (int waitT = 0; waitT < t; ++waitT)
 	{
+		const auto microTicks = waitT * Constants::Rules.MICROTICKS_PER_TICK;
 		Vector3D waitPos;
 		Vector3D waitVelocity;
-		if (waitT * Constants::Rules.MICROTICKS_PER_TICK > stopContainer.stopMicroTicks)
+		if (microTicks < stopContainer.stopMicroTicks)
 		{
-			waitPos = stopContainer.stopPos;
-			waitVelocity = Vector3D(0, 0, 0);
+			waitPos = stopContainer.robotPosition + stopContainer.robotVelocity * (microTicks * microTickTime) +
+				stopContainer.stopA * (microTickTime * microTicks *(microTicks + 1) / 2.0);
+			waitVelocity = stopContainer.robotVelocity + stopContainer.stopA *  microTicks;
 		}
 		else
 		{
-			const auto waitTime = waitT * 1.0 / Constants::Rules.TICKS_PER_SECOND;
-			waitPos = stopContainer.robotPosition + stopContainer.robotVelocity * waitTime + stopContainer.stopA * (waitTime * waitTime / 2.0);
-			waitVelocity = stopContainer.robotVelocity + stopContainer.stopA * waitTime;
+			waitPos = stopContainer.stopPos;
+			waitVelocity = Vector3D(0, 0, 0);
 		}
 
 		auto timeToJump = time - waitT * 1.0 / Constants::Rules.TICKS_PER_SECOND;
@@ -1604,7 +1606,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	int startAttackTick,
 	bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT)
 {
-	if (_isSamePosition &&
+	/*if (_isSamePosition &&
 		_defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0)
 	{
 		isDefenderSavedPointOk = true;
@@ -1615,7 +1617,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	}
 
 	if (_defenderMovePoints.count(robot.id) > 0)
-		_defenderMovePoints.erase(robot.id);
+		_defenderMovePoints.erase(robot.id);*/
 
 
 	isDefenderSavedPointOk = false;
@@ -2256,22 +2258,21 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 
 StopContainer MyStrategy::GetStopContainer(const Robot& robot) const
 {
-	const auto mtTime = 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
-
+	auto robotPosition = Helper::GetRobotPosition(robot);
 	auto robotVelocity = Helper::GetRobotVelocity(robot);
 	auto robotVelocityLength = robotVelocity.Length();
-	auto stopA = robotVelocity * (1.0 / robotVelocityLength * (-Constants::Rules.ROBOT_ACCELERATION));
 
-	auto stopTime = robotVelocityLength / Constants::Rules.ROBOT_ACCELERATION;
-	auto stopMicroTicks = int(stopTime * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK);
-	auto stopMicroTicksTime = stopMicroTicks * 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+	double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
+	double microTickTime = tickTime / Constants::Rules.MICROTICKS_PER_TICK;
+	const auto tv1Length = Constants::Rules.ROBOT_ACCELERATION * microTickTime;
+	auto stopA = robotVelocity * (1.0 / robotVelocityLength * (-tv1Length));
 
+	auto stopMts = int(robotVelocityLength / stopA.Length());
+	
+	auto stopPos = robotPosition + robotVelocity * (stopMts * microTickTime) +
+		stopA * (microTickTime * stopMts * (stopMts + 1) / 2.0);
 
-	auto stopVelocity = robotVelocity + stopA * stopMicroTicksTime;
-
-	auto robotPosition = Helper::GetRobotPosition(robot);
-	auto stopPos = robotPosition + robotVelocity * stopMicroTicksTime + stopA * (stopMicroTicksTime * stopMicroTicksTime / 2.0) + stopVelocity * mtTime;
-	return StopContainer(Helper::GetRobotPosition(robot), Helper::GetRobotVelocity(robot), stopMicroTicks, stopPos, stopA);
+	return StopContainer(robotPosition, robotVelocity, stopMts, stopPos, stopA);
 }
 
 std::string MyStrategy::custom_rendering()
