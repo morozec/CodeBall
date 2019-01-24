@@ -206,13 +206,20 @@ PositionVelocityContainer Simulator::GetRobotPVContainer(
 	Vector3D tvc2 = Helper::GetTargetVelocity(position, targetPosition, Constants::Rules.ROBOT_ACCELERATION * microTickTime);
 	//разгоняемся до максимальной скорости
 	double maxVelocityTime = (tvLength - velocity.Length()) / Constants::Rules.ROBOT_ACCELERATION;
-	double accelerationTicks = maxVelocityTime * Constants::Rules.TICKS_PER_SECOND *
+	double accelerationMicroTicks = maxVelocityTime * Constants::Rules.TICKS_PER_SECOND *
 		Constants::Rules.MICROTICKS_PER_TICK; //TODO: здесь д.б. int
-	position.Add(velocity * (accelerationTicks * microTickTime) + tvc2 *
-		(microTickTime * accelerationTicks * (accelerationTicks + 1) / 2.0));
-	velocity = Helper::GetTargetVelocity(position, targetPosition, tvLength);
 
-	double getMaxVelocityMicroTicks = getDirectionMicroTicks + accelerationTicks;
+	if (accelerationMicroTicks > ticks * Constants::Rules.MICROTICKS_PER_TICK)
+		accelerationMicroTicks = ticks * Constants::Rules.MICROTICKS_PER_TICK;
+
+	position.Add(velocity * (accelerationMicroTicks * microTickTime) + tvc2 *
+		(microTickTime * accelerationMicroTicks * (accelerationMicroTicks + 1) / 2.0));
+	velocity = Vector3D(
+		velocity.X + tvc2.X * accelerationMicroTicks,
+		velocity.Y + tvc2.Y * accelerationMicroTicks,
+		velocity.Z + tvc2.Z * accelerationMicroTicks);	
+		
+	double getMaxVelocityMicroTicks = getDirectionMicroTicks + accelerationMicroTicks;
 
 
 	//движемся оставшееся время с максимальной скоростью
