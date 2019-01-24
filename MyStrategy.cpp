@@ -137,8 +137,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			BallEntityContainer bec;
 			bool isOkBestBec;
 			const Action robotAction = SetAttackerAction(
-				robot, _lastMyCollisionTick == -1 || _isMeGoalPossible ? 0 : _lastMyCollisionTick + AttackerAddTicks,
-				robot.id == defender.id ? _myGates : _beforeMyGates, bec, isOkBestBec);
+				robot, 
+				_lastMyCollisionTick == -1 || _isMeGoalPossible ? 0 : _lastMyCollisionTick + AttackerAddTicks, //стартовый тик атаки
+				robot.id == defender.id ? _myGates : _beforeMyGates, //точка, на которую бежим защищатьс€
+				bec, isOkBestBec);
 			if (isOkBestBec)
 			{
 				if (robot.id == defender.id)
@@ -208,7 +210,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					BallEntityContainer curBestBec;
 					bool isOkBestBec;
 					const Action attAction = SetAttackerAction(
-						robot, afterCollisionTick + AttackerAddTicks, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isOkBestBec);
+						robot, afterCollisionTick + AttackerAddTicks, _beforeMyGates, curBestBec, isOkBestBec);
 					_actions[robot.id] = attAction;
 				}
 				else //бьем с чужой половины - второй идет на ворота
@@ -1501,8 +1503,11 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		if (movePoint == std::nullopt)
 		{
 			isOkBestBecP = false;
-			if (&defenderPoint == &_beforeMyGates && //только нап бежит за м€чом				
-				Helper::GetLength2(Vector3D(_ball.x, me.y, _ball.z), Helper::GetRobotPosition(me)) >
+
+			int lastTick = startAttackTick + BallMoveTicks;
+			const auto lastBallEntity = _ballEntities.at(lastTick);
+
+			if (Helper::GetLength2(Vector3D(_ball.x, me.y, _ball.z), Helper::GetRobotPosition(me)) >
 				_distToFollowBall * _distToFollowBall
 				&&	me.z < _ball.z)
 			{
@@ -2318,7 +2323,7 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 	_ballEntities[afterCollisionTick] = ballEntity;
 	_robotEntities[afterCollisionTick] = robotEntities;
 
-	for (auto i = 1; i < BallMoveTicks; ++i)
+	for (auto i = 1; i <= BallMoveTicks + AttackerAddTicks; ++i)
 	{
 		std::vector<RobotEntity> jumpResCur = std::vector<RobotEntity>();
 		for (auto & re : _robotEntities.at(afterCollisionTick + i - 1))
