@@ -69,6 +69,8 @@ private:
 	bool _isNoCollisionMeGoalPossible;
 	
 public:
+	int _lastMyCollisionTick = -1;
+
 	bool _isSamePosition;
 	int _goalScoringTick;
 	int _meGoalScoringTick;
@@ -166,9 +168,7 @@ public:
 
 	bool IsSamePosition();
 
-	void InitBallEntities(
-		std::map<int, std::optional<double>>& collisionTimes,
-		std::map<int, BallEntity>& bestBallEntities);
+	void InitBallEntities();
 	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity, bool isGoal);
 
 	StopContainer GetStopContainer(const model::Robot& robot) const;
