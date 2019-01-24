@@ -1939,6 +1939,34 @@ Vector3D MyStrategy::GetDefendPointTargetVelocity(const model::Robot & robot, co
 
 std::optional<double> MyStrategy::GetOppStrikeTime(const std::vector<model::Robot>& oppRobots)
 {
+	std::optional<double> minTime = std::nullopt;
+
+	for (int t = 1; t <= BallMoveTicks; ++t)
+	{
+		auto be = _ballEntities.at(t);
+		auto ballHorPos = Vector3D(be.Position.X, Constants::Rules.ROBOT_RADIUS, be.Position.Z);
+		for (auto& robot : oppRobots)
+		{
+			if (!robot.touch) continue;
+
+			auto robotPos = Helper::GetRobotPosition(robot);
+			auto robotVelocity = Helper::GetRobotVelocity(robot);
+
+			auto pvContainer = Simulator::GetRobotPVContainer(robotPos, ballHorPos, robotVelocity, t, 1);
+			if (pvContainer.IsPassedBy || Helper::GetLength2(pvContainer.Position, ballHorPos) <
+				(Constants::Rules.BALL_RADIUS + Constants::Rules.ROBOT_MAX_RADIUS) * (Constants::Rules.BALL_RADIUS + Constants::Rules.ROBOT_MAX_RADIUS))
+			{
+				double time = t * 1.0 / Constants::Rules.TICKS_PER_SECOND;
+				if (minTime == std::nullopt || time < minTime.value())
+				{
+					minTime = time;
+				}
+				break;
+			}
+		}
+	}
+	return minTime;
+
 	std::optional<double> minT = std::nullopt;
 	double goalTime;
 
