@@ -1509,9 +1509,9 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 			if (Helper::GetLength2(Vector3D(_ball.x, me.y, _ball.z), Helper::GetRobotPosition(me)) >
 				_distToFollowBall * _distToFollowBall
-				&&	me.z < _ball.z)
+				&&	me.z < lastBallEntity.Position.Z)
 			{
-				movePoint = Vector3D(_ball.x, 0, _ball.z);
+				movePoint = lastBallEntity.Position;
 			}
 			else
 			{
