@@ -1006,13 +1006,15 @@ bool MyStrategy::GetDefenderStrikeBallEntity(const model::Robot & robot, int t,
 	Vector3D targetPos = Vector3D(ballEntity.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 		ballEntity.Position.Z);
 
+
+
 	for (int moveT = startAttackTick; moveT < endAttackTick; ++moveT)
 	{
 		/*if (best_ball_velocity != std::nullopt &&
 			_oppStrikeTime.has_value() && 
 			moveT * 1.0 / Constants::Rules.TICKS_PER_SECOND > _oppStrikeTime.value())
 			return;*/
-
+			   
 		PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
 			Helper::GetRobotPosition(robot),
 			targetPos,
@@ -1659,6 +1661,10 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	bool isResOk = false;
 	const auto stopContainer = GetStopContainer(robot);
 
+	const auto deltaAngle = M_PI / 180 * 3;
+	auto curAngle = 0.0;
+	auto robotPos = Helper::GetRobotPosition(robot);
+
 	for (int t = startAttackTick; t <= startAttackTick + BallMoveTicks; ++t)
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
@@ -1667,10 +1673,19 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			return movePoint;
 		if (_ballEntities.count(t) == 0) return movePoint;
 
-		auto ballEntity = _ballEntities.at(t);		
+		auto ballEntity = _ballEntities.at(t);
+		
+		const auto angle = robotPos.angleTo(ballEntity.Position);
 
 		if (IsPenaltyArea(ballEntity.Position))//включаем режим защитника
 		{
+			const auto isWaiting = _defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0;
+			const auto isBestTime = _defenderMovePoints.count(robot.id) > 0 && std::get<0>(_defenderMovePoints[robot.id]) == t;
+ 			if (!isWaiting && !isBestTime && abs(curAngle) > EPS && abs(angle - curAngle) < deltaAngle)
+				continue;
+
+			curAngle = angle;
+
 			if (t > startAttackTick + BallMoveTicks/2)
 				continue;
 
