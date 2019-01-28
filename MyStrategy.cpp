@@ -144,9 +144,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (isOkBestBec)
 			{
 				if (robot.id == defender.id)
-					if (_oppStrikeTime.has_value() && bec.collisionTime > _oppStrikeTime.value())
+					if (_oppStrikeTime.has_value() && bec.collisionTime > _oppStrikeTime.value()
+						&& bec.ResBallEntity.Position.Z > -Constants::Rules.arena.depth / 4)
 					{
-						_actions[defender.id] = GetDefaultAction(defender, _myGates);;
+						_actions[defender.id] = GetDefaultAction(defender, _myGates);
 						continue; //не гонимс€ защитником за проигранным м€чом				
 					}
 			}
@@ -170,7 +171,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (isOkBestBec)
 			{
 				if (robot.id == defender.id)
-					if (_oppStrikeTime.has_value() && curBestBec.collisionTime > _oppStrikeTime.value())
+					if (_oppStrikeTime.has_value() && curBestBec.collisionTime > _oppStrikeTime.value() &&
+						curBestBec.ResBallEntity.Position.Z > -Constants::Rules.arena.depth / 4)
 					{
 						isLoosingDefender = true;
 						continue; //не гонимс€ защитником за проигранным м€чом				
