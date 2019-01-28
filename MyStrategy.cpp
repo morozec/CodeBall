@@ -1661,7 +1661,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	bool isResOk = false;
 	const auto stopContainer = GetStopContainer(robot);
 
-	const auto deltaAngle = M_PI / 180 * 3;
+	const auto deltaAngle = M_PI / 180 * 2;
 	auto curAngle = 0.0;
 	auto robotPos = Helper::GetRobotPosition(robot);
 
