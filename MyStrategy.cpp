@@ -131,11 +131,13 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		//идем в атаку, начиная с последнего тика коллизии прыгающего
 
 
+		int nextBestBecPRobotId = -1;
+		BallEntityContainer nextBestBec;
 
 		for (auto & robot : myRobots)
 		{
 			if (!robot.touch) continue;			
-			BallEntityContainer bec;
+			BallEntityContainer curBestBec;
 			bool isOkBestBec;
 			int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
 
@@ -143,20 +145,50 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				robot, 
 				_lastMyCollisionTick == -1 || _isMeGoalPossible ? 0 : _lastMyCollisionTick + AttackerAddTicks, //стартовый тик атаки
 				robot.id == defender.id ? _myGates : _beforeMyGates, //точка, на которую бежим защищаться
-				bec, isOkBestBec, position);
+				curBestBec, isOkBestBec, position);
 			if (isOkBestBec)
 			{
 				if (robot.id == defender.id)
-					if (_oppStrikeTime.has_value() && bec.collisionTime > _oppStrikeTime.value()
-						&& bec.ResBallEntity.Position.Z > -Constants::Rules.arena.depth / 4)
+					if (_oppStrikeTime.has_value() && curBestBec.collisionTime > _oppStrikeTime.value()
+						&& curBestBec.ResBallEntity.Position.Z > -Constants::Rules.arena.depth / 4)
 					{
 						_actions[defender.id] = GetDefaultAction(defender, _myGates);
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 1, 0, 0.5);
 						continue; //не гонимся защитником за проигранным мячом				
 					}
+
+				if (nextBestBecPRobotId == -1 || CompareBeContainers(curBestBec, nextBestBec) < 0)
+				{					
+					nextBestBec = curBestBec;
+					nextBestBecPRobotId = robot.id;
+				}				
 			}
 
-
+			
 			_actions[robot.id] = robotAction;
+		}
+
+		if (nextBestBecPRobotId != -1)
+		{
+			for (auto & robot : myRobots)
+			{
+				if (!robot.touch) continue;
+				if (robot.id == nextBestBecPRobotId)
+				{
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
+					continue;
+				}
+				if (robot.id == defender.id)
+				{
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+					_actions[robot.id] = GetDefaultAction(robot, _myGates);
+				}
+				else
+				{
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+					_actions[robot.id] = GetNearestOppAttackAction(robot);
+				}
+			}
 		}
 		
 	}
@@ -172,6 +204,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			bool isOkBestBec;
 			int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
 			const auto attAction = SetAttackerAction(robot, 0, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isOkBestBec, position);
+
 			if (isOkBestBec)
 			{
 				if (robot.id == defender.id)
@@ -188,7 +221,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					bestBecPRobotId = robot.id;
 				}
 			}
-			_actions[robot.id] = attAction;
+			_actions[robot.id] = attAction;			
 		}
 
 		for (auto& robot:myRobots)
@@ -209,10 +242,17 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity, bestBec.isGoalScored);
 			}
 
+			int nextBestBecPRobotId = -1;
+			BallEntityContainer nextBestBec;
+
 			for (auto & robot : myRobots)
 			{
 				if (!robot.touch) continue;
-				if (robot.id == bestBecPRobotId) continue;
+				if (robot.id == bestBecPRobotId)
+				{
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 1, 0, 0.5);
+					continue;
+				}
 
 				/*if (_defenderMovePoints.count(robot.id) > 0)
 					_defenderMovePoints.erase(robot.id);*/
@@ -224,18 +264,59 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
 					const Action attAction = SetAttackerAction(
 						robot, afterCollisionTick + AttackerAddTicks, _beforeMyGates, curBestBec, isOkBestBec, position);
+
+					if (isOkBestBec)
+					{
+						if (nextBestBecPRobotId == -1 || CompareBeContainers(curBestBec, nextBestBec) < 0)
+						{
+							nextBestBec = curBestBec;
+							nextBestBecPRobotId = robot.id;
+						}
+					}					
 					_actions[robot.id] = attAction;
 				}
 				else //бьем с чужой половины - второй идет на ворота
 				{
-					const Action defAction = GetDefaultAction(robot, _myGates);
-					_actions[robot.id] = defAction;
+					if (robot.id == defender.id)
+					{
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+						_actions[robot.id] = GetDefaultAction(robot, _myGates);
+					}
+					else
+					{
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+						_actions[robot.id] = GetNearestOppAttackAction(robot);
+					}
 				}
+			}
 
+			if (nextBestBecPRobotId != -1)
+			{
+				for (auto & robot : myRobots)
+				{
+					if (!robot.touch) continue;
+					if (robot.id == bestBecPRobotId) continue;
+					if (robot.id == nextBestBecPRobotId)
+					{
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
+						continue;
+					}
+					if (robot.id == defender.id)
+					{
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+						_actions[robot.id] = GetDefaultAction(robot, _myGates);
+					}
+					else
+					{
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+						_actions[robot.id] = GetNearestOppAttackAction(robot);
+					}
+				}
 			}
 		}
 		else if (isLoosingDefender)
 		{
+			_drawSpheres.emplace_back(defender.x, defender.y, defender.z, 1, 0, 0, 1, 0.5);
 			const Action defAction = GetDefaultAction(defender, _myGates);
 			_actions[defender.id] = defAction;
 		}
@@ -487,6 +568,22 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 model::Action MyStrategy::GetDefaultAction(const model::Robot & me, const Vector3D & defaultPos)
 {
 	const auto targetVelocity = GetDefendPointTargetVelocity(me, defaultPos);
+	model::Action action = model::Action();
+	action.target_velocity_x = targetVelocity.X;
+	action.target_velocity_y = 0.0;
+	action.target_velocity_z = targetVelocity.Z;
+	action.jump_speed = 0.0;
+	action.use_nitro = false;
+	return action;
+}
+
+model::Action MyStrategy::GetNearestOppAttackAction(const model::Robot & me)
+{
+	const auto nearestOpp = get_nearest_ball_robot();
+	const auto mePos = Helper::GetRobotPosition(me);
+	const auto oppPos = Helper::GetRobotPosition(nearestOpp);
+	const auto targetVelocity = Helper::GetTargetVelocity(mePos, oppPos, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+
 	model::Action action = model::Action();
 	action.target_velocity_x = targetVelocity.X;
 	action.target_velocity_y = 0.0;
@@ -2087,13 +2184,15 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const std::vector<model::Robo
 	return minT;
 }
 
-model::Robot MyStrategy::get_nearest_ball_robot(const BallEntity& ball_entity, const std::vector<model::Robot>& oppRobots)
+model::Robot MyStrategy::get_nearest_ball_robot()
 {
 	auto min_dist = std::numeric_limits<double>::max();
 	Robot nearest_robot{};
-	for (Robot r : oppRobots)
+	for (Robot r : _robots)
 	{
-		auto const dist = Helper::GetLength2(ball_entity.Position, Helper::GetRobotPosition(r));
+		if (r.is_teammate) continue;
+		
+		auto const dist = (_ball.x - r.x)*(_ball.x - r.x) + (_ball.z - r.z)*(_ball.z - r.z);
 		if (dist < min_dist)
 		{
 			min_dist = dist;
