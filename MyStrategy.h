@@ -55,7 +55,7 @@ private:
 
 	//int _defenderId = -1;
 
-	bool _isFirstRobot = false;
+	int _robotsCounter = -1;
 	std::map<int, model::Action> _actions;
 	
 	

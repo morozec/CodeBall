@@ -18,16 +18,15 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		Init(rules);
 		DanCalculator::Init(rules.arena);
 	}	
-
-	_isFirstRobot = !_isFirstRobot;
+	_robotsCounter = (_robotsCounter + 1) % (game.robots.size()/2);
 
 	if (abs(game.ball.z) > rules.arena.depth / 2 + game.ball.radius) //goal scored
 	{
 		return;
 	}
 
-	if (_isFirstRobot)
-	{
+	if (_robotsCounter == 0)
+	{		
 		_lastMyCollisionTick = -1;
 		_meGoalScoringTick = -1;
 		_goalScoringTick = -1;
