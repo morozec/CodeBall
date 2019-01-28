@@ -516,7 +516,7 @@ BallEntity MyStrategy::SimulateTickBall(
 
 	bec = BallEntity(ballEntity);
 
-	Simulator::Tick(bec, jumpRes, hitE);
+	Simulator::Tick(bec, jumpRes, hitE, isGoalScored);
 	
 
 	if (discardIsCollided)

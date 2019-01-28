@@ -387,10 +387,10 @@ void Simulator::Update(RobotEntity& robot, BallEntity& ball, double deltaTime, d
 	}*/
 }
 
-void Simulator::Tick(BallEntity& entity, std::vector<RobotEntity>& jumpRes, double hitE)
+void Simulator::Tick(BallEntity& entity, std::vector<RobotEntity>& jumpRes, double hitE, bool& isGoalScored)
 {
 	double deltaTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
-	bool isGoalScored = false;
+	isGoalScored = false;
 	for (int i = 0; i < Constants::Rules.MICROTICKS_PER_TICK; ++i)
 	{
 		UpdateOnAir(entity, jumpRes, deltaTime / Constants::Rules.MICROTICKS_PER_TICK, hitE, isGoalScored, true);

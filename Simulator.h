@@ -34,7 +34,7 @@ public:
 		BallEntity& entity, std::vector<RobotEntity>& jumpRes, double deltaTime, double hitE, bool& isGoalScored,
 		bool simulateArenaCollision);
 	static void Update(RobotEntity& robot, BallEntity& ball, double deltaTime, double hitE, bool& isGoalScored);
-	static void Tick(BallEntity& ball, std::vector<RobotEntity>& jumpRes, double hitE);
+	static void Tick(BallEntity& ball, std::vector<RobotEntity>& jumpRes, double hitE, bool& isGoalScored);
 	static void Tick(RobotEntity& robot, BallEntity ball);
 
 	static void simulate_jump_start(RobotEntity& re);
