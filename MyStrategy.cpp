@@ -131,14 +131,22 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		if (!_oppStrikeTime.has_value() || bestBec.collisionTime < _oppStrikeTime.value())//и он опередит врага
 		{			
 			if (bestBecPRobotId != defender.id) //бьет не защитник
-			{
-				_actions[defender.id] = GetDefaultAction(defender, _myGates);//защ идет на ворота
+			{				
 			
 				for (auto& robot : myRobots) //здесь останетс€ последний
 				{
 					if (!robot.touch) continue;
-					if (robot.id == bestBecPRobotId) continue;
-					if (robot.id == defender.id) continue;
+					if (robot.id == bestBecPRobotId)
+					{
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 1, 0, 0.5);
+						continue;
+					}
+					if (robot.id == defender.id)
+					{
+						_actions[robot.id] = GetDefaultAction(robot, _myGates);//защ идет на ворота
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+						continue;
+					}
 
 					BallEntityContainer curBestBec;
 					bool isOkBestBec;
@@ -149,10 +157,12 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					if (isOkBestBec)//нашли точку атаки - идем в нее
 					{
 						_actions[robot.id] = attAction;
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
 					}
 					else //идем за м€чом или на противника
 					{
 						_actions[robot.id] = GetMoveBallOrOppAction(robot);
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 					}
 				}
 			}
@@ -163,7 +173,11 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				for (auto& robot : myRobots) //определ€ем лучшего бьющего
 				{
 					if (!robot.touch) continue;
-					if (robot.id == bestBecPRobotId) continue;
+					if (robot.id == bestBecPRobotId) 
+					{
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 1, 0, 0.5);
+						continue;
+					}
 
 					BallEntityContainer curBestBec;
 					bool isOkBestBec;
@@ -188,9 +202,14 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					{
 						if (!robot.touch) continue;
 						if (robot.id == bestBecPRobotId) continue;
-						if (robot.id == nextBestBecPRobotId) continue;
+						if (robot.id == nextBestBecPRobotId)
+						{
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
+							continue;
+						}
 
 						_actions[robot.id] = GetNearestOppAttackAction(robot);
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 					}
 				}
 				else//не нашли добивающего
@@ -202,10 +221,12 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						if (robot.id == attacker.id)//нап идет за м€чом или на противника
 						{
 							_actions[robot.id] = GetMoveBallOrOppAction(robot);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 						}
 						else//пз атакует врага
 						{
 							_actions[robot.id] = GetNearestOppAttackAction(robot);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 						}						
 					}
 				}
@@ -218,25 +239,39 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				for (auto& robot : myRobots)
 				{
 					if (!robot.touch) continue;
-					if (robot.id == bestBecPRobotId) continue;
+					if (robot.id == bestBecPRobotId) 
+					{
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 1, 0, 0.5);
+						continue;
+					}
 					if (robot.id == attacker.id)//нап атакует врага
 					{
 						_actions[robot.id] = GetNearestOppAttackAction(robot);
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 					}
 					else//пз идет на ворота
 					{
 						_actions[robot.id] = GetDefaultAction(robot, _myGates);
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
 					}
 				}
 			}
 			else //бьет нап или пз
-			{
-				_actions[defender.id] = GetDefaultAction(defender, _myGates);//защ. идет на ворота
+			{				
 				for (auto& robot : myRobots) //останетс€ последний
 				{
 					if (!robot.touch) continue;
-					if (robot.id == bestBecPRobotId) continue;
-					if (robot.id == defender.id) continue;
+					if (robot.id == bestBecPRobotId)
+					{
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 1, 0, 0.5);
+						continue;
+					}
+					if (robot.id == defender.id)
+					{
+						_actions[robot.id] = GetDefaultAction(robot, _myGates);//защ. идет на ворота
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+						continue;
+					}
 
 					BallEntityContainer curBestBec;
 					bool isOkBestBec;
@@ -246,10 +281,12 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					if (isOkBestBec)//идем в точку добивани€
 					{
 						_actions[robot.id] = attAction;
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
 					}
 					else//атакуем врага
 					{
 						_actions[robot.id] = GetNearestOppAttackAction(robot);
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 					}
 				}
 			}
@@ -257,18 +294,24 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	}
 	else //не нашли бьщего вообще
 	{	
-		_actions[defender.id] = GetDefaultAction(defender, _myGates);//защ идет на ворота
+		
 		for (auto& robot : myRobots)
 		{
 			if (!robot.touch) continue;
-			if (robot.id == bestBecPRobotId) continue;
-			if (robot.id == attacker.id)//нап идет за м€чом или на противника
+			if (robot.id == defender.id)
+			{
+				_actions[robot.id] = GetDefaultAction(defender, _myGates);//защ идет на ворота
+				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+			}
+			else if (robot.id == attacker.id)//нап идет за м€чом или на противника
 			{
 				_actions[robot.id] = GetMoveBallOrOppAction(robot);
+				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 			}
 			else//пз атакует врага
 			{
 				_actions[robot.id] = GetNearestOppAttackAction(robot);
+				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 			}
 		}
 	}
