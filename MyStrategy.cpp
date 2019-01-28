@@ -1692,7 +1692,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		{
 			const auto isWaiting = _defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0;
 			const auto isBestTime = _defenderMovePoints.count(robot.id) > 0 && std::get<0>(_defenderMovePoints[robot.id]) == t;
- 			if (!isWaiting && !isBestTime && abs(curAngle) > EPS && abs(angle - curAngle) < deltaAngle)
+ 			if (movePoint != std::nullopt && bestBecP.isGoalScored &&
+				!isWaiting && !isBestTime && abs(curAngle) > EPS && abs(angle - curAngle) < deltaAngle)
 				continue;
 
 			curAngle = angle;
