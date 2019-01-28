@@ -2391,7 +2391,6 @@ model::Robot MyStrategy::get_nearest_ball_robot()
 	for (Robot r : _robots)
 	{
 		if (r.is_teammate) continue;
-		if (!r.touch) continue;
 		
 		auto const dist = (_myGates.X - r.x)*(_myGates.X - r.x) + (_myGates.Z - r.z)*(_myGates.Z - r.z);
 		if (dist < min_dist)
