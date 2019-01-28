@@ -161,8 +161,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					else //идем за м€чом или на противника
 					{
-						_actions[robot.id] = GetMoveBallOrOppAction(robot);
-						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+						int resIndex;
+						_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 
+							resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
 					}
 				}
 			}
@@ -220,8 +222,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						if (robot.id == bestBecPRobotId) continue;
 						if (robot.id == attacker.id)//нап идет за м€чом или на противника
 						{
-							_actions[robot.id] = GetMoveBallOrOppAction(robot);
-							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+							int resIndex;
+							_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
+								resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
 						}
 						else//пз атакует врага
 						{
@@ -305,8 +309,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			}
 			else if (robot.id == attacker.id)//нап идет за м€чом или на противника
 			{
-				_actions[robot.id] = GetMoveBallOrOppAction(robot);
-				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+				int resIndex;
+				_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
+				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
+					resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
 			}
 			else//пз атакует врага
 			{
@@ -822,7 +828,7 @@ model::Action MyStrategy::GetNearestOppAttackAction(const model::Robot & me)
 	return action;
 }
 
-model::Action MyStrategy::GetMoveBallOrOppAction(const model::Robot & robot)
+model::Action MyStrategy::GetMoveBallOrOppAction(const model::Robot & robot, int& resIndex)
 {	
 	const auto lastBallEntity = _ballEntities.at(_lastSimulationTick);
 	if (Helper::GetLength2(Vector3D(_ball.x, robot.y, _ball.z), Helper::GetRobotPosition(robot)) >
@@ -838,9 +844,11 @@ model::Action MyStrategy::GetMoveBallOrOppAction(const model::Robot & robot)
 		moveAction.target_velocity_z = targetVelocity.Z;
 		moveAction.jump_speed = 0;
 		moveAction.use_nitro = false;
+		resIndex = 0;
 		return  moveAction;
 	}
 	//идем на противника		
+	resIndex = 1;
 	return GetNearestOppAttackAction(robot);		
 	
 }
