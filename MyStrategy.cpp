@@ -1135,7 +1135,8 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 			std::optional<BallEntity> collision_ball_entity = std::nullopt;
 			BallEntity collideBallEntity;
 
-			if (IsOkDefenderPosToJump(pvContainer.Position, pvContainer.Velocity,
+			if (IsPenaltyArea(_ballEntities.at(moveT + waitT).Position) && //бьем м€ч только в зоне защиты
+				IsOkDefenderPosToJump(pvContainer.Position, pvContainer.Velocity,
 				waitT + moveT,
 				curJumpCollisionT, collision_ball_entity, collideBallEntity))
 			{
