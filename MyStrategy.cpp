@@ -1467,6 +1467,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 	if (bestWaitT == 0 && bestMoveT == 0)
 	{
+		isOkBestBecP = true;
 		targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, _ball.x, 0, _ball.z,
 			Constants::Rules.ROBOT_MAX_GROUND_SPEED);
 		action.target_velocity_x = targetVelocity.X;
