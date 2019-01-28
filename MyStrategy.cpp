@@ -2749,6 +2749,11 @@ StopContainer MyStrategy::GetStopContainer(const Robot& robot) const
 	auto robotPosition = Helper::GetRobotPosition(robot);
 	auto robotVelocity = Helper::GetRobotVelocity(robot);
 	auto robotVelocityLength = robotVelocity.Length();
+	if (robotVelocityLength < EPS)
+	{
+		const auto stopA = Vector3D(0, 0, 0);
+		return StopContainer(robotPosition, robotVelocity, 0, robotPosition, stopA);
+	}
 
 	double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	double microTickTime = tickTime / Constants::Rules.MICROTICKS_PER_TICK;
