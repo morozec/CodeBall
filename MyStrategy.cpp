@@ -1507,13 +1507,20 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 			isOkBestBecP = false;
 
 			int lastTick = startAttackTick + BallMoveTicks;
-			const auto lastBallEntity = _ballEntities.at(lastTick);
-
-			if (Helper::GetLength2(Vector3D(_ball.x, me.y, _ball.z), Helper::GetRobotPosition(me)) >
-				_distToFollowBall * _distToFollowBall
-				&&	me.z < lastBallEntity.Position.Z)
+			if (_ballEntities.count(lastTick) > 0) //проверка на случай коллизии после 100 тика
 			{
-				movePoint = lastBallEntity.Position;
+				const auto lastBallEntity = _ballEntities.at(lastTick);
+
+				if (Helper::GetLength2(Vector3D(_ball.x, me.y, _ball.z), Helper::GetRobotPosition(me)) >
+					_distToFollowBall * _distToFollowBall
+					&&	me.z < lastBallEntity.Position.Z)
+				{
+					movePoint = lastBallEntity.Position;
+				}
+				else
+				{
+					movePoint = defenderPoint;
+				}
 			}
 			else
 			{
