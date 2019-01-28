@@ -200,7 +200,16 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		}
 
 		if (bestBecPRobotId != -1)
-			for (auto & robot:myRobots)
+		{
+			const auto isPenaltyAreaStrike = bestBec.ResBallEntity.Position.Z < 0 && (!_oppStrikeTime.has_value() || bestBec.collisionTime < _oppStrikeTime.value());
+			auto afterCollisionTick = -1;
+			if (isPenaltyAreaStrike)
+			{
+				const auto collisionTime = bestBec.collisionTime;
+				afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity, bestBec.isGoalScored);
+			}
+
+			for (auto & robot : myRobots)
 			{
 				if (!robot.touch) continue;
 				if (robot.id == bestBecPRobotId) continue;
@@ -208,11 +217,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				/*if (_defenderMovePoints.count(robot.id) > 0)
 					_defenderMovePoints.erase(robot.id);*/
 
-				if (bestBec.ResBallEntity.Position.Z < 0 && (!_oppStrikeTime.has_value() || bestBec.collisionTime < _oppStrikeTime.value()))//бьем со своей половины - второй идет добивать
+				if (isPenaltyAreaStrike && (game.robots.size() == 4 || game.robots.size() == 6 && robot.id != defender.id))//бьем со своей половины - второй идет добивать
 				{
-					const auto collisionTime = bestBec.collisionTime;
-					const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity, bestBec.isGoalScored);
-
 					BallEntityContainer curBestBec;
 					bool isOkBestBec;
 					int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
@@ -223,10 +229,11 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				else //бьем с чужой половины - второй идет на ворота
 				{
 					const Action defAction = GetDefaultAction(robot, _myGates);
-					_actions[robot.id] =defAction;
+					_actions[robot.id] = defAction;
 				}
-				
+
 			}
+		}
 		else if (isLoosingDefender)
 		{
 			const Action defAction = GetDefaultAction(defender, _myGates);
