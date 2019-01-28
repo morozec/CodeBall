@@ -142,13 +142,13 @@ public:
 	model::Action SetAttackerAction(const model::Robot& me, 
 		int startAttackTick,
 		const Vector3D& defenderPoint,
-		BallEntityContainer & bestBecP, bool& isOkBestBecP);
+		BallEntityContainer & bestBecP, bool& isOkBestBecP,int position);
 	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, int t,
 		int directionCoeff,
 		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime);
 	std::optional<Vector3D> GetAttackerMovePoint(const model::Robot& robot, 
 		int startAttackTick,
-		bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT);
+		bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT, int position);
 	std::optional<Vector3D> GetAttackerStrikePoint(
 		const model::Robot& robot, int t, int directionCoeff, 
 		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime);

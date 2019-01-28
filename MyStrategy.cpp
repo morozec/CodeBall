@@ -65,7 +65,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
 	std::vector <Robot> myRobots = std::vector<Robot>();
 	Robot defender{};
-	std::vector<Robot> attackers = std::vector<Robot>();
+	Robot attacker{};
 	bool isJumping = false;
 
 	for (Robot robot : game.robots)
@@ -79,16 +79,18 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		}
 
 		bool meIsDefender = true;
+		bool meIsAttacker = true;
 		for (Robot r : game.robots)
 		{
 			if (!r.is_teammate) continue;
 			if (r.id == robot.id) continue;
 			if (r.z < robot.z) meIsDefender = false;
+			if (r.z > robot.z) meIsAttacker = false;
 		}
 		if (meIsDefender)
 			defender = robot;
-		else
-			attackers.push_back(robot);
+		if (meIsAttacker)
+			attacker = robot;
 	}
 
 	//bool isDefender = false;
@@ -136,11 +138,13 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (!robot.touch) continue;			
 			BallEntityContainer bec;
 			bool isOkBestBec;
+			int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
+
 			const Action robotAction = SetAttackerAction(
 				robot, 
 				_lastMyCollisionTick == -1 || _isMeGoalPossible ? 0 : _lastMyCollisionTick + AttackerAddTicks, //стартовый тик атаки
 				robot.id == defender.id ? _myGates : _beforeMyGates, //точка, на которую бежим защищаться
-				bec, isOkBestBec);
+				bec, isOkBestBec, position);
 			if (isOkBestBec)
 			{
 				if (robot.id == defender.id)
@@ -167,7 +171,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (!robot.touch) continue;
 			BallEntityContainer curBestBec;
 			bool isOkBestBec;
-			const auto attAction = SetAttackerAction(robot, 0, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isOkBestBec);
+			int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
+			const auto attAction = SetAttackerAction(robot, 0, robot.id == defender.id ? _myGates : _beforeMyGates, curBestBec, isOkBestBec, position);
 			if (isOkBestBec)
 			{
 				if (robot.id == defender.id)
@@ -211,8 +216,9 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
 					BallEntityContainer curBestBec;
 					bool isOkBestBec;
+					int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
 					const Action attAction = SetAttackerAction(
-						robot, afterCollisionTick + AttackerAddTicks, _beforeMyGates, curBestBec, isOkBestBec);
+						robot, afterCollisionTick + AttackerAddTicks, _beforeMyGates, curBestBec, isOkBestBec, position);
 					_actions[robot.id] = attAction;
 				}
 				else //бьем с чужой половины - второй идет на ворота
@@ -1422,7 +1428,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	int startAttackTick,
 	const Vector3D& defenderPoint,
 	BallEntityContainer& bestBecP,
-	bool& isOkBestBecP)
+	bool& isOkBestBecP,
+	int position)// -1 - защ, 0 - пз, 1 - нап
 {
 	model::Action action = model::Action();
 
@@ -1434,7 +1441,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	int bestMoveT=-1;
 	std::optional<Vector3D> movePoint =
 		GetAttackerMovePoint(
-			me, startAttackTick, isDefenderSavedPointOk, bestBecP, bestWaitT, bestMoveT);
+			me, startAttackTick, isDefenderSavedPointOk, bestBecP, bestWaitT, bestMoveT, position);
 
 	/*std::optional<double> jumpCollisionT = std::nullopt;
 	std::optional<BallEntity> jump_ball_entity = std::nullopt;
@@ -1648,7 +1655,7 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 
 std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & robot,
 	int startAttackTick,
-	bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT)
+	bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT, int position)
 {
 	/*if (_isSamePosition &&
 		_defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0)
@@ -1725,6 +1732,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 		if (IsPenaltyArea(ballEntity.Position))//включаем режим защитника
 		{
+			if (position == 1) continue;//нап не защищается
+
 			const auto isWaiting = _defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0;
 			const auto isBestTime = _defenderMovePoints.count(robot.id) > 0 && std::get<0>(_defenderMovePoints[robot.id]) == t;
  			if (movePoint != std::nullopt && bestBecP.isGoalScored &&
@@ -1759,6 +1768,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		}
 		else
 		{
+			if (position == -1) continue;//защ не атакует
+
 			std::optional<double> jumpCollisionT = std::nullopt;
 			std::optional<BallEntity> curBallEntity = std::nullopt;
 			double goalTime;
