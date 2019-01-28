@@ -2048,9 +2048,6 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 			curAngle = angle;
 
-			if (t > startAttackTick + BallMoveTicks/2)
-				continue;
-
 			std::optional<double> curCollisionT = std::nullopt;
 			bool isPassedBy = false;
 
