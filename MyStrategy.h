@@ -100,6 +100,7 @@ public:
 
 	static model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos);
 	model::Action GetNearestOppAttackAction(const model::Robot& me);
+	model::Action GetMoveBallOrOppAction(const model::Robot& robot, int afterCollisionTick);
 	BallEntity SimulateTickBall(
 		const BallEntity& ballEntity, std::vector<RobotEntity>& jumpRes, bool& isGoalScored, bool discardIsCollided) const;
 	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity,
@@ -142,7 +143,6 @@ public:
 
 	model::Action SetAttackerAction(const model::Robot& me, 
 		int startAttackTick,
-		const Vector3D& defenderPoint,
 		BallEntityContainer & bestBecP, bool& isOkBestBecP,int position);
 	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, int t,
 		int directionCoeff,

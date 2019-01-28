@@ -92,6 +92,151 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			attacker = robot;
 	}
 
+	const int startAttackTick = _lastMyCollisionTick == -1 || _isMeGoalPossible ? 0 : _lastMyCollisionTick + AttackerAddTicks;
+	int bestBecPRobotId = -1;
+	BallEntityContainer bestBec;
+
+	for (auto & robot : myRobots)
+	{
+		if (!robot.touch) continue;
+		BallEntityContainer curBestBec;
+		bool isOkBestBec;
+		int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
+
+		const Action robotAction = SetAttackerAction(
+			robot,
+			startAttackTick, //стартовый тик атаки		
+			curBestBec, isOkBestBec, position);
+		if (isOkBestBec)
+		{			
+			if (bestBecPRobotId == -1 || CompareBeContainers(curBestBec, bestBec) < 0)
+			{
+				bestBec = curBestBec;
+				bestBecPRobotId = robot.id;
+			}
+		}
+		_actions[robot.id] = robotAction;
+	}
+
+	if (bestBecPRobotId != -1)//нашли бьющего
+	{
+		if (!_oppStrikeTime.has_value() || bestBec.collisionTime < _oppStrikeTime.value())//и он опередит врага
+		{
+			const auto collisionTime = bestBec.collisionTime;
+			const auto afterCollisionTick = UpdateBallEntities(collisionTime, bestBec.ResBallEntity.Velocity, bestBec.isGoalScored);
+
+			if (bestBecPRobotId != defender.id) //бьет не защитник
+			{
+				_actions[defender.id] = GetDefaultAction(defender, _myGates);//защ идет на ворота
+			
+				for (auto& robot : myRobots) //здесь останетс€ последний
+				{
+					if (!robot.touch) continue;
+					if (robot.id == bestBecPRobotId) continue;
+					if (robot.id == defender.id) continue;
+
+					BallEntityContainer curBestBec;
+					bool isOkBestBec;
+					int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
+					const Action attAction = SetAttackerAction(
+						robot, afterCollisionTick + AttackerAddTicks, curBestBec, isOkBestBec, position);
+
+					if (isOkBestBec)//нашли точку атаки - идем в нее
+					{
+						_actions[robot.id] = attAction;
+					}
+					else //идем за м€чом или на противника
+					{
+						_actions[robot.id] = GetMoveBallOrOppAction(robot, afterCollisionTick);
+					}
+				}
+			}
+			else//бьет защитник
+			{
+				int nextBestBecPRobotId = -1;
+				BallEntityContainer nextBestBec;
+				for (auto& robot : myRobots) //определ€ем лучшего бьющего
+				{
+					if (!robot.touch) continue;
+					if (robot.id == bestBecPRobotId) continue;
+
+					BallEntityContainer curBestBec;
+					bool isOkBestBec;
+					int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
+					const Action attAction = SetAttackerAction(
+						robot, afterCollisionTick + AttackerAddTicks, curBestBec, isOkBestBec, position);
+
+					if (isOkBestBec)
+					{
+						if (nextBestBecPRobotId == -1 || CompareBeContainers(curBestBec, nextBestBec) < 0)
+						{
+							nextBestBec = curBestBec;
+							nextBestBecPRobotId = robot.id;
+						}
+					}
+					_actions[robot.id] = attAction;
+				}
+
+				if (nextBestBecPRobotId != -1)//нашли добивающего
+				{
+					for (auto& robot : myRobots) //последний атакует противника
+					{
+						if (!robot.touch) continue;
+						if (robot.id == bestBecPRobotId) continue;
+						if (robot.id == nextBestBecPRobotId) continue;
+
+						_actions[robot.id] = GetNearestOppAttackAction(robot);
+					}
+				}
+				else//не нашли добивающего
+				{
+					for (auto& robot : myRobots)
+					{
+						if (!robot.touch) continue;
+						if (robot.id == bestBecPRobotId) continue;
+						if (robot.id == attacker.id)//нап идет за м€чом или на противника
+						{
+							_actions[robot.id] = GetMoveBallOrOppAction(robot, afterCollisionTick);
+						}
+						else//пз атакует врага
+						{
+							_actions[robot.id] = GetNearestOppAttackAction(robot);
+						}						
+					}
+				}
+			}
+		}
+		else//наш бьющий не опередит врага
+		{
+			if (bestBecPRobotId == -1)//не нашли бьщего вообще
+			{
+				_actions[defender.id] = GetDefaultAction(defender, _myGates);//защ идет на ворота
+				for (auto& robot : myRobots)
+				{
+					if (!robot.touch) continue;
+					if (robot.id == bestBecPRobotId) continue;
+					if (robot.id == attacker.id)//нап идет за м€чом или на противника
+					{
+						_actions[robot.id] = GetMoveBallOrOppAction(robot, afterCollisionTick);
+					}
+					else//пз атакует врага
+					{
+						_actions[robot.id] = GetNearestOppAttackAction(robot);
+					}
+				}
+			}
+			else//нашли бьющего, но он не опередит врага
+			{
+				
+			}
+		}
+	}
+
+
+
+
+
+
 	//bool isDefender = false;
 	//bool isStrikeDefender = false;
 	if (isJumping)
@@ -591,6 +736,34 @@ model::Action MyStrategy::GetNearestOppAttackAction(const model::Robot & me)
 	action.jump_speed = 0.0;
 	action.use_nitro = false;
 	return action;
+}
+
+model::Action MyStrategy::GetMoveBallOrOppAction(const model::Robot & robot, int afterCollisionTick)
+{
+	int lastTick = afterCollisionTick + AttackerAddTicks + BallMoveTicks;
+	if (_ballEntities.count(lastTick) > 0) //проверка на случай коллизии после 100 тика
+	{
+		const auto lastBallEntity = _ballEntities.at(lastTick);
+		if (Helper::GetLength2(Vector3D(_ball.x, robot.y, _ball.z), Helper::GetRobotPosition(robot)) >
+			_distToFollowBall * _distToFollowBall
+			&&	robot.z < lastBallEntity.Position.Z) //идем за м€чом
+		{
+			const auto robotPos = Helper::GetRobotPosition(robot);
+			const auto targetVelocity = Helper::GetTargetVelocity(robotPos, lastBallEntity.Position, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+
+			auto moveAction = Action();
+			moveAction.target_velocity_x = targetVelocity.X;
+			moveAction.target_velocity_y = targetVelocity.Y;
+			moveAction.target_velocity_z = targetVelocity.Z;
+			moveAction.jump_speed = 0;
+			moveAction.use_nitro = false;
+			return  moveAction;
+		}
+		//идем на противника		
+		return GetNearestOppAttackAction(robot);		
+	}
+	//идем на противника	
+	return GetNearestOppAttackAction(robot);	
 }
 
 BallEntity MyStrategy::SimulateTickBall(
@@ -1529,7 +1702,6 @@ bool MyStrategy::IsOkDefenderPosToJump(
 
 model::Action MyStrategy::SetAttackerAction(const model::Robot & me, 
 	int startAttackTick,
-	const Vector3D& defenderPoint,
 	BallEntityContainer& bestBecP,
 	bool& isOkBestBecP,
 	int position)// -1 - защ, 0 - пз, 1 - нап
@@ -1626,71 +1798,23 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		return action;			
 	}
 
-	//не защитник, либо не нашли точку удара дл€ робота с защитной точкой перед воротами
-	const auto isForward = &defenderPoint == &_beforeMyGates;
-
-	if (!isForward)
-	{		
-		if (movePoint == std::nullopt) {
-			isOkBestBecP = false;
-			targetVelocity = GetDefendPointTargetVelocity(me, defenderPoint);
-		}
-		else
-		{
-			isOkBestBecP = true;
-			targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, movePoint.value().X, 0, movePoint.value().Z,
-				Constants::Rules.ROBOT_MAX_GROUND_SPEED);
-		}
-
-		action.target_velocity_x = targetVelocity.X;
-		action.target_velocity_y = 0.0;
-		action.target_velocity_z = targetVelocity.Z;
-		action.jump_speed = 0.0;
-		action.use_nitro = false;
-		return action;
-	}
-	else //действуем как нападающий
+	if (movePoint == std::nullopt)
 	{
-		if (movePoint == std::nullopt)
-		{
-			isOkBestBecP = false;
-
-			int lastTick = startAttackTick + BallMoveTicks;
-			if (_ballEntities.count(lastTick) > 0) //проверка на случай коллизии после 100 тика
-			{
-				const auto lastBallEntity = _ballEntities.at(lastTick);
-
-				if (Helper::GetLength2(Vector3D(_ball.x, me.y, _ball.z), Helper::GetRobotPosition(me)) >
-					_distToFollowBall * _distToFollowBall
-					&&	me.z < lastBallEntity.Position.Z)
-				{
-					movePoint = lastBallEntity.Position;
-				}
-				else
-				{
-					movePoint = defenderPoint;
-				}
-			}
-			else
-			{
-				movePoint = defenderPoint;
-			}
-		}
-		else
-		{
-			isOkBestBecP = true;
-		}
-
-		targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, (*movePoint).X, 0, (*movePoint).Z,
-			Constants::Rules.ROBOT_MAX_GROUND_SPEED);
-
-		action.target_velocity_x = targetVelocity.X;
-		action.target_velocity_y = 0.0;
-		action.target_velocity_z = targetVelocity.Z;
-		action.jump_speed = 0.0;
-		action.use_nitro = false;
+		isOkBestBecP = false;
 		return action;
 	}
+
+	isOkBestBecP = true;
+	
+	targetVelocity = Helper::GetTargetVelocity(me.x, 0, me.z, movePoint.value().X, 0, movePoint.value().Z,
+		Constants::Rules.ROBOT_MAX_GROUND_SPEED);		
+
+	action.target_velocity_x = targetVelocity.X;
+	action.target_velocity_y = 0.0;
+	action.target_velocity_z = targetVelocity.Z;
+	action.jump_speed = 0.0;
+	action.use_nitro = false;
+	return action;	
 }
 
 bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robot,
