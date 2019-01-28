@@ -738,9 +738,44 @@ bool MyStrategy::SimulateFullCollision(
 			//return true;//выходим за микротик до коллизии с м€чом
 		}
 		be = beCopy;
-		Simulator::UpdateOnAir(
-			be, res, 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
-			hitE, isGoalScored, false);
+		bool isBeCollided = false;
+		std::vector<bool> resIsCollided = std::vector<bool>();
+		for (auto& re:res)
+		{
+			resIsCollided.push_back(false);
+		}
+
+		while (true)
+		{
+			Simulator::UpdateOnAir(
+				be, res, 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK,
+				hitE, isGoalScored, false);
+
+			auto isCollisionDetected = false;
+
+			for (int i =0 ;i < res.size(); ++i)
+			{
+				if (res[i].IsCollided)
+				{
+					isCollisionDetected = true;
+					resIsCollided[i] = true;
+					res[i].IsCollided = false;
+				}
+			}
+
+			if (be.IsCollided)
+			{
+				isCollisionDetected = true;
+				isBeCollided = true;
+				be.IsCollided = false;
+			}						
+			
+			if (!isCollisionDetected)
+				break;
+		}
+		be.IsCollided = isBeCollided;
+		for (int i = 0;i < res.size(); ++i)
+			res[i].IsCollided = resIsCollided[i];
 	}
 	throw "WHY AM I HERE?";
 }
