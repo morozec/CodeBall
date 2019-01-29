@@ -151,9 +151,21 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					if (robot.id == defender.id)
 					{
-						int runTicks = -1;
-						_actions[robot.id] = GetDefaultAction(robot, _myGates, runTicks);//защ идет на ворота
-						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+						const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+						if (nearestNitro.has_value())
+						{
+							const auto nnValue = nearestNitro.value();
+							const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+							int runTicks = -1;
+							_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
+						}
+						else
+						{
+							int runTicks = -1;
+							_actions[robot.id] = GetDefaultAction(robot, _myGates, runTicks);//защ идет на ворота
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+						}
 						continue;
 					}
 
@@ -170,10 +182,22 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					else //идем за мячом или на противника
 					{
-						int resIndex;
-						_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
-						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 
-							resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+						const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+						if (nearestNitro.has_value())
+						{
+							const auto nnValue = nearestNitro.value();
+							const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+							int runTicks = -1;
+							_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
+						}
+						else
+						{
+							int resIndex;
+							_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
+								resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+						}
 					}
 				}
 			}
@@ -219,8 +243,20 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 							continue;
 						}
 
-						_actions[robot.id] = GetNearestOppAttackAction(robot);
-						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+						const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+						if (nearestNitro.has_value())
+						{
+							const auto nnValue = nearestNitro.value();
+							const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+							int runTicks = -1;
+							_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
+						}
+						else
+						{
+							_actions[robot.id] = GetNearestOppAttackAction(robot);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+						}
 					}
 				}
 				else//не нашли добивающего
@@ -231,15 +267,39 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						if (robot.id == bestBecPRobotId) continue;
 						if (robot.id == attacker.id)//нап идет за мячом или на противника
 						{
-							int resIndex;
-							_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
-							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
-								resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+							const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+							if (nearestNitro.has_value())
+							{
+								const auto nnValue = nearestNitro.value();
+								const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+								int runTicks = -1;
+								_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+								_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
+							}
+							else
+							{
+								int resIndex;
+								_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
+								_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
+									resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+							}
 						}
 						else//пз атакует врага
 						{
-							_actions[robot.id] = GetNearestOppAttackAction(robot);
-							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+							const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+							if (nearestNitro.has_value())
+							{
+								const auto nnValue = nearestNitro.value();
+								const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+								int runTicks = -1;
+								_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+								_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
+							}
+							else
+							{
+								_actions[robot.id] = GetNearestOppAttackAction(robot);
+								_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+							}
 						}						
 					}
 				}
@@ -287,21 +347,33 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
 						continue;
 					}
-
-					BallEntityContainer curBestBec;
-					bool isOkBestBec;
-					int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
-					const Action attAction = SetAttackerAction(
-						robot, afterCollisionTick + AttackerAddTicks, curBestBec, isOkBestBec, position);
-					if (isOkBestBec)//идем в точку добивания
+					const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+					if (nearestNitro.has_value())
 					{
-						_actions[robot.id] = attAction;
-						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
+						const auto nnValue = nearestNitro.value();
+						const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+						int runTicks = -1;
+						_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
 					}
-					else//атакуем врага
+					else
 					{
-						_actions[robot.id] = GetNearestOppAttackAction(robot);
-						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+
+						BallEntityContainer curBestBec;
+						bool isOkBestBec;
+						int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
+						const Action attAction = SetAttackerAction(
+							robot, afterCollisionTick + AttackerAddTicks, curBestBec, isOkBestBec, position);
+						if (isOkBestBec)//идем в точку добивания
+						{
+							_actions[robot.id] = attAction;
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
+						}
+						else//атакуем врага
+						{
+							_actions[robot.id] = GetNearestOppAttackAction(robot);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+						}
 					}
 				}
 			}
@@ -315,21 +387,57 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (!robot.touch) continue;
 			if (robot.id == defender.id)
 			{
-				int runTicks = -1;
-				_actions[robot.id] = GetDefaultAction(defender, _myGates, runTicks);//защ идет на ворота
-				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+				const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+				if (nearestNitro.has_value())
+				{
+					const auto nnValue = nearestNitro.value();
+					const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+					int runTicks = -1;
+					_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
+				}
+				else
+				{
+					int runTicks = -1;
+					_actions[robot.id] = GetDefaultAction(defender, _myGates, runTicks);//защ идет на ворота
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+				}
 			}
 			else if (robot.id == attacker.id)//нап идет за мячом или на противника
 			{
-				int resIndex;
-				_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
-				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
-					resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+				const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+				if (nearestNitro.has_value())
+				{
+					const auto nnValue = nearestNitro.value();
+					const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+					int runTicks = -1;
+					_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
+				}
+				else
+				{
+					int resIndex;
+					_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
+						resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+				}
 			}
 			else//пз атакует врага
 			{
-				_actions[robot.id] = GetNearestOppAttackAction(robot);
-				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+				const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+				if (nearestNitro.has_value())
+				{
+					const auto nnValue = nearestNitro.value();
+					const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+					int runTicks = -1;
+					_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
+				}
+				else
+				{
+					_actions[robot.id] = GetNearestOppAttackAction(robot);
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+				}
 			}
 		}
 	}
@@ -785,6 +893,7 @@ void MyStrategy::Init(const model::Rules & rules)
 	_allHitEs[2]= Constants::Rules.MAX_HIT_E;
 
 	_averageHitE[0] = (Constants::Rules.MAX_HIT_E + Constants::Rules.MIN_HIT_E) / 2.0;
+	_gotNitros = std::set<NitroPack>();
 }
 
 void MyStrategy::InitAction(model::Action& action, int id)
@@ -2822,6 +2931,34 @@ StopContainer MyStrategy::GetStopContainer(const Vector3D& robotPosition, const 
 		stopA * (microTickTime * stopMts * (stopMts + 1) / 2.0);
 
 	return StopContainer(robotPosition, robotVelocity, stopMts, stopPos, stopA);
+}
+
+std::optional<model::NitroPack> MyStrategy::get_nearest_nitro_pack(const Robot& robot, const model::Game& game)
+{
+	if (robot.nitro_amount > Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+		return std::nullopt;
+
+	auto minDist = std::numeric_limits<double>::max();
+	std::optional<NitroPack> res = std::nullopt;
+	for (const auto& np : game.nitro_packs)
+	{
+		if (!np.alive)
+			continue;
+
+		//if (_gotNitros.find(np) != _gotNitros.end())
+		//	continue;
+
+		if (np.z * robot.z < 0)
+			continue; //ищем только на своей половине
+
+		const auto dist2 = (np.x - robot.x)*(np.x - robot.x) + (np.z - robot.z)*(np.z - robot.z);
+		if (dist2 < minDist)
+		{
+			minDist = dist2;
+			res = np;
+		}
+	}
+	return res;
 }
 
 std::string MyStrategy::custom_rendering()

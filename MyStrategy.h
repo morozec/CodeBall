@@ -8,6 +8,7 @@
 #include "Sphere.h"
 #include "BallEntityContainer.h"
 #include "StopContainer.h"
+#include <set>
 
 
 #ifndef _MY_STRATEGY_H_
@@ -67,6 +68,8 @@ private:
 	bool _isMeGoalPossible;
 	bool _isNoCollisionGoalPossible;
 	bool _isNoCollisionMeGoalPossible;
+
+	std::set<model::NitroPack> _gotNitros;
 	
 public:
 	int _lastMyCollisionTick = -1;
@@ -174,6 +177,8 @@ public:
 	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity, bool isGoal);
 
 	StopContainer GetStopContainer(const Vector3D& robotPosition, const Vector3D& robotVelocity) const;
+
+	std::optional<model::NitroPack> get_nearest_nitro_pack(const model::Robot& robot, const model::Game& game);
 	
 
     MyStrategy();
