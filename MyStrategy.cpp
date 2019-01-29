@@ -152,7 +152,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					if (robot.id == defender.id)
 					{
 						const auto nearestNitro = get_nearest_nitro_pack(robot, game);
-						if ((_ball.z > 0 || _ball.velocity_z > 0) && nearestNitro.has_value())
+						if (nearestNitro.has_value())
 						{
 							const auto nnValue = nearestNitro.value();
 							const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
@@ -388,7 +388,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (robot.id == defender.id)
 			{
 				const auto nearestNitro = get_nearest_nitro_pack(robot, game);
-				if ((_ball.z > 0 || _ball.velocity_z > 0) && nearestNitro.has_value())
+				if (nearestNitro.has_value())
 				{
 					const auto nnValue = nearestNitro.value();
 					const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
@@ -2210,6 +2210,9 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	}
 	const auto isWaiting = _defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0;
 
+	bool gotDmp = false;
+	std::tuple<int, int, int, BallEntityContainer> curDmp;
+
 	for (int t = startAttackTick; t <= startAttackTick + BallMoveTicks; ++t)
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
@@ -2249,8 +2252,13 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 				isResOk = true;
 				movePoint = bestWaitT == 0 ? defenderMovePoint : Helper::GetRobotPosition(robot);
-				bestBecP = becP;				
-				_defenderMovePoints[robot.id] = std::make_tuple(t, bestWaitT, bestMoveT, becP);
+				bestBecP = becP;
+
+				if (startAttackTick == 0)
+				{
+					gotDmp = true;
+					curDmp = std::make_tuple(t, bestWaitT, bestMoveT, becP);
+				}
 			}			
 		}
 		else
@@ -2294,6 +2302,15 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				bestBecP = bec;
 			}			
 		}
+	}
+
+	if (gotDmp)
+	{
+		_defenderMovePoints[robot.id] = curDmp;
+	}
+	else
+	{
+		_defenderMovePoints.erase(robot.id);
 	}
 
 	if (movePoint != std::nullopt)
