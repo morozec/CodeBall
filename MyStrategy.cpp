@@ -123,6 +123,14 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		_actions[robot.id] = robotAction;
 	}
 
+	for (auto& robot:myRobots)
+	{
+		if (robot.id == bestBecPRobotId)
+			continue;
+		if (_defenderMovePoints.count(robot.id) > 0)
+			_defenderMovePoints.erase(robot.id);
+	}
+
 	if (bestBecPRobotId != -1)//нашли бьющего
 	{
 		const auto collisionTime = bestBec.collisionTime;
@@ -2032,6 +2040,17 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	auto curAngle = 0.0;
 	auto robotPos = Helper::GetRobotPosition(robot);
 
+	auto hasScoringRobot = false;
+	for (auto & dmp:_defenderMovePoints)
+	{
+		if (std::get<3>(dmp.second).isGoalScored)
+		{
+			hasScoringRobot = true;
+			break;
+		}
+	}
+	const auto isWaiting = _defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0;
+
 	for (int t = startAttackTick; t <= startAttackTick + BallMoveTicks; ++t)
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
@@ -2042,15 +2061,13 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 		auto ballEntity = _ballEntities.at(t);
 		
-		const auto angle = robotPos.angleTo(ballEntity.Position);
-
 		if (IsPenaltyArea(ballEntity.Position))//включаем режим защитника
 		{
 			if (position == 1) continue;//нап не защищается
 
-			const auto isWaiting = _defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0;
 			const auto isBestTime = _defenderMovePoints.count(robot.id) > 0 && std::get<0>(_defenderMovePoints[robot.id]) == t;
- 			if (movePoint != std::nullopt && bestBecP.isGoalScored &&
+			const auto angle = robotPos.angleTo(ballEntity.Position);
+ 			if ((hasScoringRobot || movePoint != std::nullopt && bestBecP.isGoalScored) &&
 				!isWaiting && !isBestTime && abs(curAngle) > EPS && abs(angle - curAngle) < deltaAngle)
 				continue;
 
