@@ -87,7 +87,7 @@ double Vector3D::operator*(const Vector3D & v) const
 	return X * v.X + Y * v.Y + Z * v.Z;
 }
 
-double Vector3D::angleTo(const Vector3D& v)
+double Vector3D::angleTo(const Vector3D& v) const
 {
 	return acos(*this * v / Length() / v.Length());
 }

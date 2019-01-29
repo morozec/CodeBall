@@ -99,7 +99,7 @@ public:
 	void InitJumpingRobotAction(const model::Robot& robot, const model::Ball& ball);
 	//std::vector<RobotEntity> GetJumpRobotEntities();
 
-	static model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos);
+	model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos, int& runTicks);
 	model::Action GetNearestOppAttackAction(const model::Robot& me);
 	model::Action GetMoveBallOrOppAction(const model::Robot& robot, int& resIndex);
 	BallEntity SimulateTickBall(
@@ -164,7 +164,7 @@ public:
 		int beforeTicks,
 		std::optional<double>& collisionT);
 
-	static Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position);
+	Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position, int& runTicks);
 	std::optional<double> GetOppStrikeTime(const std::vector<model::Robot>& oppRobots);
 	model::Robot get_nearest_ball_robot();
 
@@ -173,7 +173,7 @@ public:
 	void InitBallEntities();
 	int UpdateBallEntities(double collisionTime, const Vector3D& afterCollisionBallVelocity, bool isGoal);
 
-	StopContainer GetStopContainer(const model::Robot& robot) const;
+	StopContainer GetStopContainer(const Vector3D& robotPosition, const Vector3D& robotVelocity) const;
 	
 
     MyStrategy();

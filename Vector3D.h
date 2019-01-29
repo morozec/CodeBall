@@ -27,7 +27,7 @@ struct Vector3D {
 	Vector3D operator*(double k) const;
 	double operator*(const Vector3D& v) const;
 
-	double angleTo(const Vector3D& v);
+	double angleTo(const Vector3D& v) const;
 
 };
 

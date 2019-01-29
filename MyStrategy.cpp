@@ -151,7 +151,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					if (robot.id == defender.id)
 					{
-						_actions[robot.id] = GetDefaultAction(robot, _myGates);//защ идет на ворота
+						int runTicks = -1;
+						_actions[robot.id] = GetDefaultAction(robot, _myGates, runTicks);//защ идет на ворота
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
 						continue;
 					}
@@ -263,7 +264,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					else//пз идет на ворота
 					{
-						_actions[robot.id] = GetDefaultAction(robot, _myGates);
+						int runTicks = -1;
+						_actions[robot.id] = GetDefaultAction(robot, _myGates, runTicks);
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
 					}
 				}
@@ -280,7 +282,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					if (robot.id == defender.id)
 					{
-						_actions[robot.id] = GetDefaultAction(robot, _myGates);//защ. идет на ворота
+						int runTicks = -1;
+						_actions[robot.id] = GetDefaultAction(robot, _myGates, runTicks);//защ. идет на ворота
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
 						continue;
 					}
@@ -312,7 +315,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (!robot.touch) continue;
 			if (robot.id == defender.id)
 			{
-				_actions[robot.id] = GetDefaultAction(defender, _myGates);//защ идет на ворота
+				int runTicks = -1;
+				_actions[robot.id] = GetDefaultAction(defender, _myGates, runTicks);//защ идет на ворота
 				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
 			}
 			else if (robot.id == attacker.id)//нап идет за мячом или на противника
@@ -808,9 +812,9 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 	//collisionTimes, bestBallVelocities установятся в InitBallEntities
 }
 
-model::Action MyStrategy::GetDefaultAction(const model::Robot & me, const Vector3D & defaultPos)
+model::Action MyStrategy::GetDefaultAction(const model::Robot & me, const Vector3D & defaultPos, int& runTicks)
 {
-	const auto targetVelocity = GetDefendPointTargetVelocity(me, defaultPos);
+	const auto targetVelocity = GetDefendPointTargetVelocity(me, defaultPos, runTicks);
 	model::Action action = model::Action();
 	action.target_velocity_x = targetVelocity.X;
 	action.target_velocity_y = 0.0;
@@ -2034,11 +2038,13 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 	//int bestT = -1;
 	bool isResOk = false;
-	const auto stopContainer = GetStopContainer(robot);
+
+	const auto robotPos = Helper::GetRobotPosition(robot);
+	const auto robotVel = Helper::GetRobotVelocity(robot);
+	const auto stopContainer = GetStopContainer(robotPos, robotVel);
 
 	const auto deltaAngle = M_PI / 180 * 2;
 	auto curAngle = 0.0;
-	auto robotPos = Helper::GetRobotPosition(robot);
 
 	auto hasScoringRobot = false;
 	for (auto & dmp:_defenderMovePoints)
@@ -2315,26 +2321,58 @@ bool MyStrategy::IsOkOppPosToJump(
 	return true;
 }
 
-Vector3D MyStrategy::GetDefendPointTargetVelocity(const model::Robot & robot, const Vector3D& position)
+Vector3D MyStrategy::GetDefendPointTargetVelocity(const model::Robot & robot, const Vector3D& position, int& runTicks)
 {
-	const auto velocity = Helper::GetRobotVelocity(robot).Length();
-	const auto stopTime = velocity / Constants::Rules.ROBOT_ACCELERATION;
-	const auto stopDist = velocity * stopTime - Constants::Rules.ROBOT_ACCELERATION * stopTime * stopTime / 2;
+	const auto mtTime = 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
 
-	auto deltaPos = position - Helper::GetRobotPosition(robot);
+	auto robotPos = Helper::GetRobotPosition(robot);
+	auto robotVelocity = Helper::GetRobotVelocity(robot);
 
-	Vector3D targetVelocity;
-	if (stopDist < deltaPos.Length())
+	Vector3D p1 = robotPos;
+	Vector3D v1 = robotVelocity;
+
+	int ticks = 0;
+	int stopTicks = 0;
+	while (true)
 	{
-		deltaPos.Normalize();
-		targetVelocity = deltaPos * Constants::Rules.ROBOT_MAX_GROUND_SPEED;
 
+		if (v1.Length2() < Constants::Rules.ROBOT_MAX_GROUND_SPEED * Constants::Rules.ROBOT_MAX_GROUND_SPEED)
+		{
+			const auto tv1Length = Constants::Rules.ROBOT_ACCELERATION * mtTime;
+			auto tvc = Helper::GetTargetVelocity(p1, position, tv1Length);
+
+			p1 = p1 + v1 * mtTime * Constants::Rules.MICROTICKS_PER_TICK +
+				tvc * (mtTime * Constants::Rules.MICROTICKS_PER_TICK * (Constants::Rules.MICROTICKS_PER_TICK + 1) / 2.0);
+			v1 = v1 + tvc * Constants::Rules.MICROTICKS_PER_TICK;
+		}
+		else
+		{
+			p1 = p1 + v1 * mtTime * Constants::Rules.MICROTICKS_PER_TICK;
+		}
+
+
+		auto stopContainer = GetStopContainer(p1, v1);
+		auto stopDist = Helper::GetLength2(robotPos, stopContainer.stopPos);
+		auto needDist = Helper::GetLength2(robotPos, position);
+		if (stopDist - needDist > -EPS)
+		{
+			stopTicks = int(stopContainer.stopMicroTicks * 1.0 / Constants::Rules.MICROTICKS_PER_TICK);
+			break;
+		}
+		ticks++;
 	}
-	else
+
+	runTicks = ticks + stopTicks;
+
+	if (ticks == 0)//уже надо тормозить
 	{
-		deltaPos.Normalize();
-		targetVelocity = deltaPos * (-Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+		auto targetVelocity = Vector3D(0, 0, 0);
+		return targetVelocity;
 	}
+
+	auto deltaPos = position - robotPos;
+	deltaPos.Normalize();
+	auto targetVelocity = deltaPos * Constants::Rules.ROBOT_MAX_GROUND_SPEED;
 	return targetVelocity;
 }
 
@@ -2769,16 +2807,9 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 	return afterCollisionTick;
 }
 
-StopContainer MyStrategy::GetStopContainer(const Robot& robot) const
+StopContainer MyStrategy::GetStopContainer(const Vector3D& robotPosition, const Vector3D& robotVelocity) const
 {
-	auto robotPosition = Helper::GetRobotPosition(robot);
-	auto robotVelocity = Helper::GetRobotVelocity(robot);
 	auto robotVelocityLength = robotVelocity.Length();
-	if (robotVelocityLength < EPS)
-	{
-		const auto stopA = Vector3D(0, 0, 0);
-		return StopContainer(robotPosition, robotVelocity, 0, robotPosition, stopA);
-	}
 
 	double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	double microTickTime = tickTime / Constants::Rules.MICROTICKS_PER_TICK;
@@ -2786,7 +2817,7 @@ StopContainer MyStrategy::GetStopContainer(const Robot& robot) const
 	auto stopA = robotVelocity * (1.0 / robotVelocityLength * (-tv1Length));
 
 	auto stopMts = int(robotVelocityLength / stopA.Length());
-	
+
 	auto stopPos = robotPosition + robotVelocity * (stopMts * microTickTime) +
 		stopA * (microTickTime * stopMts * (stopMts + 1) / 2.0);
 
