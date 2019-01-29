@@ -38,6 +38,8 @@ public:
 	static void Tick(RobotEntity& robot, BallEntity ball);
 
 	static void simulate_jump_start(RobotEntity& re);
+
+	static void simulate_collision_jump(RobotEntity& re);
 };
 
 #endif

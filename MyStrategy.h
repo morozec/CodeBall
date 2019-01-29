@@ -180,7 +180,8 @@ public:
 	StopContainer GetStopContainer(const Vector3D& robotPosition, const Vector3D& robotVelocity) const;
 
 	std::optional<model::NitroPack> get_nearest_nitro_pack(const model::Robot& robot, const model::Game& game);
-	
+
+	bool simulate_nitro_jump(RobotEntity& re, int startTick, BallEntity& resBe, double& collisionTime);
 
     MyStrategy();
     void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;

@@ -473,3 +473,24 @@ void Simulator::simulate_jump_start(RobotEntity& re)
 	re.Touch = false;
 
 }
+
+void Simulator::simulate_collision_jump(RobotEntity & re)
+{
+	Vector3D targetVelocity = Helper::GetAcionTargetVelocity(re.Action);
+	auto targetVelocityChange = Helper::Clamp(targetVelocity - re.Velocity, re.Nitro * Constants::Rules.NITRO_POINT_VELOCITY_CHANGE);
+	const auto tvcLength = targetVelocityChange.Length();
+
+	const auto deltaTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
+	if (tvcLength > Eps)
+	{
+		
+
+		targetVelocityChange.Normalize();
+		const auto acceleration = targetVelocityChange * Constants::Rules.ROBOT_NITRO_ACCELERATION;
+		const auto velocityChange = Helper::Clamp(acceleration * deltaTime, tvcLength);
+		re.Velocity = re.Velocity + velocityChange;
+		re.Nitro -= velocityChange.Length() / Constants::Rules.NITRO_POINT_VELOCITY_CHANGE;
+	}
+	Move(re, deltaTime);
+}
+
