@@ -70,6 +70,7 @@ private:
 	bool _isNoCollisionMeGoalPossible;
 
 	std::set<model::NitroPack> _gotNitros;
+	std::set<int> _usingNitroIds = std::set<int>();
 	
 public:
 	int _lastMyCollisionTick = -1;

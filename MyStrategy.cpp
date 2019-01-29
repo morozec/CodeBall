@@ -152,7 +152,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					if (robot.id == defender.id)
 					{
 						const auto nearestNitro = get_nearest_nitro_pack(robot, game);
-						if (nearestNitro.has_value())
+						if ((_ball.z > 0 || _ball.velocity_z > 0) && nearestNitro.has_value())
 						{
 							const auto nnValue = nearestNitro.value();
 							const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
@@ -205,7 +205,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			{
 				int nextBestBecPRobotId = -1;
 				BallEntityContainer nextBestBec;
-				for (auto& robot : myRobots) //определяем лучшего бьющего
+				for (auto& robot : myRobots) //определяем лучшего добивающего
 				{
 					if (!robot.touch) continue;
 					if (robot.id == bestBecPRobotId) 
@@ -388,7 +388,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (robot.id == defender.id)
 			{
 				const auto nearestNitro = get_nearest_nitro_pack(robot, game);
-				if (nearestNitro.has_value())
+				if ((_ball.z > 0 || _ball.velocity_z > 0) && nearestNitro.has_value())
 				{
 					const auto nnValue = nearestNitro.value();
 					const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
@@ -916,7 +916,26 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 
 	Simulator::Tick(re, BallEntity(ball));
 	if (!re.IsArenaCollided) robotAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+
+	if (_usingNitroIds.find(robot.id) != _usingNitroIds.end())
+	{
+		if (robot.velocity_y > 0)
+		{
+			const auto targetVelocity = Helper::GetTargetVelocity(
+				robot.x, robot.y, robot.z, _ball.x, _ball.y, _ball.z, Constants::Rules.MAX_ENTITY_SPEED);
+			robotAction.target_velocity_x = targetVelocity.X;
+			robotAction.target_velocity_y = targetVelocity.Y;
+			robotAction.target_velocity_z = targetVelocity.Z;
+			robotAction.use_nitro = true;
+		}
+		else
+		{
+			_usingNitroIds.erase(robot.id);
+		}
+	}
+
 	_actions[robot.id] = robotAction;
+	
 
 	//collisionTimes, bestBallVelocities установятся в InitBallEntities
 }
@@ -1342,6 +1361,11 @@ int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContaine
 		return  bec1.ResBallEntity.Velocity.Y > bec2.ResBallEntity.Velocity.Y ? -1 : 1;//на своей бьем выше
 	}
 
+	if (bec1.IsUsingNitro && !bec2.IsUsingNitro)
+		return -1;
+	if (!bec1.IsUsingNitro && bec2.IsUsingNitro)
+		return 1;
+
 	//оба не isGoalScored	
 	return CompareDefenderBallEntities(bec1, bec2);
 }
@@ -1569,7 +1593,7 @@ bool MyStrategy::GetDefenderStrikeBallEntity(const model::Robot & robot, int t,
 			BallEntity collideBallEntityAttack;
 			const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime, collideBallEntityAttack);
 			const double curCollisionT = moveT * 1.0 / Constants::Rules.TICKS_PER_SECOND + curJumpCollisionT.value();
-			const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, collideBallEntity);
+			const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, collideBallEntity, false);
 
 			if (!isOk || CompareBeContainers(bec, bestBecP) < 0)
 			{
@@ -1671,7 +1695,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 				BallEntity collideBallEntityAttack;
 				const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime, collideBallEntityAttack);
 				const double curCollisionT = (moveT + waitT) * 1.0 / Constants::Rules.TICKS_PER_SECOND + curJumpCollisionT.value();
-				const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, collideBallEntity);//TODO: или аттак?
+				const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, collideBallEntity, false);
 
 				if (movePoint == std::nullopt || CompareBeContainers(bec, bestBecP) < 0)
 				{
@@ -1915,6 +1939,26 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	int position)// -1 - защ, 0 - пз, 1 - нап
 {
 	model::Action action = model::Action();
+
+	if (position == -1 
+		&& _ball.z < -Constants::Rules.arena.depth/4 
+		&& abs(_ball.x) < Constants::Rules.arena.width/4 
+		&& me.nitro_amount > 10)
+	{
+
+		const auto targetVelocity = Helper::GetTargetVelocity(me.x, me.y, me.z, _ball.x, _ball.y, _ball.z, Constants::Rules.MAX_ENTITY_SPEED);
+		action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+		action.target_velocity_x = targetVelocity.X;
+		action.target_velocity_y = targetVelocity.Y;
+		action.target_velocity_z = targetVelocity.Z;
+		action.use_nitro = true;
+
+		isOkBestBecP = true;
+		bestBecP = BallEntityContainer(BallEntity(), 0.0, false, 0, BallEntity(), true);
+
+		_usingNitroIds.insert(me.id);
+		return action;
+	}
 
 	Vector3D targetVelocity;
 	RobotEntity robotEntity = RobotEntity(me);	
@@ -2222,7 +2266,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				auto robotEntity = RobotEntity(robot);
 				if (IsOkPosToJump(robotEntity, 0, jumpCollisionT, curBallEntity, goalTime))
 				{
-					BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), jumpCollisionT.value(), true, goalTime, BallEntity());
+					BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), jumpCollisionT.value(), true, goalTime, BallEntity(), false);
 					bestWaitT = 0;
 					bestMoveT = 0;
 					isResOk = true;
@@ -2239,7 +2283,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				continue;
 
 			const auto curCollisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
-			BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), curCollisionT, true, goalTime, BallEntity());
+			BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), curCollisionT, true, goalTime, BallEntity(), false);
 			if (!isResOk || CompareBeContainers(bec, bestBecP) < 0)
 			{
 				bestWaitT = -1;
