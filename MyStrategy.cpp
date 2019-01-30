@@ -2394,7 +2394,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	const auto stopContainer = GetStopContainer(robotPos, robotVel);
 
 	const auto deltaAngle = M_PI / 180 * 2;
-	auto curAngle = 0.0;
+	bool isVectorSet = false;
+	Vector3D curRobotBallVector;
 
 	const auto isWaiting = _defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0;
 
@@ -2435,11 +2436,14 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 			if (robot.z > 0 && position == 1) continue;//нап не защищается, если он на чужой половине
 
 			const auto isBestTime = _defenderMovePoints.count(robot.id) > 0 && std::get<0>(_defenderMovePoints[robot.id]) == t;
-			const auto angle = robotPos.angleTo(ballEntity.Position);
- 			if (!isWaiting && !isBestTime && abs(curAngle) > EPS && abs(angle - curAngle) < deltaAngle)
+
+			const auto robotBallVector = Vector3D(ballEntity.Position.X - robotPos.X, 0, ballEntity.Position.Z - robotPos.Z);
+			const auto angle = curRobotBallVector.angleTo(robotBallVector);
+ 			if (!isWaiting && !isBestTime && isVectorSet && abs(angle) < deltaAngle && movePoint.has_value())
 				continue;
 
-			curAngle = angle;
+			isVectorSet = true;
+			curRobotBallVector = robotBallVector;
 
 			std::optional<double> curCollisionT = std::nullopt;
 			bool isPassedBy = false;
