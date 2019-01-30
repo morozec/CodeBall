@@ -2352,10 +2352,29 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	for (int t = startAttackTick; t <= startAttackTick + BallMoveTicks; ++t)
 	{
 		if (_goalScoringTick >= 0 && t >= _goalScoringTick)
+		{
+			if (gotDmp)			
+				_defenderMovePoints[robot.id] = curDmp;			
+			else			
+				_defenderMovePoints.erase(robot.id);			
 			return movePoint;
+		}
 		if (startAttackTick == 0 && _meGoalScoringTick >= 0 && t >= _meGoalScoringTick)
+		{
+			if (gotDmp)
+				_defenderMovePoints[robot.id] = curDmp;
+			else
+				_defenderMovePoints.erase(robot.id);
 			return movePoint;
-		if (_ballEntities.count(t) == 0) return movePoint;
+		}
+		if (_ballEntities.count(t) == 0)
+		{
+			if (gotDmp)
+				_defenderMovePoints[robot.id] = curDmp;
+			else
+				_defenderMovePoints.erase(robot.id);
+			return movePoint;
+		}
 
 		auto ballEntity = _ballEntities.at(t);
 		
@@ -2440,14 +2459,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		}
 	}
 
-	if (gotDmp)
-	{
-		_defenderMovePoints[robot.id] = curDmp;
-	}
-	else
-	{
-		_defenderMovePoints.erase(robot.id);
-	}
+	
 
 	if (movePoint != std::nullopt)
 	{
