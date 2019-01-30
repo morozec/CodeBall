@@ -1921,14 +1921,30 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	const auto startPos = Helper::GetRobotPosition(me);
 	const auto startVel = Helper::GetRobotVelocity(me);
 
-	if (position == -1 
-		&& _meGoalScoringTick != -1 
-		&& _meGoalScoringTick <= 50 
-		&& _ballEntities[_meGoalScoringTick].Position.Y > Constants::Rules.arena.goal_height * 0.5
-		&& me.nitro_amount > 0)
-	{	
+	bool needUseDefenceNitro = position == -1 && me.nitro_amount > 10
+		&& (_defenderMovePoints.count(me.id) == 0 || !std::get<3>(_defenderMovePoints[me.id]).isGoalScored);
+	const auto goalSearchTicks = 40;
+	if (needUseDefenceNitro)
+	{
+		bool isDangerousBall = false;
+		for (auto t = 0; t < goalSearchTicks; ++t)
+		{
+			if (_ballEntities[t].Position.Z < -Constants::Rules.arena.depth / 4 && 
+				abs(_ballEntities[t].Position.X) < Constants::Rules.arena.width / 4 &&
+				_ballEntities[t].Position.Y > Constants::Rules.arena.goal_height / 2 && 
+				_ballEntities[t].Position.Y < Constants::Rules.arena.goal_height)
+			{
+				isDangerousBall = true;
+				break;
+			}
+		}
+		if (!isDangerousBall)
+			needUseDefenceNitro = false;
+	}
 
-		for (int t = 0; t < _meGoalScoringTick; ++t)
+	if (needUseDefenceNitro)
+	{	
+		for (int t = 0; t < goalSearchTicks; ++t)
 		{
 			const auto targetBe = _ballEntities[t];
 			Vector3D targetPos = Vector3D(targetBe.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
