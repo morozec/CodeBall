@@ -1579,13 +1579,18 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 		}
 		else
 		{
-			waitPos = stopContainer.stopPos;
+			waitPos = Vector3D(stopContainer.stopPos);
 			waitVelocity = Vector3D(0, 0, 0);
 		}
 
 		auto timeToJump = time - waitT * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 		if (!CanGetToPoint(goToPoint, waitPos, waitVelocity, timeToJump, false))
 			return movePoint;//дальше ждать нет смысла - точно не добежим
+
+		auto curPos = Vector3D(waitPos);
+		auto curVelocity = Vector3D(waitVelocity);
+
+		bool isGettingCloser = false;
 
 		for (int moveT = startAttackTick; moveT < t - waitT; ++moveT)
 		{
@@ -1595,19 +1600,32 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 			timeToJump = time - (moveT + waitT) * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 			//if (timeToJump > maxHeightTime)continue; TODO: подумать об этом
 
-			PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
-				waitPos,
-				goToPoint,
-				waitVelocity,
-				moveT,
-				1.0);
-			if (pvContainer.IsPassedBy)
+			if (moveT > 0)
 			{
-				return movePoint; // проскочим целевую точку. дальше все непредсказуемо
-			}
+				PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
+					curPos,
+					goToPoint,
+					curVelocity,
+					1,
+					1.0);
 
+				if (!isGettingCloser)
+				{
+					if (Helper::GetLength2(pvContainer.Position, goToPoint) < Helper::GetLength2(waitPos, goToPoint))
+					{
+						isGettingCloser = true;
+					}
+				}
+				else
+				{
+					if (Helper::GetLength2(waitPos, pvContainer.Position) > Helper::GetLength2(waitPos, goToPoint))
+						return movePoint;// проскочим целевую точку. дальше все непредсказуемо
+				}
+				curPos = pvContainer.Position;
+				curVelocity = pvContainer.Velocity;
+			}
 		
-			if (!CanGetToPoint(goToPoint, pvContainer.Position, pvContainer.Velocity, timeToJump, false))
+			if (!CanGetToPoint(goToPoint, curPos, curVelocity, timeToJump, false))
 				continue;
 
 			std::optional<double> curJumpCollisionT = std::nullopt;
@@ -1615,7 +1633,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 			BallEntity collideBallEntity;
 
 			if (IsPenaltyArea(_ballEntities.at(moveT + waitT).Position) && //бьем мяч только в зоне защиты
-				IsOkDefenderPosToJump(pvContainer.Position, pvContainer.Velocity,
+				IsOkDefenderPosToJump(curPos, curVelocity,
 				waitT + moveT,
 				curJumpCollisionT, collision_ball_entity, collideBallEntity))
 			{
