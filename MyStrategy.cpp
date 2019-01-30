@@ -1901,14 +1901,38 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 			const auto targetBe = _ballEntities[t];
 			Vector3D targetPos = Vector3D(targetBe.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 				targetBe.Position.Z);
+
+			Vector3D curPos = Vector3D(startPos);
+			Vector3D curVelocity = Vector3D(startVel);
+			bool isGettingCloser = false;
 			for (int moveT = 0; moveT <= t; ++moveT)
 			{				
-				const auto pvContainer = Simulator::GetRobotPVContainer(
-					startPos, targetPos, startVel, moveT, 1);
-				if (pvContainer.IsPassedBy)
-					break;
+				if (moveT > 0)
+				{
+					PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
+						curPos,
+						targetPos,
+						curVelocity,
+						1,
+						1.0);
 
-				auto re = RobotEntity(pvContainer.Position, pvContainer.Velocity,
+					if (!isGettingCloser)
+					{
+						if (Helper::GetLength2(pvContainer.Position, targetPos) < Helper::GetLength2(startPos, targetPos))
+						{
+							isGettingCloser = true;
+						}
+					}
+					else
+					{
+						if (Helper::GetLength2(startPos, pvContainer.Position) > Helper::GetLength2(startPos, targetPos))
+							break;;// проскочим целевую точку. дальше все непредсказуемо
+					}
+					curPos = pvContainer.Position;
+					curVelocity = pvContainer.Velocity;
+				}
+
+				auto re = RobotEntity(curPos, curVelocity,
 					Constants::Rules.ROBOT_MIN_RADIUS, true, Vector3D(0, 1, 0), me.nitro_amount);
 
 				auto const curMoveVelocity = Helper::GetTargetVelocity(re.Position,
@@ -2063,14 +2087,39 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 			const auto targetBe = _ballEntities[t];
 			Vector3D targetPos = Vector3D(targetBe.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 				targetBe.Position.Z);
+
+			bool isGettingCloser = false;
+			Vector3D curPos = Vector3D(startPos);
+			Vector3D curVelocity = Vector3D(startVel);
+
 			for (int moveT = 0; moveT <= t; ++moveT)
 			{
-				const auto pvContainer = Simulator::GetRobotPVContainer(
-					startPos, targetPos, startVel, moveT, 1);
-				if (pvContainer.IsPassedBy)
-					break;
+				if (moveT > 0)
+				{
+					PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
+						curPos,
+						targetPos,
+						curVelocity,
+						1,
+						1.0);
 
-				auto re = RobotEntity(pvContainer.Position, pvContainer.Velocity,
+					if (!isGettingCloser)
+					{
+						if (Helper::GetLength2(pvContainer.Position, targetPos) < Helper::GetLength2(startPos, targetPos))
+						{
+							isGettingCloser = true;
+						}
+					}
+					else
+					{
+						if (Helper::GetLength2(startPos, pvContainer.Position) > Helper::GetLength2(startPos, targetPos))
+							break;;// проскочим целевую точку. дальше все непредсказуемо
+					}
+					curPos = pvContainer.Position;
+					curVelocity = pvContainer.Velocity;
+				}
+
+				auto re = RobotEntity(curPos, curVelocity,
 					Constants::Rules.ROBOT_MIN_RADIUS, true, Vector3D(0, 1, 0), me.nitro_amount);
 
 				auto const curMoveVelocity = Helper::GetTargetVelocity(re.Position,
