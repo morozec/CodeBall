@@ -3286,6 +3286,11 @@ int MyStrategy::UpdateBallEntities(double collisionTime, const Vector3D& afterCo
 StopContainer MyStrategy::GetStopContainer(const Vector3D& robotPosition, const Vector3D& robotVelocity) const
 {
 	auto robotVelocityLength = robotVelocity.Length();
+	if (robotVelocityLength < EPS)
+	{
+		const auto stopA = Vector3D(0, 0, 0);
+		return StopContainer(robotPosition, robotVelocity, 0, robotPosition, stopA);
+	}
 
 	double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
 	double microTickTime = tickTime / Constants::Rules.MICROTICKS_PER_TICK;
