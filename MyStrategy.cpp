@@ -2658,8 +2658,11 @@ bool MyStrategy::IsOkPosToJump(
 		//double angle = GetVectorAngleToHorizontal(beCur.Velocity);
 		//if (angle * directionCoeff > M_PI / 3) return false; //TODO: не бьем под большим углом к горизонтали
 
+		if (_isGoalPossible && beCur.Velocity.Z < ballEntity.Velocity.Z)
+			return false;//не бьем с падающей скоростью по z
+
 		double ballFlyTime = 0;
-		BallEntity collideBallEntity;;
+		BallEntity collideBallEntity;	
 		if (!IsGoalBallDirection2(beCur, directionCoeff, false, ballFlyTime, collideBallEntity)) return false;
 		if (i==0)
 		{
