@@ -2117,21 +2117,22 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		{
 			const int oppId = oppCt.first;
 			const int collisionTick = oppCt.second;
+			const int collisionTickDelta = 5;
 			
-			for (int t = 0; t < collisionTick; ++t)
+			for (int t = 0; t < collisionTick - collisionTickDelta; ++t)
 			{
-				
+
 				RobotEntity targetRe = GetRobotEntity(t, oppId);				
 
 				Vector3D targetPos = Vector3D(targetRe.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 					targetRe.Position.Z);
 
-				for (auto moveT = 0; moveT <= t; ++moveT)
+				for (auto moveT = t - 1; moveT >= 0; --moveT)//двигаемся как можно дольше
 				{
 					const auto pvContainer = Simulator::GetRobotPVContainer(
 						startPos, targetPos, startVel, moveT, 1);
 					if (pvContainer.IsPassedBy)
-						break;
+						continue;
 
 					auto re = RobotEntity(pvContainer.Position, pvContainer.Velocity,
 						Constants::Rules.ROBOT_MIN_RADIUS, true, Vector3D(0, 1, 0), me.nitro_amount);
