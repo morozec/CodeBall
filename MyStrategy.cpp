@@ -155,7 +155,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					if (robot.id == defender.id)
 					{
 						const auto nearestNitro = get_nearest_nitro_pack(robot, game);
-						if (nearestNitro.has_value())
+						if (_ball.z > EPS && nearestNitro.has_value())
 						{
 							const auto nnValue = nearestNitro.value();
 							const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
@@ -391,7 +391,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (robot.id == defender.id)
 			{
 				const auto nearestNitro = get_nearest_nitro_pack(robot, game);
-				if (nearestNitro.has_value())
+				if (_ball.z > EPS && (_ball.velocity_z > 0 || !_oppStrikeTime.has_value()) && nearestNitro.has_value())
 				{
 					const auto nnValue = nearestNitro.value();
 					const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
