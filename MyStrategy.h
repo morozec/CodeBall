@@ -79,6 +79,7 @@ public:
 	int _lastSimulationTick = -1;
 
 	std::map<int, int> _oppBallCollisionTicks;
+	int _minOppCollisionTick = -1;
 
 	bool _isSamePosition;
 	int _goalScoringTick;

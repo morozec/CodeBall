@@ -29,6 +29,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	{		
 		_lastMyCollisionTick = -1;
 		_oppBallCollisionTicks = std::map<int, int>();
+		_minOppCollisionTick = -1;
 		_meGoalScoringTick = -1;
 		_goalScoringTick = -1;
 		_noCollisionGoalScoringTick = -1;
@@ -936,6 +937,89 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 		{
 			_usingNitroIds.erase(robot.id);
 			_nitroPositions.erase(robot.id);
+		}
+	}
+	else
+	{		
+		bool gotAction = false;
+		if (robot.z > 0 && !_isGoalPossible && robot.nitro_amount > 10)//атака м€ча
+		{
+			int finalTick = _minOppCollisionTick == -1 ? 50 : _minOppCollisionTick;
+
+			for (int t = 0; t < finalTick; ++t)
+			{
+				const auto targetBe = _ballEntities[t];
+				auto curRe = RobotEntity(robot);
+
+				auto const curMoveVelocity = Helper::GetTargetVelocity(curRe.Position,
+					_ballEntities[t].Position,
+					Constants::Rules.MAX_ENTITY_SPEED);
+
+				model::Action jumpNitroAction = model::Action();
+				jumpNitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+				jumpNitroAction.target_velocity_x = curMoveVelocity.X;
+				jumpNitroAction.target_velocity_y = curMoveVelocity.Y;
+				jumpNitroAction.target_velocity_z = curMoveVelocity.Z;
+				jumpNitroAction.use_nitro = true;
+
+				curRe.Action = jumpNitroAction;
+
+				BallEntity resBe;
+				double collisionTime;
+				bool isCollision = simulate_ball_nitro_jump(curRe, 0, t, resBe, collisionTime);
+
+				double goalTime;
+				BallEntity collideBallEntity;
+				if (isCollision && IsGoalBallDirection2(resBe, 1, false, goalTime, collideBallEntity))
+				{
+					_usingNitroIds.insert(robot.id);
+					_nitroPositions[robot.id] = targetBe.Position;
+					robotAction = jumpNitroAction;
+					gotAction = true;
+					break;
+				}
+			}
+		}
+
+		if (!gotAction && robot.z > 0 && !_isGoalPossible && _isNoCollisionGoalPossible && robot.nitro_amount > 10) //атака робота врага
+		{
+			for (auto & oppCt : _oppBallCollisionTicks)
+			{
+				const int oppId = oppCt.first;
+				const int collisionTick = oppCt.second;
+				const int collisionTickDelta = 3;
+
+				for (int t = 0; t < collisionTick - collisionTickDelta; ++t)
+				{
+					RobotEntity targetRe = GetRobotEntity(t, oppId);
+					auto curRe = RobotEntity(robot);
+
+					auto const oppRobotVelocity = Helper::GetTargetVelocity(re.Position,
+						_ballEntities[t].Position,
+						Constants::Rules.MAX_ENTITY_SPEED);
+
+					model::Action jumpNitroAction = model::Action();
+					jumpNitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+					jumpNitroAction.target_velocity_x = oppRobotVelocity.X;
+					jumpNitroAction.target_velocity_y = oppRobotVelocity.Y;
+					jumpNitroAction.target_velocity_z = oppRobotVelocity.Z;
+					jumpNitroAction.use_nitro = true;
+
+					curRe.Action = jumpNitroAction;
+
+					Simulator::simulate_jump_start(curRe);
+
+					double collisionTime;
+					bool isCollision = simulate_robot_nitro_jump(re, 0, t, oppId, collisionTime);
+					if (isCollision)
+					{
+						_usingNitroIds.insert(robot.id);
+						_nitroPositions[robot.id] = targetRe.Position;
+						robotAction = jumpNitroAction;
+					}
+					
+				}
+			}
 		}
 	}
 
@@ -2109,21 +2193,13 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		action.use_nitro = false;
 
 		return action;			
-	}
-
-	auto minOppBallCollisionTicks = -1;
-	for (auto & oppCt : _oppBallCollisionTicks)
-	{
-		if (minOppBallCollisionTicks == - 1 || oppCt.second < minOppBallCollisionTicks)
-		{
-			minOppBallCollisionTicks = oppCt.second;
-		}
-	}
+	}	
 
 	if (position >= 0 && me.z > 0 && !_isGoalPossible &&
-		(movePoint == std::nullopt || minOppBallCollisionTicks != -1 && bestBecP.collisionTime * Constants::Rules.TICKS_PER_SECOND > minOppBallCollisionTicks))
+		(movePoint == std::nullopt || _minOppCollisionTick != -1 && bestBecP.collisionTime * Constants::Rules.TICKS_PER_SECOND > _minOppCollisionTick) &&
+		me.nitro_amount > 10)
 	{
-		int finalTick = minOppBallCollisionTicks == -1 ? 40 : minOppBallCollisionTicks;
+		int finalTick = _minOppCollisionTick == -1 ? 50 : _minOppCollisionTick;
 
 		for (int t = 0; t < finalTick; ++t)
 		{
@@ -2973,8 +3049,10 @@ void MyStrategy::InitBallEntities()
 				{
 					isOppCollided = true;
 					if (ball_entity.IsCollided)//коллизи€ врага с м€чом
-					{
+					{						
 						_oppBallCollisionTicks[re.Id] = t;
+						if (_minOppCollisionTick == -1)
+							_minOppCollisionTick = t;
 					}
 				}
 				re.IsCollided = false;
