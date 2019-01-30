@@ -2490,15 +2490,6 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 	const auto deltaAngle = M_PI / 180 * 2;
 	auto curAngle = 0.0;
 
-	auto hasScoringRobot = false;
-	for (auto & dmp:_defenderMovePoints)
-	{
-		if (std::get<3>(dmp.second).isGoalScored)
-		{
-			hasScoringRobot = true;
-			break;
-		}
-	}
 	const auto isWaiting = _defenderMovePoints.count(robot.id) > 0 && std::get<1>(_defenderMovePoints[robot.id]) > 0;
 
 	bool gotDmp = false;
@@ -2539,8 +2530,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 
 			const auto isBestTime = _defenderMovePoints.count(robot.id) > 0 && std::get<0>(_defenderMovePoints[robot.id]) == t;
 			const auto angle = robotPos.angleTo(ballEntity.Position);
- 			if ((hasScoringRobot || movePoint != std::nullopt && bestBecP.isGoalScored) &&
-				!isWaiting && !isBestTime && abs(curAngle) > EPS && abs(angle - curAngle) < deltaAngle)
+ 			if (!isWaiting && !isBestTime && abs(curAngle) > EPS && abs(angle - curAngle) < deltaAngle)
 				continue;
 
 			curAngle = angle;
@@ -2614,7 +2604,10 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		}
 	}
 
-	
+	if (gotDmp)
+		_defenderMovePoints[robot.id] = curDmp;
+	else
+		_defenderMovePoints.erase(robot.id);
 
 	if (movePoint != std::nullopt)
 	{
