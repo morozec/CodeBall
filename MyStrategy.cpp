@@ -1970,15 +1970,15 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				auto re = RobotEntity(pvContainer.Position, pvContainer.Velocity,
 					Constants::Rules.ROBOT_MIN_RADIUS, true, Vector3D(0, 1, 0), me.nitro_amount);
 
-				auto const targetVelocity = Helper::GetTargetVelocity(re.Position,
+				auto const curMoveVelocity = Helper::GetTargetVelocity(re.Position,
 					_ballEntities[t].Position,
 					Constants::Rules.MAX_ENTITY_SPEED);
 
 				model::Action jumpNitroAction = model::Action();
 				jumpNitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-				jumpNitroAction.target_velocity_x = targetVelocity.X;
-				jumpNitroAction.target_velocity_y = targetVelocity.Y;
-				jumpNitroAction.target_velocity_z = targetVelocity.Z;
+				jumpNitroAction.target_velocity_x = curMoveVelocity.X;
+				jumpNitroAction.target_velocity_y = curMoveVelocity.Y;
+				jumpNitroAction.target_velocity_z = curMoveVelocity.Z;
 				jumpNitroAction.use_nitro = true;
 
 				re.Action = jumpNitroAction;
@@ -2109,6 +2109,85 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		action.use_nitro = false;
 
 		return action;			
+	}
+
+	auto minOppBallCollisionTicks = -1;
+	for (auto & oppCt : _oppBallCollisionTicks)
+	{
+		if (minOppBallCollisionTicks == - 1 || oppCt.second < minOppBallCollisionTicks)
+		{
+			minOppBallCollisionTicks = oppCt.second;
+		}
+	}
+
+	if (position >= 0 && me.z > 0 && !_isGoalPossible &&
+		(movePoint == std::nullopt || minOppBallCollisionTicks != -1 && bestBecP.collisionTime * Constants::Rules.TICKS_PER_SECOND > minOppBallCollisionTicks))
+	{
+		int finalTick = minOppBallCollisionTicks == -1 ? 40 : minOppBallCollisionTicks;
+
+		for (int t = 0; t < finalTick; ++t)
+		{
+			const auto targetBe = _ballEntities[t];
+			Vector3D targetPos = Vector3D(targetBe.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
+				targetBe.Position.Z);
+			for (int moveT = 0; moveT <= t; ++moveT)
+			{
+				const auto pvContainer = Simulator::GetRobotPVContainer(
+					startPos, targetPos, startVel, moveT, 1);
+				if (pvContainer.IsPassedBy)
+					break;
+
+				auto re = RobotEntity(pvContainer.Position, pvContainer.Velocity,
+					Constants::Rules.ROBOT_MIN_RADIUS, true, Vector3D(0, 1, 0), me.nitro_amount);
+
+				auto const curMoveVelocity = Helper::GetTargetVelocity(re.Position,
+					_ballEntities[t].Position,
+					Constants::Rules.MAX_ENTITY_SPEED);
+
+				model::Action jumpNitroAction = model::Action();
+				jumpNitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+				jumpNitroAction.target_velocity_x = curMoveVelocity.X;
+				jumpNitroAction.target_velocity_y = curMoveVelocity.Y;
+				jumpNitroAction.target_velocity_z = curMoveVelocity.Z;
+				jumpNitroAction.use_nitro = true;
+
+				re.Action = jumpNitroAction;
+
+				Simulator::simulate_jump_start(re);
+
+				BallEntity resBe;
+				double collisionTime;
+				bool isCollision = simulate_ball_nitro_jump(re, moveT, t, resBe, collisionTime);
+
+				double goalTime;
+				BallEntity collideBallEntity;
+				if (isCollision && IsGoalBallDirection2(resBe, 1,false, goalTime, collideBallEntity))
+				{
+					isOkBestBecP = true;
+					bestBecP = BallEntityContainer(resBe, collisionTime, true, goalTime, collideBallEntity, true);
+					if (moveT == 0)
+					{
+						_usingNitroIds.insert(me.id);
+						_nitroPositions[me.id] = targetBe.Position;
+						return jumpNitroAction;
+					}
+					else
+					{
+						auto const moveVelocity = Helper::GetTargetVelocity(startPos,
+							targetPos,
+							Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+
+						model::Action moveAction = model::Action();
+						moveAction.jump_speed = 0;
+						moveAction.target_velocity_x = moveVelocity.X;
+						moveAction.target_velocity_y = 0;
+						moveAction.target_velocity_z = moveVelocity.Z;
+						moveAction.use_nitro = false;
+						return moveAction;
+					}
+				}
+			}
+		}
 	}
 
 	if (position >= 0 && me.z > 0 && !_isGoalPossible && _isNoCollisionGoalPossible && me.nitro_amount > 10)
