@@ -30,6 +30,7 @@ private:
 	const int StrikeSphereStepsCount = 10;
 	const int AttackerAddTicks = 10;
 	const int MaxCollisionsToGoalStrike = 3;
+
 	double _maxStrikeDist;
 	double _maxStrikeDist2;
 
@@ -71,6 +72,7 @@ private:
 
 	std::set<model::NitroPack> _gotNitros;
 	std::set<int> _usingNitroIds = std::set<int>();
+	std::map<int, int> _nitroBallPositions = std::map<int, int>();
 	
 public:
 	int _lastMyCollisionTick = -1;
@@ -181,7 +183,7 @@ public:
 
 	std::optional<model::NitroPack> get_nearest_nitro_pack(const model::Robot& robot, const model::Game& game);
 
-	bool simulate_nitro_jump(RobotEntity& re, int startTick, BallEntity& resBe, double& collisionTime);
+	bool simulate_nitro_jump(RobotEntity& re, int startTick, int targetTick, BallEntity& resBe, double& collisionTime);
 
     MyStrategy();
     void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;

@@ -921,8 +921,10 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 	{
 		if (robot.velocity_y > 0)
 		{
+			const auto nextTickBall = _ballEntities.at(_nitroBallPositions.at(robot.id));
+
 			const auto targetVelocity = Helper::GetTargetVelocity(
-				robot.x, robot.y, robot.z, _ball.x, _ball.y, _ball.z, Constants::Rules.MAX_ENTITY_SPEED);
+				robot.x, robot.y, robot.z, nextTickBall.Position.X, nextTickBall.Position.Y, nextTickBall.Position.Z, Constants::Rules.MAX_ENTITY_SPEED);
 			robotAction.target_velocity_x = targetVelocity.X;
 			robotAction.target_velocity_y = targetVelocity.Y;
 			robotAction.target_velocity_z = targetVelocity.Z;
@@ -931,6 +933,7 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 		else
 		{
 			_usingNitroIds.erase(robot.id);
+			_nitroBallPositions.erase(robot.id);
 		}
 	}
 
@@ -1942,7 +1945,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 	if (position == -1 
 		&& _meGoalScoringTick != -1 
-		&& _meGoalScoringTick <= 40 
+		&& _meGoalScoringTick <= 50 
 		&& _ballEntities[_meGoalScoringTick].Position.Y > Constants::Rules.arena.goal_height * 0.5
 		&& me.nitro_amount > 10)
 	{
@@ -1957,7 +1960,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 			for (int moveT = 0; moveT <= t; ++moveT)
 			{				
 				const auto pvContainer = Simulator::GetRobotPVContainer(
-					startPos, targetPos, startVel, moveT, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+					startPos, targetPos, startVel, moveT, 1);
 				if (pvContainer.IsPassedBy)
 					break;
 
@@ -1965,7 +1968,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					Constants::Rules.ROBOT_MIN_RADIUS, true, Vector3D(0, 1, 0), me.nitro_amount);
 
 				auto const targetVelocity = Helper::GetTargetVelocity(re.Position,
-					_ballEntities[moveT].Position,
+					_ballEntities[t].Position,
 					Constants::Rules.MAX_ENTITY_SPEED);
 
 				model::Action jumpNitroAction = model::Action();
@@ -1981,14 +1984,15 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 				BallEntity resBe;
 				double collisionTime;
-				bool isCollision = simulate_nitro_jump(re, moveT, resBe, collisionTime);
+				bool isCollision = simulate_nitro_jump(re, moveT, t, resBe, collisionTime);
 				if (isCollision)
 				{
 					isOkBestBecP = true;
 					bestBecP = BallEntityContainer(resBe, collisionTime, false, -1, BallEntity(), true);
 					if (moveT == 0)
 					{
-						_usingNitroIds.insert(me.id);					
+						_usingNitroIds.insert(me.id);
+						_nitroBallPositions[me.id] = t;
 						return jumpNitroAction;
 					}
 					else
@@ -3074,8 +3078,10 @@ std::optional<model::NitroPack> MyStrategy::get_nearest_nitro_pack(const Robot& 
 	return res;
 }
 
-bool MyStrategy::simulate_nitro_jump(RobotEntity& re, int startTick, BallEntity& resBe, double& collisionTime)
+bool MyStrategy::simulate_nitro_jump(RobotEntity& re, int startTick, int targetTick, BallEntity& resBe, double& collisionTime)
 {	
+	const auto targetBe = _ballEntities.at(targetTick);
+
 	int t = startTick;
 	auto curBe = _ballEntities[t];
 
@@ -3088,64 +3094,77 @@ bool MyStrategy::simulate_nitro_jump(RobotEntity& re, int startTick, BallEntity&
 
 	//_drawSpheres.emplace_back(re.Position.X, re.Position.Y, re.Position.Z, 1, 1, 0, 0, 0.5);
 
-	while (t <= startTick + BallMoveTicks)
+	while (t + 1 <= targetTick)
 	{
-		const auto collisionT =
-			Simulator::GetCollisionT(re.Position, re.Velocity, resBe.Position, resBe.Velocity, re.Radius, resBe.Radius);
-		if (!collisionT.has_value() || collisionT.value() > 1.0 / Constants::Rules.TICKS_PER_SECOND)
+		t++;
+		if (_ballEntities.count(t) == 0)
+			return false;
+
+		curBe = _ballEntities.at(t);
+		Simulator::simulate_collision_jump(re);
+
+		if ((re.Position.X - curBe.Position.X)*startDx < 0 ||
+			(re.Position.Y - curBe.Position.Y)*startDy < 0 ||
+			(re.Position.Z - curBe.Position.Z)*startDz < 0)
 		{
-			if (_ballEntities.count(t + 1) == 0)
-			{
-				return false;
-			}
-			t++;
-			curBe = _ballEntities.at(t);
-
-			Simulator::simulate_collision_jump(re);
-			//_drawSpheres.emplace_back(re.Position.X, re.Position.Y, re.Position.Z, 1, 1, 0, 0, 0.5);
-
-			if (Helper::GetLength2(re.Position, curBe.Position) <
-				(re.Radius + curBe.Radius) * (re.Radius + curBe.Radius))
-			{
-				resBe = BallEntity(curBe);
-				Simulator::Update(re, resBe, mictoTickTime, _averageHitE[0], isGoalScored);
-				collisionTime = t / 1.0 * Constants::Rules.TICKS_PER_SECOND;
-				return true;
-			}
-
-			if ((re.Position.X - curBe.Position.X)*startDx < 0 ||
-				(re.Position.Y - curBe.Position.Y)*startDy < 0 ||
-				(re.Position.Z - curBe.Position.Z)*startDz < 0)
-			{				
-				return false;
-			}
-
-			auto const targetVelocity = Helper::GetTargetVelocity(re.Position,
-				curBe.Position,
-				Constants::Rules.MAX_ENTITY_SPEED);
-
-			model::Action curAction = model::Action();
-			curAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-			curAction.target_velocity_x = targetVelocity.X;
-			curAction.target_velocity_y = targetVelocity.Y;
-			curAction.target_velocity_z = targetVelocity.Z;
-			curAction.use_nitro = true;
-
-			re.Action = curAction;
-
+			return false;
 		}
-		else
-		{
-			re.Action.use_nitro = false;
-			const auto microTicks = collisionT.value() * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK;
-			const auto mtTime = microTicks * mictoTickTime;
 
+		if (Helper::GetLength2(re.Position, curBe.Position) <
+			(re.Radius + curBe.Radius) * (re.Radius + curBe.Radius))
+		{
 			resBe = BallEntity(curBe);
-			Simulator::Update(re, resBe, mtTime, _averageHitE[0], isGoalScored);
 			Simulator::Update(re, resBe, mictoTickTime, _averageHitE[0], isGoalScored);
-			collisionTime = t / 1.0 * Constants::Rules.TICKS_PER_SECOND + collisionT.value();
+			collisionTime = t / 1.0 * Constants::Rules.TICKS_PER_SECOND;
 			return true;
 		}
+
+
+		auto const targetVelocity = Helper::GetTargetVelocity(re.Position,
+			targetBe.Position,
+			Constants::Rules.MAX_ENTITY_SPEED);
+
+		model::Action curAction = model::Action();
+		curAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+		curAction.target_velocity_x = targetVelocity.X;
+		curAction.target_velocity_y = targetVelocity.Y;
+		curAction.target_velocity_z = targetVelocity.Z;
+		curAction.use_nitro = true;
+
+		re.Action = curAction;
+
+
+		///*const auto collisionT =
+		//	Simulator::GetCollisionT(re.Position, re.Velocity, resBe.Position, resBe.Velocity, re.Radius, resBe.Radius);*/
+		//if (!collisionT.has_value() || collisionT.value() > 1.0 / Constants::Rules.TICKS_PER_SECOND)
+		//{
+		//	if (_ballEntities.count(t + 1) == 0)
+		//	{
+		//		return false;
+		//	}
+		//	
+
+		//	
+		//	//_drawSpheres.emplace_back(re.Position.X, re.Position.Y, re.Position.Z, 1, 1, 0, 0, 0.5);
+
+		//	
+		//	
+
+		//	
+
+		//}
+		//else
+		//{
+		//	re.Action.use_nitro = false;
+		//	const auto microTicks = collisionT.value() * Constants::Rules.TICKS_PER_SECOND * Constants::Rules.MICROTICKS_PER_TICK;
+		//	const auto mtTime = microTicks * mictoTickTime;
+
+		//	resBe = BallEntity(curBe);
+		//	Simulator::Update(re, resBe, mtTime, _averageHitE[0], isGoalScored);
+		//	Simulator::Update(re, resBe, mictoTickTime, _averageHitE[0], isGoalScored);
+		//	collisionTime = t / 1.0 * Constants::Rules.TICKS_PER_SECOND + collisionT.value();
+		//	return true;
+		//}
 	}
 	return false;
 }
