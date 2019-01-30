@@ -72,14 +72,17 @@ private:
 
 	std::set<model::NitroPack> _gotNitros;
 	std::set<int> _usingNitroIds = std::set<int>();
-	std::map<int, int> _nitroBallPositions = std::map<int, int>();
+	std::map<int, Vector3D> _nitroPositions = std::map<int, Vector3D>();
 	
 public:
 	int _lastMyCollisionTick = -1;
 	int _lastSimulationTick = -1;
 
+	std::map<int, int> _oppBallCollisionTicks;
+
 	bool _isSamePosition;
 	int _goalScoringTick;
+	int _noCollisionGoalScoringTick;
 	int _meGoalScoringTick;
 	Vector3D _myGates;
 	Vector3D _beforeMyGates;
@@ -183,7 +186,9 @@ public:
 
 	std::optional<model::NitroPack> get_nearest_nitro_pack(const model::Robot& robot, const model::Game& game);
 
-	bool simulate_nitro_jump(RobotEntity& re, int startTick, int targetTick, BallEntity& resBe, double& collisionTime);
+	bool simulate_ball_nitro_jump(RobotEntity& re, int startTick, int targetTick, BallEntity& resBe, double& collisionTime);
+	bool simulate_robot_nitro_jump(RobotEntity & re, int startTick, int targetTick, int robotId, double & collisionTime);
+	RobotEntity GetRobotEntity(int tick, int id);
 
     MyStrategy();
     void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;

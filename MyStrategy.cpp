@@ -28,8 +28,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	if (_robotsCounter == 0)
 	{		
 		_lastMyCollisionTick = -1;
+		_oppBallCollisionTicks = std::map<int, int>();
 		_meGoalScoringTick = -1;
 		_goalScoringTick = -1;
+		_noCollisionGoalScoringTick = -1;
 		_isGoalPossible = false;
 		_isMeGoalPossible = false;
 		_isNoCollisionGoalPossible = false;
@@ -921,10 +923,10 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 	{
 		if (robot.velocity_y > 0)
 		{
-			const auto nextTickBall = _ballEntities.at(_nitroBallPositions.at(robot.id));
+			const auto targetPos = _nitroPositions.at(robot.id);
 
 			const auto targetVelocity = Helper::GetTargetVelocity(
-				robot.x, robot.y, robot.z, nextTickBall.Position.X, nextTickBall.Position.Y, nextTickBall.Position.Z, Constants::Rules.MAX_ENTITY_SPEED);
+				robot.x, robot.y, robot.z, targetPos.X, targetPos.Y, targetPos.Z, Constants::Rules.MAX_ENTITY_SPEED);
 			robotAction.target_velocity_x = targetVelocity.X;
 			robotAction.target_velocity_y = targetVelocity.Y;
 			robotAction.target_velocity_z = targetVelocity.Z;
@@ -933,7 +935,7 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 		else
 		{
 			_usingNitroIds.erase(robot.id);
-			_nitroBallPositions.erase(robot.id);
+			_nitroPositions.erase(robot.id);
 		}
 	}
 
@@ -1943,20 +1945,21 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 {
 	model::Action action = model::Action();
 
+	const auto startPos = Helper::GetRobotPosition(me);
+	const auto startVel = Helper::GetRobotVelocity(me);
+
 	if (position == -1 
 		&& _meGoalScoringTick != -1 
 		&& _meGoalScoringTick <= 50 
 		&& _ballEntities[_meGoalScoringTick].Position.Y > Constants::Rules.arena.goal_height * 0.5
 		&& me.nitro_amount > 10)
-	{
-		const auto startPos = Helper::GetRobotPosition(me);
-		const auto startVel = Helper::GetRobotVelocity(me);
+	{	
 
 		for (int t = 0; t < _meGoalScoringTick; ++t)
 		{
-			const auto be = _ballEntities[t];
-			Vector3D targetPos = Vector3D(be.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
-				be.Position.Z);
+			const auto targetBe = _ballEntities[t];
+			Vector3D targetPos = Vector3D(targetBe.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
+				targetBe.Position.Z);
 			for (int moveT = 0; moveT <= t; ++moveT)
 			{				
 				const auto pvContainer = Simulator::GetRobotPVContainer(
@@ -1984,7 +1987,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 				BallEntity resBe;
 				double collisionTime;
-				bool isCollision = simulate_nitro_jump(re, moveT, t, resBe, collisionTime);
+				bool isCollision = simulate_ball_nitro_jump(re, moveT, t, resBe, collisionTime);
 				if (isCollision)
 				{
 					isOkBestBecP = true;
@@ -1992,7 +1995,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					if (moveT == 0)
 					{
 						_usingNitroIds.insert(me.id);
-						_nitroBallPositions[me.id] = t;
+						_nitroPositions[me.id] = targetBe.Position;
 						return jumpNitroAction;
 					}
 					else
@@ -2092,6 +2095,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	//	}
 	//}
 
+
+
 	if (bestWaitT == 0 && bestMoveT == 0)
 	{
 		isOkBestBecP = true;
@@ -2105,6 +2110,80 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 		return action;			
 	}
+
+	if (position >= 0 && me.z > 0 && !_isGoalPossible && _isNoCollisionGoalPossible && me.nitro_amount > 10)
+	{
+		for (auto & oppCt:_oppBallCollisionTicks)
+		{
+			const int oppId = oppCt.first;
+			const int collisionTick = oppCt.second;
+			
+			for (int t = 0; t < collisionTick; ++t)
+			{
+				
+				RobotEntity targetRe = GetRobotEntity(t, oppId);				
+
+				Vector3D targetPos = Vector3D(targetRe.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
+					targetRe.Position.Z);
+
+				for (auto moveT = 0; moveT <= t; ++moveT)
+				{
+					const auto pvContainer = Simulator::GetRobotPVContainer(
+						startPos, targetPos, startVel, moveT, 1);
+					if (pvContainer.IsPassedBy)
+						break;
+
+					auto re = RobotEntity(pvContainer.Position, pvContainer.Velocity,
+						Constants::Rules.ROBOT_MIN_RADIUS, true, Vector3D(0, 1, 0), me.nitro_amount);
+
+					auto const oppRobotVelocity = Helper::GetTargetVelocity(re.Position,
+						_ballEntities[t].Position,
+						Constants::Rules.MAX_ENTITY_SPEED);
+
+					model::Action jumpNitroAction = model::Action();
+					jumpNitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+					jumpNitroAction.target_velocity_x = oppRobotVelocity.X;
+					jumpNitroAction.target_velocity_y = oppRobotVelocity.Y;
+					jumpNitroAction.target_velocity_z = oppRobotVelocity.Z;
+					jumpNitroAction.use_nitro = true;
+
+					re.Action = jumpNitroAction;
+
+					Simulator::simulate_jump_start(re);
+
+					double collisionTime;
+					bool isCollision = simulate_robot_nitro_jump(re, moveT, t, oppId, collisionTime);
+					if (isCollision)
+					{
+						isOkBestBecP = true;
+						const auto goalTime = _noCollisionGoalScoringTick * 1.0 / Constants::Rules.TICKS_PER_SECOND - collisionTime;
+						bestBecP = BallEntityContainer(_ballEntities[0], collisionTime, true, goalTime, BallEntity(), true);
+						if (moveT == 0)
+						{
+							_usingNitroIds.insert(me.id);
+							_nitroPositions[me.id] = targetRe.Position;
+							return jumpNitroAction;
+						}
+						else
+						{
+							auto const moveVelocity = Helper::GetTargetVelocity(startPos,
+								targetPos,
+								Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+
+							model::Action moveAction = model::Action();
+							moveAction.jump_speed = 0;
+							moveAction.target_velocity_x = moveVelocity.X;
+							moveAction.target_velocity_y = 0;
+							moveAction.target_velocity_z = moveVelocity.Z;
+							moveAction.use_nitro = false;
+							return moveAction;
+						}
+					}
+				}
+			}
+		}
+	}
+
 
 	if (movePoint == std::nullopt)
 	{
@@ -2281,7 +2360,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		
 		if (IsPenaltyArea(ballEntity.Position))//включаем режим защитника
 		{
-			if (robot.z > 0 && position == 1) continue;//нап не защищаетс€ на своей половине
+			if (robot.z > 0 && position == 1) continue;//нап не защищаетс€, если он на чужой половине
 
 			const auto isBestTime = _defenderMovePoints.count(robot.id) > 0 && std::get<0>(_defenderMovePoints[robot.id]) == t;
 			const auto angle = robotPos.angleTo(ballEntity.Position);
@@ -2766,9 +2845,7 @@ void MyStrategy::InitBallEntities()
 			jumpResCur.push_back(re);
 		}
 
-		ball_entity = SimulateTickBall(ball_entity, jumpResCur, isGoalScored, false);
-		ball_entity.IsCollided = false;
-		ball_entity.IsArenaCollided = false;
+		ball_entity = SimulateTickBall(ball_entity, jumpResCur, isGoalScored, false);		
 
 		if (!_isGoalPossible && ball_entity.Position.Z > Constants::Rules.arena.depth / 2 + ball_entity.Radius)
 		{
@@ -2779,10 +2856,7 @@ void MyStrategy::InitBallEntities()
 		{
 			_isMeGoalPossible = true;
 			_meGoalScoringTick = t;
-		}
-
-
-		_ballEntities[t] = ball_entity;
+		}		
 
 		bool isOppCollided = false;
 		for (auto& re : jumpResCur)//TODO: считать только коллизию с м€чом, а не друг с другом
@@ -2806,10 +2880,19 @@ void MyStrategy::InitBallEntities()
 				else
 				{
 					isOppCollided = true;
+					if (ball_entity.IsCollided)//коллизи€ врага с м€чом
+					{
+						_oppBallCollisionTicks[re.Id] = t;
+					}
 				}
 				re.IsCollided = false;
 			}
 		}
+
+		ball_entity.IsCollided = false;
+		ball_entity.IsArenaCollided = false;
+
+		_ballEntities[t] = ball_entity;
 
 		if (!gotOppCollision)
 		{
@@ -2820,6 +2903,7 @@ void MyStrategy::InitBallEntities()
 				if (!_isNoCollisionGoalPossible && ball_entity.Position.Z > Constants::Rules.arena.depth / 2 + ball_entity.Radius)
 				{
 					_isNoCollisionGoalPossible = true;
+					_noCollisionGoalScoringTick = t;
 				}
 
 				if (!_isNoCollisionMeGoalPossible && ball_entity.Position.Z < -Constants::Rules.arena.depth / 2 - ball_entity.Radius)
@@ -2850,8 +2934,7 @@ void MyStrategy::InitBallEntities()
 			}
 
 			ball_entity = SimulateTickBall(ball_entity, jumpResCur, isGoalScored, false);
-			ball_entity.IsCollided = false;
-			ball_entity.IsArenaCollided = false;
+			
 
 			if (!_isGoalPossible && ball_entity.Position.Z > Constants::Rules.arena.depth / 2 + ball_entity.Radius)
 			{
@@ -2863,9 +2946,6 @@ void MyStrategy::InitBallEntities()
 				_isMeGoalPossible = true;
 				_meGoalScoringTick = t;
 			}
-
-
-			_ballEntities[t] = ball_entity;
 
 			bool isOppCollided = false;
 			for (auto& re : jumpResCur)//TODO: считать только коллизию с м€чом, а не друг с другом
@@ -2888,11 +2968,16 @@ void MyStrategy::InitBallEntities()
 					}
 					else
 					{
-						isOppCollided = true;
+						isOppCollided = true;						
 					}
 					re.IsCollided = false;
 				}
 			}
+
+			ball_entity.IsCollided = false;
+			ball_entity.IsArenaCollided = false;
+
+			_ballEntities[t] = ball_entity;
 
 			if (!gotOppCollision)
 			{
@@ -2903,6 +2988,7 @@ void MyStrategy::InitBallEntities()
 					if (!_isNoCollisionGoalPossible && ball_entity.Position.Z > Constants::Rules.arena.depth / 2 + ball_entity.Radius)
 					{
 						_isNoCollisionGoalPossible = true;
+						_noCollisionGoalScoringTick = t;
 					}
 
 					if (!_isNoCollisionMeGoalPossible && ball_entity.Position.Z < -Constants::Rules.arena.depth / 2 - ball_entity.Radius)
@@ -2934,6 +3020,7 @@ void MyStrategy::InitBallEntities()
 			if (!_isNoCollisionGoalPossible && ball_entity.Position.Z > Constants::Rules.arena.depth / 2 + ball_entity.Radius)
 			{
 				_isNoCollisionGoalPossible = true;
+				_noCollisionGoalScoringTick = t;
 			}
 
 			if (!_isNoCollisionMeGoalPossible && ball_entity.Position.Z < -Constants::Rules.arena.depth / 2 - ball_entity.Radius)
@@ -3078,7 +3165,7 @@ std::optional<model::NitroPack> MyStrategy::get_nearest_nitro_pack(const Robot& 
 	return res;
 }
 
-bool MyStrategy::simulate_nitro_jump(RobotEntity& re, int startTick, int targetTick, BallEntity& resBe, double& collisionTime)
+bool MyStrategy::simulate_ball_nitro_jump(RobotEntity& re, int startTick, int targetTick, BallEntity& resBe, double& collisionTime)
 {	
 	const auto targetBe = _ballEntities.at(targetTick);
 
@@ -3167,6 +3254,71 @@ bool MyStrategy::simulate_nitro_jump(RobotEntity& re, int startTick, int targetT
 		//}
 	}
 	return false;
+}
+
+bool MyStrategy::simulate_robot_nitro_jump(RobotEntity & re, int startTick, int targetTick, int robotId, double & collisionTime)
+{
+	const auto targetRe = GetRobotEntity(targetTick, robotId);
+
+	int t = startTick;
+	auto curRe = GetRobotEntity(t, robotId);
+
+	double startDx = re.Position.X - curRe.Position.X;
+	double startDy = re.Position.Y - curRe.Position.Y;
+	double startDz = re.Position.Z - curRe.Position.Z;
+
+	const auto mictoTickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+	bool isGoalScored;
+
+	//_drawSpheres.emplace_back(re.Position.X, re.Position.Y, re.Position.Z, 1, 1, 0, 0, 0.5);
+
+	while (t + 1 <= targetTick)
+	{
+		t++;
+		if (_robotEntities.count(t) == 0)
+			return false;
+
+		curRe = GetRobotEntity(t, robotId);
+		Simulator::simulate_collision_jump(re);
+
+		if ((re.Position.X - curRe.Position.X)*startDx < 0 ||
+			(re.Position.Y - curRe.Position.Y)*startDy < 0 ||
+			(re.Position.Z - curRe.Position.Z)*startDz < 0)
+		{
+			return false;
+		}
+
+		if (Helper::GetLength2(re.Position, curRe.Position) <
+			(re.Radius + curRe.Radius) * (re.Radius + curRe.Radius))
+		{
+			collisionTime = t / 1.0 * Constants::Rules.TICKS_PER_SECOND;
+			return true;
+		}
+
+		auto const targetVelocity = Helper::GetTargetVelocity(re.Position,
+			targetRe.Position,
+			Constants::Rules.MAX_ENTITY_SPEED);
+
+		model::Action curAction = model::Action();
+		curAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+		curAction.target_velocity_x = targetVelocity.X;
+		curAction.target_velocity_y = targetVelocity.Y;
+		curAction.target_velocity_z = targetVelocity.Z;
+		curAction.use_nitro = true;
+
+		re.Action = curAction;
+	}
+	return false;
+}
+
+RobotEntity MyStrategy::GetRobotEntity(int tick, int id)
+{
+	for (auto& re : _robotEntities.at(tick))
+	{
+		if (re.Id == id)
+			return re;
+	}
+	throw "NO ROBOT FOUND";
 }
 
 std::string MyStrategy::custom_rendering()
