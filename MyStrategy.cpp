@@ -2117,7 +2117,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		{
 			const int oppId = oppCt.first;
 			const int collisionTick = oppCt.second;
-			const int collisionTickDelta = 5;
+			const int collisionTickDelta = 3;
 			
 			for (int t = 0; t < collisionTick - collisionTickDelta; ++t)
 			{
