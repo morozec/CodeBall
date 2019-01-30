@@ -2281,7 +2281,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 		
 		if (IsPenaltyArea(ballEntity.Position))//включаем режим защитника
 		{
-			if (position == 1) continue;//нап не защищается
+			if (robot.z > 0 && position == 1) continue;//нап не защищается на своей половине
 
 			const auto isBestTime = _defenderMovePoints.count(robot.id) > 0 && std::get<0>(_defenderMovePoints[robot.id]) == t;
 			const auto angle = robotPos.angleTo(ballEntity.Position);
