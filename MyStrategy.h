@@ -129,15 +129,6 @@ public:
 
 	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff, bool considerBoardSide, double& goalTime, BallEntity& collideBallEntity) const;
 
-	/*model::Action SetDefenderAction(const model::Robot& me,
-		const Vector3D& defenderPoint,
-		std::optional<double>& collisionT, BallEntity& bestBallEntity);*/
-	bool GetDefenderStrikeBallEntity(
-		const model::Robot& robot, int t,
-		int startAttackTick,
-		int endAttackTick,
-		BallEntityContainer& bestBecP, int& bestMoveT);
-
 	std::optional<Vector3D> GetDefenderStrikePoint(int t,
 		int startAttackTick,///для сохраненных точек передаем t прыжка
 		//int endAttackTick, //для сохраненных точек передаем t прыжка + 1
