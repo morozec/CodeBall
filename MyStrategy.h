@@ -160,6 +160,8 @@ public:
 	bool IsOkPosToMove(const Vector3D& mePos, const model::Robot& robot, int t,
 		int directionCoeff,
 		std::optional<double>& collisionT, std::optional<BallEntity>& bestBallEntity, double& goalTime, int& collisionsCount);
+	double GetMoveRadius(const model::Robot& robot, int t);
+
 	std::optional<Vector3D> GetAttackerMovePoint(const model::Robot& robot, 
 		int startAttackTick,
 		bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT, int position);

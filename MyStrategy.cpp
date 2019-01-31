@@ -2498,6 +2498,22 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 	return false;
 }
 
+double MyStrategy::GetMoveRadius(const model::Robot & robot, int t)
+{
+	const auto be = _ballEntities.at(t);
+
+	const auto jumpRobotVelocity = 15.0;
+	const auto collisionT = (be.Position.Y - Constants::Rules.ROBOT_MIN_RADIUS) / (jumpRobotVelocity - be.Velocity.Y);
+	if (collisionT < 0)
+		return _moveSphereRadius;
+	   
+	const auto x = be.Position.X + be.Velocity.X * collisionT;
+	const auto z = be.Position.Z + be.Velocity.Z * collisionT;
+
+	const auto lengthToLine = Helper::GetDistToLine(robot.x, robot.z, be.Position.X, be.Position.Z, x, z);
+	return lengthToLine + _moveSphereRadius;
+}
+
 std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & robot,
 	int startAttackTick,
 	bool& isDefenderSavedPointOk, BallEntityContainer& bestBecP, int& bestWaitT, int& bestMoveT, int position)
@@ -2737,7 +2753,8 @@ std::optional<Vector3D> MyStrategy::GetAttackerStrikePoint(const model::Robot & 
 	}*/
 
 	double div = (ballEntity.Position.X - robot.x) / (ballEntity.Position.Z - robot.z);
-	double tmp = _moveSphereRadius / sqrt(1 + div * div);
+	double radius = GetMoveRadius(robot, t);
+	double tmp = radius / sqrt(1 + div * div);
 	double x1 = ballEntity.Position.X - tmp;
 	double z1 = ballEntity.Position.Z - (robot.x - ballEntity.Position.X) * (x1 - ballEntity.Position.X) /
 		(robot.z - ballEntity.Position.Z);

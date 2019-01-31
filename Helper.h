@@ -29,6 +29,8 @@ public:
 
 	static Vector3D GetBallPosition(const model::Ball ball);
 	static Vector3D GetBallVelocity(const model::Ball ball);
+
+	static double GetDistToLine(double x1, double z1, double x2, double z2, double x0, double z0);
 };
 
 #endif

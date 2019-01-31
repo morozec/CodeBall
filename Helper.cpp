@@ -99,4 +99,9 @@ Vector3D Helper::GetBallVelocity(const model::Ball ball)
 	return Vector3D(ball.velocity_x, ball.velocity_y, ball.velocity_z);
 }
 
+double Helper::GetDistToLine(double x1, double z1, double x2, double z2, double x0, double z0)
+{
+	return abs((z2 - z1)*x0 - (x2 - x1)*z0 + x2 * z1 - z2 * x1) / sqrt((z2 - z1)*(z2 - z1) + (x2 - x1)*(x2 - x1));
+}
+
 
