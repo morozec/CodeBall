@@ -73,6 +73,7 @@ private:
 	std::set<model::NitroPack> _gotNitros;
 	std::set<int> _usingNitroIds = std::set<int>();
 	std::map<int, int> _nitroTicks = std::map<int, int>();
+	std::map<int, int> _nitroTicksCur = std::map<int, int>();
 	//std::map<int, Vector3D> _nitroPositions = std::map<int, Vector3D>();
 
 	double NitroVelocityY = 14.983333333333333;

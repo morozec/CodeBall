@@ -46,6 +46,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		_actions = std::map<int, model::Action > ();
 
 		_nitroPosCur = std::map<int, Vector3D>();
+		_nitroTicksCur = std::map<int, int>();
 
 		std::vector<Robot> opp_robots = std::vector<Robot>();
 		for (Robot robot : game.robots)
@@ -457,7 +458,11 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		if (act.second.use_nitro && _nitroPosCur.count(act.first) > 0)
 		{
 			_usingNitroIds.insert(act.first);
-			_nitroPositions[act.first] = _nitroPosCur[act.first];
+			//_nitroPositions[act.first] = _nitroPosCur[act.first];
+		}
+		if (act.second.use_nitro && _nitroTicksCur.count(act.first) > 0)
+		{
+			_nitroTicks[act.first] = _nitroTicksCur[act.first];
 		}
 	}
 
@@ -947,16 +952,18 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 
 	if (_usingNitroIds.find(robot.id) != _usingNitroIds.end())
 	{
-		if (robot.velocity_y > 0)
+		if (_nitroTicks.at(robot.id) > 0)
 		{
 			robotAction.target_velocity_x = robot.velocity_x;
 			robotAction.target_velocity_y = Constants::Rules.MAX_ENTITY_SPEED;
 			robotAction.target_velocity_z = robot.velocity_z;
 			robotAction.use_nitro = true;
+			_nitroTicks[robot.id]--;
 		}
 		else
 		{
 			_usingNitroIds.erase(robot.id);
+			_nitroTicks.erase(robot.id);
 		}
 	}
 	//else
@@ -1980,6 +1987,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					if (moveT == 0)
 					{
 						_nitroPosCur[me.id] = targetBe.Position;
+						_nitroTicksCur[me.id] = int(collisionTime * Constants::Rules.TICKS_PER_SECOND) + 1;
 						return jumpNitroAction;
 					}
 					else
@@ -2170,6 +2178,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					if (moveT == 0)
 					{
 						_nitroPosCur[me.id] = targetBe.Position;
+						_nitroTicksCur[me.id] = int(collisionTime * Constants::Rules.TICKS_PER_SECOND) + 1;
 						return jumpNitroAction;
 					}
 					else
@@ -2242,6 +2251,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 						if (moveT == 0)
 						{
 							_nitroPosCur[me.id] = targetRe.Position;
+							_nitroTicksCur[me.id] = int(collisionTime * Constants::Rules.TICKS_PER_SECOND) + 1;
 							return jumpNitroAction;
 						}
 						else
