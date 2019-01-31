@@ -2072,8 +2072,9 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		return action;			
 	}	
 
-	if (position >= 0 && me.z > 0 && !_isGoalPossible && _ball.z > 0 &&
-		(movePoint == std::nullopt || _minOppCollisionTick != -1 && bestBecP.collisionTime * Constants::Rules.TICKS_PER_SECOND > _minOppCollisionTick) &&
+	if (position >= 0 && me.z > 0 && !_isGoalPossible && _ball.z > 0 && me.z < _ball.z &&
+		/*(movePoint == std::nullopt || 
+			_oppStrikeTime.has_value() && bestBecP.collisionTime > _oppStrikeTime.value()) &&*/
 		me.nitro_amount > 10)
 	{
 		int finalTick = _minOppCollisionTick == -1 ? 50 : _minOppCollisionTick;
@@ -3280,9 +3281,9 @@ bool MyStrategy::simulate_ball_nitro_jump(RobotEntity& re, int startTick, int ta
 		reZ += re.Velocity.Z * tickTime;
 		if (curBe.Position.Y - reY > collisionDist)//еще не достигли нужной высоты
 		{
-			if ((reX - curBe.Position.X) * startDx < 0 ||
+			/*if ((reX - curBe.Position.X) * startDx < 0 ||
 				(reZ - curBe.Position.Z) * startDz < 0)
-				return false;
+				return false;*/
 			continue;
 		}
 		if (reY - curBe.Position.Y > collisionDist)//пролетели выше мяча
