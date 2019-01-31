@@ -45,6 +45,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		InitBallEntities();
 		_actions = std::map<int, model::Action > ();
 
+		_nitroPosCur = std::map<int, Vector3D>();
+
 		std::vector<Robot> opp_robots = std::vector<Robot>();
 		for (Robot robot : game.robots)
 		{
@@ -447,6 +449,28 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
 
 
+
+
+
+	for (auto& act:_actions)
+	{
+		if (act.second.use_nitro && _nitroPosCur.count(act.first) > 0)
+		{
+			_usingNitroIds.insert(act.first);
+			_nitroPositions[act.first] = _nitroPosCur[act.first];
+		}
+	}
+
+	/*const auto nearestNitro = get_nearest_nitro_pack(robot, game);
+	if (nearestNitro.has_value())
+	{
+		const auto nnValue = nearestNitro.value();
+		const auto nnPos = Vector3D(nnValue.x, nnValue.y, nnValue.z);
+		int runTicks = -1;
+		_actions[robot.id] = GetDefaultAction(robot, nnPos, runTicks);
+		_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0, 1, 0.5);
+	}*/
+	
 
 
 
@@ -1955,8 +1979,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					bestBecP = BallEntityContainer(resBe, collisionTime, false, -1, BallEntity(), true);
 					if (moveT == 0)
 					{
-						_usingNitroIds.insert(me.id);
-						//_nitroPositions[me.id] = targetBe.Position;
+						_nitroPosCur[me.id] = targetBe.Position;
 						return jumpNitroAction;
 					}
 					else
@@ -2146,8 +2169,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					bestBecP = BallEntityContainer(resBe, collisionTime, true, goalTime, collideBallEntity, true);
 					if (moveT == 0)
 					{
-						_usingNitroIds.insert(me.id);
-						//_nitroPositions[me.id] = targetBe.Position;
+						_nitroPosCur[me.id] = targetBe.Position;
 						return jumpNitroAction;
 					}
 					else
@@ -2219,8 +2241,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 						bestBecP = BallEntityContainer(_ballEntities[0], collisionTime, true, goalTime, BallEntity(), true);
 						if (moveT == 0)
 						{
-							_usingNitroIds.insert(me.id);
-							//_nitroPositions[me.id] = targetRe.Position;
+							_nitroPosCur[me.id] = targetRe.Position;
 							return jumpNitroAction;
 						}
 						else

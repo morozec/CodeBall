@@ -6079,6 +6079,7 @@ private:
 		16.0308380555547,
 		16.0333356944436
 			};
+	std::map<int, Vector3D> _nitroPosCur;
 	
 public:
 	int _lastMyCollisionTick = -1;
