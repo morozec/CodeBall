@@ -474,7 +474,7 @@ void Simulator::simulate_jump_start(RobotEntity& re)
 
 }
 
-void Simulator::simulate_collision_jump(RobotEntity & re)
+void Simulator::simulate_one_tick_nitro_jump(RobotEntity & re)
 {
 	Vector3D targetVelocity = Helper::GetAcionTargetVelocity(re.Action);
 	const auto averageTickDeltaNitro = 0.5;

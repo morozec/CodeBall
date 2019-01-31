@@ -39,7 +39,7 @@ public:
 
 	static void simulate_jump_start(RobotEntity& re);
 
-	static void simulate_collision_jump(RobotEntity& re);
+	static void simulate_one_tick_nitro_jump(RobotEntity& re);
 };
 
 #endif
