@@ -70,7 +70,6 @@ private:
 	bool _isNoCollisionGoalPossible;
 	bool _isNoCollisionMeGoalPossible;
 
-	std::set<model::NitroPack> _gotNitros;
 	//std::set<int> _usingNitroIds = std::set<int>();
 	std::map<int, int> _nitroTicks = std::map<int, int>();
 	std::map<int, int> _nitroTicksCur = std::map<int, int>();
@@ -189,6 +188,10 @@ public:
 	bool simulate_ball_nitro_jump(RobotEntity& re, int startTick, std::vector<BallEntity>& resBes, double& collisionTime);
 	bool simulate_robot_nitro_jump(RobotEntity & re, int startTick, int targetTick, int robotId, double & collisionTime);
 	RobotEntity GetRobotEntity(int tick, int id);
+
+	model::Robot GetRobotById(int id);
+	model::NitroPack GetNitroById(model::Game game, int id);
+	bool IsSafoToCollectNitro();
 
     MyStrategy();
     void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;
