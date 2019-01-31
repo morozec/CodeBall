@@ -76,8 +76,9 @@ private:
 	std::map<int, int> _nitroTicksCur = std::map<int, int>();
 	//std::map<int, Vector3D> _nitroPositions = std::map<int, Vector3D>();
 
-	double NitroVy = 14.488333333333255;
-	double NitroStartY = 1.2931412499999937;
+	const double NitroVy = 14.488333333333255;
+	const double NitroStartY = 1.2931412499999937;
+	const double MtNitroLoss = 0.008333;
 
 	//std::map<int, Vector3D> _nitroPosCur;
 	

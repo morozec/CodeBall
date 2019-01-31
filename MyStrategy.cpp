@@ -3302,6 +3302,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 	auto jumpT = 0;
 
 	resBes = std::vector<BallEntity>();
+	auto nitro = re.Nitro;
 	while (_ballEntities.count(t+1) > 0 && jumpT + 1 < 60)
 	{
 		t++;
@@ -3314,6 +3315,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		if (jumpT > 1)
 		{			
 			reY += NitroVy * tickTime;
+			nitro -= MtNitroLoss * Constants::Rules.MICROTICKS_PER_TICK;
 		}
 
 		if (curBe.Position.Y - reY > collisionDist)//еще не достигли нужной высоты
@@ -3321,6 +3323,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 			/*if ((reX - curBe.Position.X) * startDx < 0 ||
 				(reZ - curBe.Position.Z) * startDz < 0)
 				return false;*/
+			if (nitro < 0) return false;
 			continue;
 		}
 		if (reY - curBe.Position.Y > collisionDist)//пролетели выше мяча
@@ -3333,7 +3336,10 @@ bool MyStrategy::simulate_ball_nitro_jump(
 			(reY - curBe.Position.Y) * (reY - curBe.Position.Y) +
 			(reZ - curBe.Position.Z) * (reZ - curBe.Position.Z);
 		if (dist2 > collisionDist2)
+		{
+			if (nitro < 0) return false;
 			continue; //коллизии еще не было
+		}
 
 		//случилась коллизия
 		int c = 0;
@@ -3352,7 +3358,12 @@ bool MyStrategy::simulate_ball_nitro_jump(
 			dist2 = (reX - curBe.Position.X) * (reX - curBe.Position.X) +
 				(reY - curBe.Position.Y) * (reY - curBe.Position.Y) +
 				(reZ - curBe.Position.Z) * (reZ - curBe.Position.Z);
+
+			nitro += MtNitroLoss;
 		}
+
+		if (nitro < 0)
+			return false;
 
 		//симулируем микротик коллизии
 		re.Position.X = reX;
