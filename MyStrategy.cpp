@@ -1979,7 +1979,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 				std::vector<BallEntity> resBes;
 				double collisionTime;
-				bool isCollision = simulate_ball_nitro_jump(re, moveT, t, resBes, collisionTime);
+				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime);
 				if (isCollision && resBes[0].Velocity.Z > 0 && resBes[0].Velocity.Y > 0)
 				{
 					isOkBestBecP = true;
@@ -2167,7 +2167,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 				std::vector<BallEntity> resBes;
 				double collisionTime;
-				bool isCollision = simulate_ball_nitro_jump(re, moveT, t, resBes, collisionTime);
+				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime);
 
 				double goalTime;
 				BallEntity collideBallEntity;
@@ -3280,10 +3280,8 @@ std::optional<model::NitroPack> MyStrategy::get_nearest_nitro_pack(const Robot& 
 }
 
 bool MyStrategy::simulate_ball_nitro_jump(
-	RobotEntity& re, int startTick, int targetTick, std::vector<BallEntity>& resBes, double& collisionTime)
+	RobotEntity& re, int startTick, std::vector<BallEntity>& resBes, double& collisionTime)
 {	
-	const auto targetBe = _ballEntities.at(targetTick);
-
 	int t = startTick;
 	auto curBe = _ballEntities[t];
 
@@ -3305,18 +3303,26 @@ bool MyStrategy::simulate_ball_nitro_jump(
 	auto jumpT = 0;
 
 	resBes = std::vector<BallEntity>();
-	while (true)
+	while (_ballEntities.count(t+1) > 0 && jumpT + 1 < 60)
 	{
 		t++;
 		jumpT++;
-		if (_ballEntities.count(t) == 0)
-			return false;
 
-		curBe = BallEntity(_ballEntities.at(t));
+		curBe = BallEntity(_ballEntities[t]);
 
 		auto reY = _nitroHs[jumpT * 100];
-		reX += re.Velocity.X * tickTime;
-		reZ += re.Velocity.Z * tickTime;
+
+		if (jumpT > 1)
+		{
+			reX += re.Velocity.X * tickTime;
+			reZ += re.Velocity.Z * tickTime;
+		}
+		else//вычитаем 2 микротика на прыжок
+		{
+			reX += re.Velocity.X * (tickTime - 2 * mictoTickTime);
+			reZ += re.Velocity.Z * (tickTime - 2 * mictoTickTime);
+		}
+
 		if (curBe.Position.Y - reY > collisionDist)//еще не достигли нужной высоты
 		{
 			/*if ((reX - curBe.Position.X) * startDx < 0 ||
@@ -3338,7 +3344,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 
 		//случилась коллизия
 		int c = 0;
-		while (dist2 > collisionDist2)
+		while (dist2 < collisionDist2)
 		{
 			c++;
 			reX -= re.Velocity.X * mictoTickTime;

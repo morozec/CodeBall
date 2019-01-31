@@ -444,6 +444,22 @@ void Simulator::simulate_jump_start(RobotEntity& re)
 			tvcLength2));
 	}
 
+	if (re.Action.use_nitro)
+	{
+		auto nitroTargetVelocityChange = 
+			Helper::Clamp(targetVelocity - re.Velocity, re.Nitro * Constants::Rules.NITRO_POINT_VELOCITY_CHANGE);
+		const auto tvcLength = nitroTargetVelocityChange.Length();
+
+		if (tvcLength > Eps)
+		{
+			nitroTargetVelocityChange.Normalize();
+			const auto acceleration = nitroTargetVelocityChange * Constants::Rules.ROBOT_NITRO_ACCELERATION;
+			const auto velocityChange = Helper::Clamp(acceleration * mtTime, tvcLength);
+			re.Velocity = re.Velocity + velocityChange;
+			re.Nitro -= velocityChange.Length() / Constants::Rules.NITRO_POINT_VELOCITY_CHANGE;
+		}
+	}
+
 	//update pos
 	re.Position.X += re.Velocity.X * mtTime;
 	re.Position.Z += re.Velocity.Z * mtTime;
@@ -473,6 +489,22 @@ void Simulator::simulate_jump_start(RobotEntity& re)
 		targetVelocityChange.Normalize();
 		re.Velocity.Add(Helper::Clamp2(targetVelocityChange * (a * mtTime),
 			tvcLength2));
+	}
+
+	if (re.Action.use_nitro)
+	{
+		auto nitroTargetVelocityChange =
+			Helper::Clamp(targetVelocity - re.Velocity, re.Nitro * Constants::Rules.NITRO_POINT_VELOCITY_CHANGE);
+		const auto tvcLength = nitroTargetVelocityChange.Length();
+
+		if (tvcLength > Eps)
+		{
+			nitroTargetVelocityChange.Normalize();
+			const auto acceleration = nitroTargetVelocityChange * Constants::Rules.ROBOT_NITRO_ACCELERATION;
+			const auto velocityChange = Helper::Clamp(acceleration * mtTime, tvcLength);
+			re.Velocity = re.Velocity + velocityChange;
+			re.Nitro -= velocityChange.Length() / Constants::Rules.NITRO_POINT_VELOCITY_CHANGE;
+		}
 	}
 
 	//update pos

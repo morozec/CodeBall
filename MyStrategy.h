@@ -6186,7 +6186,7 @@ public:
 
 	std::optional<model::NitroPack> get_nearest_nitro_pack(const model::Robot& robot, const model::Game& game);
 
-	bool simulate_ball_nitro_jump(RobotEntity& re, int startTick, int targetTick, std::vector<BallEntity>& resBes, double& collisionTime);
+	bool simulate_ball_nitro_jump(RobotEntity& re, int startTick, std::vector<BallEntity>& resBes, double& collisionTime);
 	bool simulate_robot_nitro_jump(RobotEntity & re, int startTick, int targetTick, int robotId, double & collisionTime);
 	RobotEntity GetRobotEntity(int tick, int id);
 
