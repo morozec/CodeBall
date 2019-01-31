@@ -159,7 +159,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					if (robot.id == defender.id)
 					{
-						if (IsSafoToCollectNitro())
+						if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75 && IsSafoToCollectNitro())
 							goNitroRobots.insert(robot.id);
 
 						int runTicks = -1;
@@ -182,7 +182,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					else //идем за м€чом или на противника
 					{
-						goNitroRobots.insert(robot.id);
+						if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+							goNitroRobots.insert(robot.id);
 						int resIndex;
 						_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
@@ -231,8 +232,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
 							continue;
 						}
-
-						goNitroRobots.insert(robot.id);
+						if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+							goNitroRobots.insert(robot.id);
 						_actions[robot.id] = GetNearestOppAttackAction(robot);
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 					}
@@ -245,7 +246,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						if (robot.id == bestBecPRobotId) continue;
 						if (robot.id == attacker.id)//нап идет за м€чом или на противника
 						{
-							goNitroRobots.insert(robot.id);
+							if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+								goNitroRobots.insert(robot.id);
 							int resIndex;
 							_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
 							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
@@ -253,7 +255,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						}
 						else//пз атакует врага
 						{
-							goNitroRobots.insert(robot.id);
+							if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+								goNitroRobots.insert(robot.id);
 							_actions[robot.id] = GetNearestOppAttackAction(robot);
 							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 						}						
@@ -306,7 +309,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						continue;
 					}
 
-					goNitroRobots.insert(robot.id);
+					if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+						goNitroRobots.insert(robot.id);
 					
 					BallEntityContainer curBestBec;
 					bool isOkBestBec;
@@ -336,7 +340,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (!robot.touch) continue;
 			if (robot.id == defender.id)
 			{
-				if (IsSafoToCollectNitro())
+				if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75 && IsSafoToCollectNitro())
 				{
 					goNitroRobots.insert(robot.id);
 				}
@@ -347,7 +351,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			}
 			else if (robot.id == attacker.id)//нап идет за м€чом или на противника
 			{
-				goNitroRobots.insert(robot.id);
+				if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+					goNitroRobots.insert(robot.id);
 				int resIndex;
 				_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
 				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
@@ -356,7 +361,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			}
 			else//пз атакует врага
 			{
-				goNitroRobots.insert(robot.id);
+				if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+					goNitroRobots.insert(robot.id);
 				_actions[robot.id] = GetNearestOppAttackAction(robot);
 				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 				
@@ -376,13 +382,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			if (okRobots.find(gnRobotId) != okRobots.end())
 				continue;
 
-			Robot gnRobot = GetRobotById(gnRobotId);
-
-			if (gnRobot.nitro_amount > Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
-			{
-				okRobots.insert(gnRobot.id);
-				continue;
-			}
+			Robot gnRobot = GetRobotById(gnRobotId);			
 
 			auto minDist2 = std::numeric_limits<double>::max();
 			std::optional<NitroPack> res = std::nullopt;
