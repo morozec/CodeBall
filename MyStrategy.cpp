@@ -2030,7 +2030,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		return action;			
 	}	
 
-	if (position >= 0 && me.z > 0 &&
+	if (position >= 0 && me.z > 0 && startAttackTick == 0 &&
 		/*(movePoint == std::nullopt || 
 			_oppStrikeTime.has_value() && bestBecP.collisionTime > _oppStrikeTime.value()) &&*/
 		me.nitro_amount > 10)
