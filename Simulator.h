@@ -16,7 +16,8 @@
 class Simulator {
 private:
 	static const double Eps;
-	static const double Eps2;	
+	static const double Eps2;
+	static const double NitroDeltaY;
 	
 	static double GetRobotRadius(double jumpSpeed);
 

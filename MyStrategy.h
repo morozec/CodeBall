@@ -77,7 +77,7 @@ private:
 	//std::map<int, Vector3D> _nitroPositions = std::map<int, Vector3D>();
 
 	double NitroVelocityY = 14.983333333333333;
-
+	
 	double _nitroHs[6000] ={
 		1.05,
 		1.05249763888888,
@@ -6186,7 +6186,7 @@ public:
 
 	std::optional<model::NitroPack> get_nearest_nitro_pack(const model::Robot& robot, const model::Game& game);
 
-	bool simulate_ball_nitro_jump(RobotEntity& re, int startTick, int targetTick, BallEntity& resBe, double& collisionTime);
+	bool simulate_ball_nitro_jump(RobotEntity& re, int startTick, int targetTick, std::vector<BallEntity>& resBes, double& collisionTime);
 	bool simulate_robot_nitro_jump(RobotEntity & re, int startTick, int targetTick, int robotId, double & collisionTime);
 	RobotEntity GetRobotEntity(int tick, int id);
 

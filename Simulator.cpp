@@ -10,6 +10,7 @@
 
 const double Simulator::Eps = 1E-3;
 const double Simulator::Eps2 = 1E-6;
+const double Simulator::NitroDeltaY = 0.002497639;
 
 double Simulator::GetRobotRadius(double jumpSpeed)
 {
@@ -261,7 +262,19 @@ void Simulator::UpdateOnAir(
 	Move(entity, deltaTime);
 	for (auto & re : jumpRes)
 	{
-		Move(re, deltaTime);
+		if (re.Action.use_nitro && re.Nitro > 0)
+		{
+			const auto mtTime = 1.0 / Constants::Rules.TICKS_PER_SECOND / Constants::Rules.MICROTICKS_PER_TICK;
+			const auto mtCount = deltaTime / mtTime;
+
+			re.Position.X += re.Velocity.X * deltaTime;
+			re.Position.Z += re.Velocity.Z * deltaTime;
+			re.Position.Y += NitroDeltaY * mtCount;
+
+			re.Velocity.Y -= Constants::Rules.GRAVITY * deltaTime;
+		}
+		else
+			Move(re, deltaTime);
 
 		re.Radius = GetRobotRadius(re.Action.jump_speed);
 		re.SetRadiusChangeSpeed(re.Action.jump_speed);
