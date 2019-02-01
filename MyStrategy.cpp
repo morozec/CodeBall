@@ -2190,6 +2190,10 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	{
 		int finalTick = _minOppCollisionTick == -1 ? 50 : _minOppCollisionTick;
 
+
+		bool isGot = false;
+		BallEntityContainer nitroBestBec;
+		Action nitroBestAction;
 		for (int t = 0; t < finalTick; ++t)
 		{
 			const auto targetBe = _ballEntities[t];
@@ -2244,37 +2248,54 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					IsGoalBallDirection2(resBes[0], 1, false, goalTime, collideBallEntity, true, collisionsCount) &&
 					(!_isGoalPossible || (collisionTime + goalTime) * Constants::Rules.TICKS_PER_SECOND < _meGoalScoringTick))//уменьшаем время забития
 				{
-					isOkBestBecP = true;
-					bestBecP = BallEntityContainer(resBes[0], collisionTime, true, goalTime, collisionsCount, collideBallEntity, true);
-					if (moveT == 0)
-					{
-						//_nitroPosCur[me.id] = targetBe.Position;
-						_nitroTicksCur[me.id] = int(collisionTime * Constants::Rules.TICKS_PER_SECOND) + 1;
+					auto bec = BallEntityContainer(resBes[0], collisionTime, true, goalTime, collisionsCount, collideBallEntity, true);
 
-						model::Action jumpAction = model::Action();
-						jumpAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-						jumpAction.target_velocity_x = curVelocity.X;
-						jumpAction.target_velocity_y = 0;
-						jumpAction.target_velocity_z = curVelocity.Z;
-						jumpAction.use_nitro = false;
-						return jumpAction;
-					}
-					else
+					if (!isGot || CompareBeContainers(bec, nitroBestBec))
 					{
-						auto const moveVelocity = Helper::GetTargetVelocity(startPos,
-							targetPos,
-							Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+						isGot = true;
+						nitroBestBec = bec;
+						isOkBestBecP = true;
 
-						model::Action moveAction = model::Action();
-						moveAction.jump_speed = 0;
-						moveAction.target_velocity_x = moveVelocity.X;
-						moveAction.target_velocity_y = 0;
-						moveAction.target_velocity_z = moveVelocity.Z;
-						moveAction.use_nitro = false;
-						return moveAction;
+						if (moveT == 0)
+						{
+							//_nitroPosCur[me.id] = targetBe.Position;
+							_nitroTicksCur[me.id] = int(collisionTime * Constants::Rules.TICKS_PER_SECOND) + 1;
+
+							model::Action jumpAction = model::Action();
+							jumpAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+							jumpAction.target_velocity_x = curVelocity.X;
+							jumpAction.target_velocity_y = 0;
+							jumpAction.target_velocity_z = curVelocity.Z;
+							jumpAction.use_nitro = false;
+							nitroBestAction = jumpAction;
+						}
+						else
+						{
+							auto const moveVelocity = Helper::GetTargetVelocity(startPos,
+								targetPos,
+								Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+
+							model::Action moveAction = model::Action();
+							moveAction.jump_speed = 0;
+							moveAction.target_velocity_x = moveVelocity.X;
+							moveAction.target_velocity_y = 0;
+							moveAction.target_velocity_z = moveVelocity.Z;
+							moveAction.use_nitro = false;
+							nitroBestAction = moveAction;
+						}
+
 					}
+
+					
+					
+					
 				}
 			}
+		}
+
+		if (isGot)
+		{
+			return nitroBestAction;
 		}
 	}
 
