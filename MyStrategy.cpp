@@ -302,7 +302,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					if (robot.id == defender.id)
 					{
 						int runTicks = -1;
-						if (IsSafoToCollectNitro())
+						if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75 && IsSafoToCollectNitro())
 							goNitroRobots.insert(robot.id);
 						_actions[robot.id] = GetDefaultAction(robot, _myGates, runTicks);//защ. идет на ворота
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
