@@ -3318,6 +3318,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		re.Action = jumpNitroAction;
 
 		collisionTime = (t - c / 100.0) * 1.0 / Constants::Rules.TICKS_PER_SECOND;
+		RobotEntity resRe;
 		for (int i = 0; i < 3; ++i)
 		{
 			auto reCopy = RobotEntity(re);
@@ -3334,8 +3335,9 @@ bool MyStrategy::simulate_ball_nitro_jump(
 			resBes.push_back(resBe);
 
 			if (i == 0)
-				re = reCopy;
+				resRe = reCopy;
 		}
+		re = resRe;
 		return true;		
 	}
 	return false;
