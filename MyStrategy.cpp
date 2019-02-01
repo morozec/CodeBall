@@ -1028,6 +1028,33 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 			_nitroTicks.erase(robot.id);
 		}
 	}
+	else if (!_isGoalPossible && _ball.z > 0)
+	{
+		auto nitroRe = RobotEntity(robot);
+		Action nitroAction = Action();
+		nitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+		nitroAction.target_velocity_x = robot.velocity_x;
+		nitroAction.target_velocity_y = robot.velocity_y;
+		nitroAction.target_velocity_z = robot.velocity_z;
+		nitroAction.use_nitro = true;
+		nitroRe.Action = nitroAction;
+
+		std::vector<BallEntity> resBes;
+		double collisionTime;
+		bool is_nitro_collision = simulate_ball_nitro_jump(nitroRe, 0, resBes, collisionTime, false);
+		int collisionTicks = int(collisionTime * Constants::Rules.TICKS_PER_SECOND) + 1;
+		double goalTime;
+		BallEntity collideBe;
+		int collisionsCount;
+		if (is_nitro_collision && 
+			(_minOppCollisionTick == -1 || _minOppCollisionTick != -1 && collisionTicks < _minOppCollisionTick) &&
+			IsGoalBallDirection2(resBes[0], 1, true, goalTime, collideBe, false, collisionsCount))
+		{
+			_actions[robot.id] = nitroAction;
+			_nitroTicks[robot.id] = collisionTicks;
+			return;
+		}
+	}
 	//else
 	//{		
 	//	bool gotAction = false;
@@ -2077,7 +2104,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 				std::vector<BallEntity> resBes;
 				double collisionTime;
-				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime);
+				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime, true);
 
 				if (isCollision && resBes[0].Position.Z > -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS &&
 					resBes[0].Velocity.Y > 0 && resBes[0].Velocity.Z > 0 &&
@@ -2206,7 +2233,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 				std::vector<BallEntity> resBes;
 				double collisionTime;
-				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime);
+				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime, true);
 
 				double goalTime;
 				BallEntity collideBallEntity;
@@ -3288,7 +3315,7 @@ std::optional<model::NitroPack> MyStrategy::get_nearest_nitro_pack(const Robot& 
 }
 
 bool MyStrategy::simulate_ball_nitro_jump(
-	RobotEntity& re, int startTick, std::vector<BallEntity>& resBes, double& collisionTime)
+	RobotEntity& re, int startTick, std::vector<BallEntity>& resBes, double& collisionTime, bool isJump)
 {	
 	int t = startTick;
 	auto curBe = _ballEntities[t];
@@ -3305,7 +3332,8 @@ bool MyStrategy::simulate_ball_nitro_jump(
 
 	auto reX = re.Position.X;
 	auto reZ = re.Position.Z;
-	auto reY = NitroStartY;
+
+	auto reY = isJump ?  NitroStartY : re.Position.Y;
 
 	const auto collisionDist = Constants::Rules.BALL_RADIUS + Constants::Rules.ROBOT_MAX_RADIUS;
 	const auto collisionDist2 = collisionDist * collisionDist;
@@ -3322,7 +3350,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 
 		reX += re.Velocity.X * tickTime;
 		reZ += re.Velocity.Z * tickTime;
-		if (jumpT > 1)
+		if (!isJump || jumpT > 1)
 		{			
 			reY += NitroVy * tickTime;
 			nitro -= MtNitroLoss * Constants::Rules.MICROTICKS_PER_TICK;
@@ -3565,7 +3593,7 @@ model::Action MyStrategy::GetSaveGatesAction(const model::Robot & robot, bool& c
 
 			std::vector<BallEntity> resBes;
 			double collisionTime;
-			bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime);
+			bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime, true);
 
 			double goalTime;
 			BallEntity collideBallEntity;
