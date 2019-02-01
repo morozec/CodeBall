@@ -2003,7 +2003,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 				if (isCollision && resBes[0].Position.Z > -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS &&
 					resBes[0].Velocity.Y > 0 && resBes[0].Velocity.Z > 0 
-					&& resBes[0].Velocity.Z > abs(resBes[0].Velocity.X))
+					&& resBes[0].Velocity.Z > abs(resBes[0].Velocity.X) &&
+					re.Velocity.Y < 0) //летим вниз после коллизии
 				{
 					isOkBestBecP = true;
 					bestBecP = BallEntityContainer(resBes[0], collisionTime, false, -1,0, BallEntity(), true);
@@ -3318,6 +3319,9 @@ bool MyStrategy::simulate_ball_nitro_jump(
 				return false;
 			resBe.IsCollided = false;
 			resBes.push_back(resBe);
+
+			if (i == 0)
+				re = reCopy;
 		}
 		return true;		
 	}
