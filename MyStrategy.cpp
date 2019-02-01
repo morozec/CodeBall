@@ -1933,7 +1933,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		bool isDangerousBall = false;
 		for (auto t = 0; t < goalSearchTicks; ++t)
 		{
-			if (_ballEntities[t].Position.Z < -Constants::Rules.arena.depth / 4 && 
+			if (_ballEntities[t].Position.Z < -Constants::Rules.arena.depth / 4 &&
+				_ballEntities[t].Position.Z > -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS &&
 				abs(_ballEntities[t].Position.X) < Constants::Rules.arena.width / 4 &&
 				_ballEntities[t].Position.Y > Constants::Rules.arena.goal_height / 2 && 
 				_ballEntities[t].Position.Y < Constants::Rules.arena.goal_height)
@@ -1959,6 +1960,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 			bool isGettingCloser = false;
 			for (int moveT = 0; moveT <= t; ++moveT)
 			{				
+				if (_meGoalScoringTick != -1 && moveT >= _meGoalScoringTick)
+					break;
 				if (moveT > 0)
 				{
 					PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
@@ -1991,7 +1994,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				double collisionTime;
 				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime);
 
-				if (isCollision && resBes[0].Velocity.Y > 0 && resBes[0].Velocity.Z > 0 
+				if (isCollision && resBes[0].Position.Z > -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS &&
+					resBes[0].Velocity.Y > 0 && resBes[0].Velocity.Z > 0 
 					&& resBes[0].Velocity.Z > abs(resBes[0].Velocity.X))
 				{
 					isOkBestBecP = true;
