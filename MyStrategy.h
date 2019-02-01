@@ -197,6 +197,8 @@ public:
 	model::NitroPack GetNitroById(model::Game game, int id);
 	bool IsSafoToCollectNitro();
 
+	model::Action GetSaveGatesAction(const model::Robot& robot, bool& canBeSaved);
+
     MyStrategy();
     void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;
 	std::string custom_rendering() override;
