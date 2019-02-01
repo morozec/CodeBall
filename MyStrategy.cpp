@@ -1511,18 +1511,15 @@ int MyStrategy::CompareDefenderBallEntities(const BallEntityContainer & b1, cons
 
 int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContainer bec2) const
 {
-	const auto tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
+	const auto deltaTickTime = 5.0 / Constants::Rules.TICKS_PER_SECOND;
 	if (_oppStrikeTime.has_value())
 	{
-		if (bec2.collisionTime > _oppStrikeTime.value() - tickTime)
+		if (bec2.collisionTime > _oppStrikeTime.value() - deltaTickTime)
 		{
 			return bec1.collisionTime < bec2.collisionTime ? -1 : 1;
 		}
-		else
-		{
-			if (bec1.collisionTime >= _oppStrikeTime.value() - tickTime)
-				return 1;
-		}
+		if (bec1.collisionTime >= _oppStrikeTime.value() - deltaTickTime)
+			return 1;
 	}
 
 	if (bec2.isGoalScored && !bec1.isGoalScored)
