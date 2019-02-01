@@ -1921,7 +1921,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	const auto startPos = Helper::GetRobotPosition(me);
 	const auto startVel = Helper::GetRobotVelocity(me);
 
-	bool needUseDefenceNitro = position == -1 && me.nitro_amount > 10
+	bool needUseDefenceNitro = position == -1 && me.nitro_amount > 0
 		&& (_defenderMovePoints.count(me.id) == 0 || !std::get<3>(_defenderMovePoints[me.id]).isGoalScored);
 	const auto goalSearchTicks = 40;
 	if (needUseDefenceNitro)
@@ -1987,7 +1987,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				double collisionTime;
 				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime);
 
-				if (isCollision && resBes[0].Velocity.Y > 0 && resBes[0].Velocity.Z > 0)
+				if (isCollision && resBes[0].Velocity.Y > 0 && resBes[0].Velocity.Z > 0 
+					&& resBes[0].Velocity.Z > abs(resBes[0].Velocity.X))
 				{
 					isOkBestBecP = true;
 					bestBecP = BallEntityContainer(resBes[0], collisionTime, false, -1, BallEntity(), true);
@@ -2020,9 +2021,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					}
 				}
 			}
-		}	
-
-		
+		}			
 	}
 
 	Vector3D targetVelocity;
