@@ -1134,8 +1134,12 @@ model::Action MyStrategy::GetNearestOppAttackAction(const model::Robot & me)
 {
 	const auto nearestOpp = get_nearest_ball_robot();
 	const auto mePos = Helper::GetRobotPosition(me);
-	const auto oppPos = Helper::GetRobotPosition(nearestOpp);
-	const auto targetVelocity = Helper::GetTargetVelocity(mePos, oppPos, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+	auto oppPos = Helper::GetRobotPosition(nearestOpp);
+	const double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
+	oppPos.X += nearestOpp.velocity_x * tickTime;
+	oppPos.Z += nearestOpp.velocity_z * tickTime;
+	const auto targetVelocity = Helper::GetTargetVelocity(
+		mePos, oppPos, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
 
 	model::Action action = model::Action();
 	action.target_velocity_x = targetVelocity.X;
