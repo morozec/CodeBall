@@ -1624,6 +1624,9 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 			waitVelocity = Vector3D(0, 0, 0);
 		}
 
+		if (!IsInsideArenaPoint(waitPos))
+			return movePoint;
+
 		auto timeToJump = time - waitT * 1.0 / Constants::Rules.TICKS_PER_SECOND;
 		if (!CanGetToPoint(goToPoint, waitPos, waitVelocity, timeToJump, false))
 			return movePoint;//дальше ждать нет смысла - точно не добежим
@@ -1665,6 +1668,9 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 				curPos = pvContainer.Position;
 				curVelocity = pvContainer.Velocity;
 			}
+
+			if (!IsInsideArenaPoint(curPos))
+				return movePoint;
 		
 			if (!CanGetToPoint(goToPoint, curPos, curVelocity, timeToJump, false))
 				continue;
@@ -1921,7 +1927,19 @@ bool MyStrategy::IsOkDefenderPosToJump(
 //	return movePoint;
 //}
 
-model::Action MyStrategy::SetAttackerAction(const model::Robot & me, 
+bool MyStrategy::IsInsideArenaPoint(const Vector3D& position)
+{
+	if (abs(position.X) > Constants::Rules.arena.width / 2 - Constants::Rules.arena.bottom_radius)
+		return false;
+	if (abs(position.Z) > Constants::Rules.arena.depth / 2 - Constants::Rules.arena.bottom_radius)
+		if (abs(position.X) > Constants::Rules.arena.goal_width / 2 ||
+			abs(position.Z) >
+			Constants::Rules.arena.depth / 2 + Constants::Rules.arena.goal_depth - Constants::Rules.arena.bottom_radius)
+			return false;
+	return true;
+}
+
+model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	int startAttackTick,
 	BallEntityContainer& bestBecP,
 	bool& isOkBestBecP,
@@ -2270,13 +2288,8 @@ bool MyStrategy::IsOkPosToMove(const Vector3D & mePos, const model::Robot & robo
 	if (pvContainer.IsPassedBy)
 		return false; // проскочим целевую точку. дальше все непредсказуемо
 
-	//TODO: учесть пределы арены по-умному
-	if (abs(pvContainer.Position.X) + Constants::Rules.ROBOT_MIN_RADIUS > Constants::Rules.arena.width / 2) 
+	if (!IsInsideArenaPoint(pvContainer.Position))
 		return false;
-	if (abs(pvContainer.Position.Z) + Constants::Rules.ROBOT_MIN_RADIUS > Constants::Rules.arena.depth / 2)
-		if (abs(pvContainer.Position.X) + Constants::Rules.ROBOT_MIN_RADIUS > Constants::Rules.arena.goal_width / 2 ||
-			abs(pvContainer.Position.Z) + Constants::Rules.ROBOT_MIN_RADIUS > Constants::Rules.arena.depth / 2 + Constants::Rules.arena.goal_depth) 
-			return false;
 
 	if (Helper::GetLength(_ballEntities.at(t).Position, pvContainer.Position) < 
 		Constants::Rules.ROBOT_MIN_RADIUS + Constants::Rules.BALL_RADIUS)

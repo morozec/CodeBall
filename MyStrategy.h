@@ -152,6 +152,8 @@ public:
 	/*std::optional<Vector3D> GetDefenderMovePoint(const model::Robot& robot,
 		std::optional<double>& collisionT, BallEntity& bestBallEntity, bool& isSavedPointOk);*/
 
+	bool IsInsideArenaPoint(const Vector3D& position);
+
 	model::Action SetAttackerAction(const model::Robot& me, 
 		int startAttackTick,
 		BallEntityContainer & bestBecP, bool& isOkBestBecP,int position);
