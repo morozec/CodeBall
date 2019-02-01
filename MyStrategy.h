@@ -134,7 +134,8 @@ public:
 
 	int CompareBeContainers(BallEntityContainer bec1, BallEntityContainer bec2) const;
 
-	bool IsGoalBallDirection2(const BallEntity& startBallEntity, int directionCoeff, bool considerBoardSide, double& goalTime, BallEntity& collideBallEntity) const;
+	bool IsGoalBallDirection2(
+		const BallEntity& startBallEntity, int directionCoeff, bool considerBoardSide, double& goalTime, BallEntity& collideBallEntity, bool isNitro) const;
 
 	std::optional<Vector3D> GetDefenderStrikePoint(int t,
 		int startAttackTick,///для сохраненных точек передаем t прыжка
