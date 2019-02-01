@@ -1925,7 +1925,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		&& _meGoalScoringTick != -1 
 		&& _meGoalScoringTick <= 50 
 		&& _ballEntities[_meGoalScoringTick].Position.Y > Constants::Rules.arena.goal_height * 0.5
-		&& me.nitro_amount > 10)
+		&& me.nitro_amount > 0)
 	{	
 
 		for (int t = 0; t < _meGoalScoringTick; ++t)
@@ -2035,9 +2035,9 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	}	
 
 	if (position >= 0 && me.z > 0 && startAttackTick == 0 &&
-		/*(movePoint == std::nullopt || 
-			_oppStrikeTime.has_value() && bestBecP.collisionTime > _oppStrikeTime.value()) &&*/
-		me.nitro_amount > 10)
+		(movePoint == std::nullopt || 
+			_oppStrikeTime.has_value() && bestBecP.collisionTime > _oppStrikeTime.value()) &&
+		me.nitro_amount > 0)
 	{
 		int finalTick = _minOppCollisionTick == -1 ? 50 : _minOppCollisionTick;
 
@@ -3311,7 +3311,15 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		{
 			auto reCopy = RobotEntity(re);
 			auto resBe = BallEntity(curBe);
-			Simulator::Update(reCopy, resBe, mictoTickTime, _allHitEs[i], isGoalScored);
+			for (int j = 0; j < 2; ++j)
+			{
+				Simulator::Update(reCopy, resBe, mictoTickTime, _allHitEs[i], isGoalScored);
+				if (resBe.IsCollided)
+					break;
+			}
+			if (!resBe.IsCollided)
+				return false;
+			resBe.IsCollided = false;
 			resBes.push_back(resBe);
 		}
 		return true;		
