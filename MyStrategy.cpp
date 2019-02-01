@@ -407,12 +407,21 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
 				
 			}
-			else//пз атакует врага
+			else//пз атакует врага или идет на ворота, если там нет защитника и близится гол
 			{
-				if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
-					goNitroRobots.insert(robot.id);
-				_actions[robot.id] = GetNearestOppAttackAction(robot);
-				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+				if (_isMeGoalPossible && !defender.touch)
+				{
+					int runTicks = -1;
+					_actions[robot.id] = GetDefaultAction(robot, _myGates, runTicks);
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0, 0, 1, 0.5);
+				}
+				else
+				{
+					if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+						goNitroRobots.insert(robot.id);
+					_actions[robot.id] = GetNearestOppAttackAction(robot);
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+				}
 				
 			}
 		}
