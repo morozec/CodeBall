@@ -3607,8 +3607,9 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		{
 			re.Position.Y += re.Velocity.Y * tickTime - Constants::Rules.GRAVITY * tickTime * tickTime / 2.0;
 			re.Velocity.Y -= Constants::Rules.GRAVITY * tickTime;
-			if (re.Position.Y < Constants::Rules.ROBOT_MAX_RADIUS)
-				return false; //упали обратно на землю
+			if (re.Velocity.Y < 0)
+				return false; //не бьем на излете
+
 		}
 		else if (!isJump || jumpT > 1)
 		{			
