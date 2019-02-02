@@ -1559,6 +1559,11 @@ int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContaine
 		return -1;
 	if (bec1.isGoalScored && bec2.isGoalScored)
 	{
+		if (bec1.NitroDest > bec2.NitroDest)
+			return -1;
+		if (bec1.NitroDest < bec2.NitroDest)
+			return 1;
+
 		if (bec1.collisionsCount < bec2.collisionsCount)
 			return -1;
 		if (bec1.collisionsCount > bec2.collisionsCount)
@@ -1572,12 +1577,12 @@ int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContaine
 		return  bec1.ResBallEntity.Velocity.Y > bec2.ResBallEntity.Velocity.Y ? -1 : 1;//на своей бьем выше
 	}
 
-	if (bec1.IsUsingNitro && !bec2.IsUsingNitro)
-		return -1;
-	if (!bec1.IsUsingNitro && bec2.IsUsingNitro)
-		return 1;
-
 	//оба не isGoalScored	
+	if (bec1.NitroDest > 0 && bec2.NitroDest <= 0)
+		return -1;
+	if (bec1.NitroDest <= 0 && bec2.NitroDest > 0)
+		return 1;
+	
 	return CompareDefenderBallEntities(bec1, bec2);
 }
 
@@ -1774,7 +1779,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 				int collisionsCount;
 				const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime, collideBallEntityAttack, false, collisionsCount);
 				const double curCollisionT = (moveT + waitT) * 1.0 / Constants::Rules.TICKS_PER_SECOND + curJumpCollisionT.value();
-				const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, collisionsCount, collideBallEntity, false);
+				const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, collisionsCount, collideBallEntity, 0);
 
 				if (movePoint == std::nullopt || CompareBeContainers(bec, bestBecP) < 0)
 				{
@@ -2117,7 +2122,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					int collisions_count;
 					bool isGoal = IsGoalBallDirection2(resBes[0], 1, true, goalTime, collideBe, false, collisions_count);
 					auto bec = BallEntityContainer(resBes[0], collisionTime, 
-						isGoal, goalTime,collisions_count, collideBe, true);
+						isGoal, goalTime,collisions_count, collideBe, 1);
 
 					if (!isOkBestBecP || CompareBeContainers(bec, bestBecP) < 0)
 					{
@@ -2183,6 +2188,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		return action;			
 	}	
 
+	
 	if (position >= 0 && me.z > 0 && startAttackTick == 0 &&
 		(movePoint == std::nullopt || 
 			_oppStrikeTime.has_value() && bestBecP.collisionTime > _oppStrikeTime.value()) &&
@@ -2248,7 +2254,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					IsGoalBallDirection2(resBes[0], 1, false, goalTime, collideBallEntity, true, collisionsCount) &&
 					(!_isGoalPossible || (collisionTime + goalTime) * Constants::Rules.TICKS_PER_SECOND < _meGoalScoringTick))//уменьшаем врем€ забити€ TODO
 				{
-					auto bec = BallEntityContainer(resBes[0], collisionTime, true, goalTime, collisionsCount, collideBallEntity, true);
+					auto bec = BallEntityContainer(resBes[0], collisionTime, true, goalTime, collisionsCount, collideBallEntity, 1);
 
 					if (!isGot || CompareBeContainers(bec, nitroBestBec))
 					{
@@ -2299,23 +2305,26 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		}
 	}
 
-	if (position >= 0 && me.z > 0 && !_isGoalPossible && _isNoCollisionGoalPossible && me.nitro_amount > 0)
+	if (position >= 0 && startAttackTick == 0 && me.z > 0 &&
+		(movePoint == std::nullopt ||
+			_oppStrikeTime.has_value() && bestBecP.collisionTime > _oppStrikeTime.value()) &&
+		!_isGoalPossible && _isNoCollisionGoalPossible && me.nitro_amount > 0)
 	{
 		bool isGot = false;
 		BallEntityContainer nitroBestBec;
 		double minCollisionTime = std::numeric_limits<double>::max();
 		Action nitroBestAction;
 
-		for (auto & oppCt:_oppBallCollisionTicks)
+		for (auto & oppCt : _oppBallCollisionTicks)
 		{
 			const int oppId = oppCt.first;
-			const int collisionTick = oppCt.second;
-			//const int collisionTickDelta = 2;
-			
-			
-			for (int t = 0; t < collisionTick; ++t)
+			const int oppCollisionTick = oppCt.second;
+
+
+
+			for (int t = 0; t < oppCollisionTick; ++t)
 			{
-				RobotEntity targetRe = GetRobotEntity(t, oppId);				
+				RobotEntity targetRe = GetRobotEntity(t, oppId);
 
 				Vector3D targetPos = Vector3D(targetRe.Position.X, Constants::Rules.ROBOT_MIN_RADIUS,
 					targetRe.Position.Z);
@@ -2358,17 +2367,17 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					double collisionTime;
 					bool isCollision = simulate_robot_nitro_jump(re, oppId, moveT, collisionTime, true);
 
+					const int collisionTickDelta = 2;
 					if (isCollision &&
-						collisionTime * Constants::Rules.TICKS_PER_SECOND < _meGoalScoringTick < collisionTick)//бьем по роботу до коллизи с м€чом
+						collisionTime * Constants::Rules.TICKS_PER_SECOND < oppCollisionTick - collisionTickDelta)//бьем по роботу до коллизи с м€чом
 					{
 						const auto goalTime = _noCollisionGoalScoringTick * 1.0 / Constants::Rules.TICKS_PER_SECOND;
-						
+
 						if (!isGot || collisionTime < minCollisionTime)
 						{
 							isGot = true;
-							auto bec = BallEntityContainer(_ballEntities[0], collisionTime, true, goalTime, 0, BallEntity(), true);
+							auto bec = BallEntityContainer(_ballEntities[0], collisionTime, true, goalTime, 0, BallEntity(), -1);
 							nitroBestBec = bec;
-							isOkBestBecP = true;
 							minCollisionTime = collisionTime;
 
 							if (moveT == 0)
@@ -2399,68 +2408,15 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 							}
 
 						}
-
-
-
-
 					}
 				}
-
-				//for (auto moveT = 0; moveT < t; ++moveT)//двигаемс€ как можно дольше
-				//{
-				//	const auto pvContainer = Simulator::GetRobotPVContainer(
-				//		startPos, targetPos, startVel, moveT, 1);
-				//	if (pvContainer.IsPassedBy)
-				//		continue;
-
-				//	auto re = RobotEntity(pvContainer.Position, pvContainer.Velocity,
-				//		Constants::Rules.ROBOT_MIN_RADIUS, true, Vector3D(0, 1, 0), me.nitro_amount);
-
-				//	/*auto const oppRobotVelocity = Helper::GetTargetVelocity(re.Position,
-				//		_ballEntities[t].Position,
-				//		Constants::Rules.MAX_ENTITY_SPEED);*/
-
-				//	model::Action jumpNitroAction = model::Action();
-				//	jumpNitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-				//	jumpNitroAction.target_velocity_x = pvContainer.Velocity.X;
-				//	jumpNitroAction.target_velocity_y = Constants::Rules.MAX_ENTITY_SPEED;
-				//	jumpNitroAction.target_velocity_z = pvContainer.Velocity.Z;
-				//	jumpNitroAction.use_nitro = true;
-
-				//	re.Action = jumpNitroAction;
-
-				//	Simulator::simulate_jump_start(re);
-
-				//	double collisionTime;
-				//	bool isCollision = simulate_robot_nitro_jump(re, moveT, t, oppId, collisionTime);
-				//	if (isCollision)
-				//	{
-				//		isOkBestBecP = true;
-				//		const auto goalTime = _noCollisionGoalScoringTick * 1.0 / Constants::Rules.TICKS_PER_SECOND - collisionTime;
-				//		bestBecP = BallEntityContainer(_ballEntities[0], collisionTime, true, goalTime, BallEntity(), true);
-				//		if (moveT == 0)
-				//		{
-				//			//_nitroPosCur[me.id] = targetRe.Position;
-				//			_nitroTicksCur[me.id] = int(collisionTime * Constants::Rules.TICKS_PER_SECOND) + 1;
-				//			return jumpNitroAction;
-				//		}
-				//		else
-				//		{
-				//			auto const moveVelocity = Helper::GetTargetVelocity(startPos,
-				//				targetPos,
-				//				Constants::Rules.ROBOT_MAX_GROUND_SPEED);
-
-				//			model::Action moveAction = model::Action();
-				//			moveAction.jump_speed = 0;
-				//			moveAction.target_velocity_x = moveVelocity.X;
-				//			moveAction.target_velocity_y = 0;
-				//			moveAction.target_velocity_z = moveVelocity.Z;
-				//			moveAction.use_nitro = false;
-				//			return moveAction;
-				//		}
-				//	}
-				//}
 			}
+		}
+		if (isGot)
+		{
+			isOkBestBecP = true;
+			bestBecP = nitroBestBec;
+			return nitroBestAction;
 		}
 	}
 
@@ -2699,7 +2655,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				if (IsOkPosToJump(robotEntity, 0, jumpCollisionT, curBallEntity, goalTime, collisionsCount))
 				{
 					BallEntityContainer bec = BallEntityContainer(
-						curBallEntity.value(), jumpCollisionT.value(), true, goalTime, collisionsCount, BallEntity(), false);
+						curBallEntity.value(), jumpCollisionT.value(), true, goalTime, collisionsCount, BallEntity(), 0);
 					bestWaitT = 0;
 					bestMoveT = 0;
 					isResOk = true;
@@ -2716,7 +2672,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				continue;
 
 			const auto curCollisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
-			BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), curCollisionT, true, goalTime, collisionsCount, BallEntity(), false);
+			BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), curCollisionT, true, goalTime, collisionsCount, BallEntity(), 0);
 			if (!isResOk || CompareBeContainers(bec, bestBecP) < 0)
 			{
 				bestWaitT = -1;
