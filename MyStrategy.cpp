@@ -1779,7 +1779,7 @@ std::optional<Vector3D> MyStrategy::GetDefenderStrikePoint(int t,
 				int collisionsCount;
 				const auto isGoal = IsGoalBallDirection2(collision_ball_entity.value(), 1, true, goalTime, collideBallEntityAttack, false, collisionsCount);
 				const double curCollisionT = (moveT + waitT) * 1.0 / Constants::Rules.TICKS_PER_SECOND + curJumpCollisionT.value();
-				const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, collisionsCount, collideBallEntity, 0);
+				const auto bec = BallEntityContainer(collision_ball_entity.value(), curCollisionT, isGoal, goalTime, collisionsCount, collideBallEntity, -1);
 
 				if (movePoint == std::nullopt || CompareBeContainers(bec, bestBecP) < 0)
 				{
@@ -2376,7 +2376,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 						if (!isGot || collisionTime < minCollisionTime)
 						{
 							isGot = true;
-							auto bec = BallEntityContainer(_ballEntities[0], collisionTime, true, goalTime, 0, BallEntity(), -1);
+							auto bec = BallEntityContainer(_ballEntities[0], collisionTime, true, goalTime, 0, BallEntity(), 0);
 							nitroBestBec = bec;
 							minCollisionTime = collisionTime;
 
@@ -2671,7 +2671,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				if (IsOkPosToJump(robotEntity, 0, jumpCollisionT, curBallEntity, goalTime, collisionsCount))
 				{
 					BallEntityContainer bec = BallEntityContainer(
-						curBallEntity.value(), jumpCollisionT.value(), true, goalTime, collisionsCount, BallEntity(), 0);
+						curBallEntity.value(), jumpCollisionT.value(), true, goalTime, collisionsCount, BallEntity(), -1);
 					bestWaitT = 0;
 					bestMoveT = 0;
 					isResOk = true;
@@ -2688,7 +2688,7 @@ std::optional<Vector3D> MyStrategy::GetAttackerMovePoint(const model::Robot & ro
 				continue;
 
 			const auto curCollisionT = t * 1.0 / Constants::Rules.TICKS_PER_SECOND + jumpCollisionT.value();
-			BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), curCollisionT, true, goalTime, collisionsCount, BallEntity(), 0);
+			BallEntityContainer bec = BallEntityContainer(curBallEntity.value(), curCollisionT, true, goalTime, collisionsCount, BallEntity(), -1);
 			if (!isResOk || CompareBeContainers(bec, bestBecP) < 0)
 			{
 				bestWaitT = -1;
