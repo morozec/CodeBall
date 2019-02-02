@@ -117,7 +117,7 @@ public:
 	//std::vector<RobotEntity> GetJumpRobotEntities();
 
 	model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos, int& runTicks);
-	model::Action GetNearestOppAttackAction(const model::Robot& me);
+	model::Action GetNearestOppAttackAction(const model::Robot& me, int excludeId);
 	model::Action GetMoveKeeperOrOppAction(const model::Robot& robot, int& resIndex);
 	BallEntity SimulateTickBall(
 		const BallEntity& ballEntity, std::vector<RobotEntity>& jumpRes, bool& isGoalScored, bool discardIsCollided) const;
@@ -182,7 +182,7 @@ public:
 
 	Vector3D GetDefendPointTargetVelocity(const model::Robot& robot, const Vector3D& position, int& runTicks);
 	std::optional<double> GetOppStrikeTime(const std::vector<model::Robot>& oppRobots);
-	model::Robot get_nearest_ball_robot();
+	model::Robot get_my_gates_opp_robot(int excludeId);
 
 	bool IsSamePosition();
 

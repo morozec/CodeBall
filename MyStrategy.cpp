@@ -235,7 +235,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						{
 							if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
 								goNitroRobots.insert(robot.id);
-							_actions[robot.id] = GetNearestOppAttackAction(robot);
+							_actions[robot.id] = GetNearestOppAttackAction(robot, -1);
 							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 
 						}
@@ -289,7 +289,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						}
 						if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
 							goNitroRobots.insert(robot.id);
-						_actions[robot.id] = GetNearestOppAttackAction(robot);
+						_actions[robot.id] = GetNearestOppAttackAction(robot, -1);
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 					}
 				}
@@ -314,7 +314,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 							{
 								if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
 									goNitroRobots.insert(robot.id);
-								_actions[robot.id] = GetNearestOppAttackAction(robot);
+								const auto nearestOpp = get_my_gates_opp_robot(-1);
+								_actions[robot.id] = GetNearestOppAttackAction(robot, nearestOpp.id);
 								_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 							}
 						}
@@ -322,7 +323,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						{
 							if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
 								goNitroRobots.insert(robot.id);
-							_actions[robot.id] = GetNearestOppAttackAction(robot);
+							_actions[robot.id] = GetNearestOppAttackAction(robot, -1);
 							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 						}						
 					}
@@ -344,7 +345,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					if (robot.id == attacker.id)//нап атакует врага
 					{
-						_actions[robot.id] = GetNearestOppAttackAction(robot);
+						_actions[robot.id] = GetNearestOppAttackAction(robot, -1);
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 					}
 					else//пз идет на ворота
@@ -391,7 +392,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					}
 					else//атакуем врага
 					{
-						_actions[robot.id] = GetNearestOppAttackAction(robot);
+						_actions[robot.id] = GetNearestOppAttackAction(robot, -1);
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 					}
 					
@@ -448,7 +449,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			}
 		}
 
-
 		for (auto& robot : myRobots)
 		{
 			if (!robot.touch) continue;
@@ -478,7 +478,15 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				{
 					if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
 						goNitroRobots.insert(robot.id);
-					_actions[robot.id] = GetNearestOppAttackAction(robot);
+
+					int excludeId = -1;
+					if (!(_isMeGoalPossible && !defender.touch))
+					{
+						const auto nearestOpp = get_my_gates_opp_robot(excludeId);
+						excludeId = nearestOpp.id;
+					}
+
+					_actions[robot.id] = GetNearestOppAttackAction(robot, excludeId);
 					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 				}				
 				
@@ -495,7 +503,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				{
 					if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
 						goNitroRobots.insert(robot.id);
-					_actions[robot.id] = GetNearestOppAttackAction(robot);
+					_actions[robot.id] = GetNearestOppAttackAction(robot, -1);
 					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
 				}
 				
@@ -1233,9 +1241,9 @@ model::Action MyStrategy::GetDefaultAction(const model::Robot & me, const Vector
 	return action;
 }
 
-model::Action MyStrategy::GetNearestOppAttackAction(const model::Robot & me)
+model::Action MyStrategy::GetNearestOppAttackAction(const model::Robot & me, int excludeId)
 {
-	const auto nearestOpp = get_nearest_ball_robot();
+	const auto nearestOpp = get_my_gates_opp_robot(excludeId);
 	const auto mePos = Helper::GetRobotPosition(me);
 	auto oppPos = Helper::GetRobotPosition(nearestOpp);
 	const double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
@@ -1288,7 +1296,7 @@ model::Action MyStrategy::GetMoveKeeperOrOppAction(const model::Robot & robot, i
 	}
 	//идем на противника		
 	resIndex = 1;
-	return GetNearestOppAttackAction(robot);		
+	return GetNearestOppAttackAction(robot, -1);		
 	
 }
 
@@ -3143,13 +3151,14 @@ std::optional<double> MyStrategy::GetOppStrikeTime(const std::vector<model::Robo
 	return minTime;	
 }
 
-model::Robot MyStrategy::get_nearest_ball_robot()
+model::Robot MyStrategy::get_my_gates_opp_robot(int excludeId)
 {
 	auto min_dist = std::numeric_limits<double>::max();
 	Robot nearest_robot{};
 	for (Robot r : _robots)
 	{
 		if (r.is_teammate) continue;
+		if (r.id == excludeId) continue;
 		
 		auto const dist = (_myGates.X - r.x)*(_myGates.X - r.x) + (_myGates.Z - r.z)*(_myGates.Z - r.z);
 		if (dist < min_dist)
