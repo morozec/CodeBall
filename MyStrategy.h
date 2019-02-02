@@ -191,10 +191,12 @@ public:
 
 	bool simulate_ball_nitro_jump(RobotEntity& re, int startTick, std::vector<BallEntity>& resBes, double& collisionTime,
 		bool isJump);
-	bool simulate_robot_nitro_jump(RobotEntity & re, int startTick, int targetTick, int robotId, double & collisionTime);
+	bool simulate_robot_nitro_jump(
+		RobotEntity & re, int oppRobotId, int startTick, double & collisionTime, bool isJump);
 	RobotEntity GetRobotEntity(int tick, int id);
 
 	model::Robot GetRobotById(int id);
+	RobotEntity GetRobotById(int id, int tick, bool& isGot);
 	model::NitroPack GetNitroById(model::Game game, int id);
 	bool IsSafoToCollectNitro();
 
