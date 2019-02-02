@@ -185,7 +185,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
 							goNitroRobots.insert(robot.id);
 						int resIndex;
-						_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
+						_actions[robot.id] = GetMoveKeeperOrOppAction(robot, resIndex);
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
 							resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
 					}
@@ -249,7 +249,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 							if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
 								goNitroRobots.insert(robot.id);
 							int resIndex;
-							_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
+							_actions[robot.id] = GetMoveKeeperOrOppAction(robot, resIndex);
 							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
 								resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
 						}
@@ -402,7 +402,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
 					goNitroRobots.insert(robot.id);
 				int resIndex;
-				_actions[robot.id] = GetMoveBallOrOppAction(robot, resIndex);
+				_actions[robot.id] = GetMoveKeeperOrOppAction(robot, resIndex);
 				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
 					resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
 				
@@ -1177,7 +1177,7 @@ model::Action MyStrategy::GetNearestOppAttackAction(const model::Robot & me)
 	return action;
 }
 
-model::Action MyStrategy::GetMoveBallOrOppAction(const model::Robot & robot, int& resIndex)
+model::Action MyStrategy::GetMoveKeeperOrOppAction(const model::Robot & robot, int& resIndex)
 {	
 	Robot gk{};
 	double maxZ = -50;
@@ -3103,7 +3103,7 @@ void MyStrategy::InitBallEntities()
 			auto re = RobotEntity(robot);
 			if (abs(robot.radius - Constants::Rules.ROBOT_MAX_RADIUS) < EPS)
 				re.Action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-			if (_nitroTicks.count(robot.id) > 0)
+			if (_nitroTicks.count(robot.id) > 0 && _nitroTicks[robot.id] > 0)
 				re.Action.use_nitro = true;
 			_robotEntities[0].push_back(re);
 		}
@@ -3116,7 +3116,10 @@ void MyStrategy::InitBallEntities()
 		std::vector<RobotEntity> jumpResCur = std::vector<RobotEntity>();
 		for (auto & re: _robotEntities.at(t-1))
 		{
-			jumpResCur.push_back(re);
+			auto reCopy = RobotEntity(re);
+			if (_nitroTicks.count(reCopy.Id) > 0 && t >= _nitroTicks[reCopy.Id])
+				reCopy.Action.use_nitro = false;
+			jumpResCur.push_back(reCopy);
 		}
 
 		ball_entity = SimulateTickBall(ball_entity, jumpResCur, isGoalScored, false);		
