@@ -3542,10 +3542,12 @@ bool MyStrategy::simulate_ball_nitro_jump(
 
 	//_drawSpheres.emplace_back(re.Position.X, re.Position.Y, re.Position.Z, 1, 1, 0, 0, 0.5);
 
+	const auto constVy = isJump ? NitroVy : re.Velocity.Y;
+
 	if (isJump)
 	{
 		re.Position.Y = NitroStartY;
-		re.Velocity.Y = NitroVy;
+		re.Velocity.Y = constVy;
 	}
 
 	const auto collisionDist = Constants::Rules.BALL_RADIUS + Constants::Rules.ROBOT_MAX_RADIUS;
@@ -3573,7 +3575,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		}
 		else if (!isJump || jumpT > 1)
 		{			
-			re.Position.Y += NitroVy * tickTime;
+			re.Position.Y += constVy * tickTime;
 			nitro -= MtNitroLoss * Constants::Rules.MICROTICKS_PER_TICK;
 		}
 
@@ -3613,7 +3615,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 			}
 			else
 			{
-				re.Position.Y -= NitroVy * mictoTickTime;
+				re.Position.Y -= constVy * mictoTickTime;
 				nitro += MtNitroLoss;
 			}
 			re.Position.Z -= re.Velocity.Z * mictoTickTime;
@@ -3637,10 +3639,20 @@ bool MyStrategy::simulate_ball_nitro_jump(
 
 		model::Action jumpNitroAction = model::Action();
 		jumpNitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-		jumpNitroAction.target_velocity_x = re.Velocity.X;
-		jumpNitroAction.target_velocity_y = Constants::Rules.MAX_ENTITY_SPEED;
-		jumpNitroAction.target_velocity_z = re.Velocity.Z;
-		jumpNitroAction.use_nitro = true;
+		if (stopNitroTick != -1 && t > stopNitroTick)
+		{
+			jumpNitroAction.target_velocity_x = 0;
+			jumpNitroAction.target_velocity_y = 0;
+			jumpNitroAction.target_velocity_z = 0;
+			jumpNitroAction.use_nitro = false;
+		}
+		else
+		{
+			jumpNitroAction.target_velocity_x = re.Velocity.X;
+			jumpNitroAction.target_velocity_y = Constants::Rules.MAX_ENTITY_SPEED;
+			jumpNitroAction.target_velocity_z = re.Velocity.Z;
+			jumpNitroAction.use_nitro = true;
+		}
 		re.Action = jumpNitroAction;
 
 		collisionTime = (t - c / 100.0) * 1.0 / Constants::Rules.TICKS_PER_SECOND;
