@@ -3509,15 +3509,21 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		{
 			auto reCopy = RobotEntity(re);
 			auto resBe = BallEntity(curBe);
-			for (int j = 0; j < 2; ++j)
+
+			bool gotCollision = false;
+			while (true)
 			{
 				Simulator::Update(reCopy, resBe, mictoTickTime, _allHitEs[i], isGoalScored);
 				if (resBe.IsCollided)
+				{
+					gotCollision = true;
+					resBe.IsCollided = false;
+				}
+				else
 					break;
 			}
-			if (!resBe.IsCollided)
+			if (!gotCollision)
 				return false;
-			resBe.IsCollided = false;
 			resBes.push_back(resBe);
 
 			if (i == 0)
