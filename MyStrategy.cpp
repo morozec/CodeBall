@@ -1179,22 +1179,33 @@ model::Action MyStrategy::GetNearestOppAttackAction(const model::Robot & me)
 
 model::Action MyStrategy::GetMoveBallOrOppAction(const model::Robot & robot, int& resIndex)
 {	
-	const auto lastBallEntity = _ballEntities.at(_lastSimulationTick);
-	if (Helper::GetLength2(Vector3D(_ball.x, robot.y, _ball.z), Helper::GetRobotPosition(robot)) >
-		_distToFollowBall * _distToFollowBall
-		&&	robot.z < lastBallEntity.Position.Z) //идем за м€чом
+	Robot gk{};
+	double maxZ = -50;
+	for (auto &r : _robots)
 	{
-		const auto robotPos = Helper::GetRobotPosition(robot);
-		const auto targetVelocity = Helper::GetTargetVelocity(robotPos, lastBallEntity.Position, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+		if (r.is_teammate) continue;
+		if (!r.touch) continue;
+		if (r.z > maxZ)
+		{
+			maxZ = r.z;
+			gk = r;
+		}
+	}
 
-		auto moveAction = Action();
-		moveAction.target_velocity_x = targetVelocity.X;
-		moveAction.target_velocity_y = targetVelocity.Y;
-		moveAction.target_velocity_z = targetVelocity.Z;
-		moveAction.jump_speed = 0;
-		moveAction.use_nitro = false;
+	if (abs(maxZ + 50) > EPS)
+	{
 		resIndex = 0;
-		return  moveAction;
+		const auto mePos = Helper::GetRobotPosition(robot);
+		const auto oppPos = Helper::GetRobotPosition(gk);
+		const auto targetVelocity = Helper::GetTargetVelocity(mePos, oppPos, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+
+		model::Action action = model::Action();
+		action.target_velocity_x = targetVelocity.X;
+		action.target_velocity_y = 0.0;
+		action.target_velocity_z = targetVelocity.Z;
+		action.jump_speed = 0.0;
+		action.use_nitro = false;
+		return action;
 	}
 	//идем на противника		
 	resIndex = 1;
