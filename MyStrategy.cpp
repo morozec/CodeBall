@@ -98,6 +98,46 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			attacker = robot;
 	}
 
+
+	int gkAttId = -1;
+	if (_isGoalPossible)
+	{
+		Robot gk{};
+		double maxZ = -50;
+		for (auto &r : _robots)
+		{
+			if (r.is_teammate) continue;
+			if (!r.touch) continue;
+			if (r.z > maxZ)
+			{
+				maxZ = r.z;
+				gk = r;
+			}
+		}
+
+		if (abs(maxZ + 50) > EPS &&
+			(attacker.x - gk.x)*(attacker.x - gk.x) + (attacker.y - gk.y) * (attacker.y - gk.y) + (attacker.z - gk.z)*(attacker.z - gk.z) <=
+			(4 * Constants::Rules.ROBOT_MIN_RADIUS) * (4 * Constants::Rules.ROBOT_MIN_RADIUS))
+		{
+			const auto attPos = Helper::GetRobotPosition(attacker);
+			auto oppPos = Helper::GetRobotPosition(gk);
+			const double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
+			oppPos.X += gk.velocity_x * tickTime;
+			oppPos.Z += gk.velocity_z * tickTime;
+			const auto targetVelocity = Helper::GetTargetVelocity(attPos, oppPos, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
+
+			model::Action gkAction = model::Action();
+			gkAction.target_velocity_x = targetVelocity.X;
+			gkAction.target_velocity_y = 0.0;
+			gkAction.target_velocity_z = targetVelocity.Z;
+			gkAction.jump_speed = 0.0;
+			gkAction.use_nitro = false;
+			_actions[attacker.id] = gkAction;
+			gkAttId = attacker.id;
+		}
+	}
+
+
 	const int startAttackTick = _lastMyCollisionTick == -1 || _isMeGoalPossible ? 0 : _lastMyCollisionTick + AttackerAddTicks;
 	int bestBecPRobotId = -1;
 	BallEntityContainer bestBec;
@@ -105,6 +145,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	for (auto & robot : myRobots)
 	{
 		if (!robot.touch) continue;
+		if (robot.id == gkAttId) continue;
 		BallEntityContainer curBestBec;
 		bool isOkBestBec;
 		int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
@@ -152,6 +193,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				for (auto& robot : myRobots) //здесь останетс€ последний
 				{
 					if (!robot.touch) continue;
+					if (robot.id == gkAttId) continue;
 					if (robot.id == bestBecPRobotId)
 					{
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 1, 0, 0.5);
@@ -198,6 +240,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				for (auto& robot : myRobots) //определ€ем лучшего добивающего
 				{
 					if (!robot.touch) continue;
+					if (robot.id == gkAttId) continue;
 					if (robot.id == bestBecPRobotId) 
 					{
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 1, 0, 0.5);
@@ -226,6 +269,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					for (auto& robot : myRobots) //последний атакует противника
 					{
 						if (!robot.touch) continue;
+						if (robot.id == gkAttId) continue;
 						if (robot.id == bestBecPRobotId) continue;
 						if (robot.id == nextBestBecPRobotId)
 						{
@@ -244,6 +288,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 					{
 						if (!robot.touch) continue;
 						if (robot.id == bestBecPRobotId) continue;
+						if (robot.id == gkAttId) continue;
 						if (robot.id == attacker.id)//нап идет за м€чом или на противника
 						{
 							if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
@@ -271,6 +316,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				for (auto& robot : myRobots)
 				{
 					if (!robot.touch) continue;
+					if (robot.id == gkAttId) continue;
 					if (robot.id == bestBecPRobotId) 
 					{
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 1, 0, 0.5);
@@ -294,6 +340,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 				for (auto& robot : myRobots) //останетс€ последний
 				{
 					if (!robot.touch) continue;
+					if (robot.id == gkAttId) continue;
 					if (robot.id == bestBecPRobotId)
 					{
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 1, 0, 0.5);
@@ -335,7 +382,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 	else //не нашли бьщего вообще
 	{	
 		int saveGatesId = -1;
-		if (_meGoalScoringTick != -1 && _meGoalScoringTick <= 50)
+		if (_meGoalScoringTick != -1 && _meGoalScoringTick <= 50)//спасаем ворота, если надо
 		{
 			if (defender.touch)
 			{
@@ -386,6 +433,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 		{
 			if (!robot.touch) continue;
 			if (robot.id == saveGatesId) continue;
+			if (robot.id == gkAttId) continue;
 			if (robot.id == defender.id)
 			{
 				if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75 && IsSafoToCollectNitro())
@@ -1196,7 +1244,10 @@ model::Action MyStrategy::GetMoveKeeperOrOppAction(const model::Robot & robot, i
 	{
 		resIndex = 0;
 		const auto mePos = Helper::GetRobotPosition(robot);
-		const auto oppPos = Helper::GetRobotPosition(gk);
+		auto oppPos = Helper::GetRobotPosition(gk);
+		const double tickTime = 1.0 / Constants::Rules.TICKS_PER_SECOND;
+		oppPos.X += gk.velocity_x * tickTime;
+		oppPos.Z += gk.velocity_z * tickTime;
 		const auto targetVelocity = Helper::GetTargetVelocity(mePos, oppPos, Constants::Rules.ROBOT_MAX_GROUND_SPEED);
 
 		model::Action action = model::Action();
@@ -2047,6 +2098,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	int position)// -1 - защ, 0 - пз, 1 - нап
 {
 	isOkBestBecP = false;
+
+	
 	model::Action action = model::Action();
 
 	const auto startPos = Helper::GetRobotPosition(me);
