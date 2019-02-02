@@ -118,7 +118,7 @@ public:
 
 	model::Action GetDefaultAction(const model::Robot& me, const Vector3D& defaultPos, int& runTicks);
 	model::Action GetNearestOppAttackAction(const model::Robot& me);
-	model::Action GetMoveBallOrOppAction(const model::Robot& robot, int& resIndex);
+	model::Action GetMoveKeeperOrOppAction(const model::Robot& robot, int& resIndex);
 	BallEntity SimulateTickBall(
 		const BallEntity& ballEntity, std::vector<RobotEntity>& jumpRes, bool& isGoalScored, bool discardIsCollided) const;
 	bool SimulateCollision(BallEntity& ballEntity, RobotEntity& robotEntity,

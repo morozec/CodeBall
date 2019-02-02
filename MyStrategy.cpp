@@ -3104,7 +3104,12 @@ void MyStrategy::InitBallEntities()
 			if (abs(robot.radius - Constants::Rules.ROBOT_MAX_RADIUS) < EPS)
 				re.Action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
 			if (_nitroTicks.count(robot.id) > 0 && _nitroTicks[robot.id] > 0)
+			{
+				re.Action.target_velocity_x = robot.velocity_x;
+				re.Action.target_velocity_x = Constants::Rules.MAX_ENTITY_SPEED;
+				re.Action.target_velocity_z = robot.velocity_z;
 				re.Action.use_nitro = true;
+			}
 			_robotEntities[0].push_back(re);
 		}
 	}	
@@ -3118,7 +3123,12 @@ void MyStrategy::InitBallEntities()
 		{
 			auto reCopy = RobotEntity(re);
 			if (_nitroTicks.count(reCopy.Id) > 0 && t >= _nitroTicks[reCopy.Id])
+			{
+				reCopy.Action.target_velocity_x = 0;
+				reCopy.Action.target_velocity_x = 0;
+				reCopy.Action.target_velocity_z = 0;
 				reCopy.Action.use_nitro = false;
+			}
 			jumpResCur.push_back(reCopy);
 		}
 
