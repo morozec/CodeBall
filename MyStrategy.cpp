@@ -2313,6 +2313,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 	}
 
 	bool hasNearRobots = false;
+	bool isStrikeZone = IsInsideArenaPoint(startPos);
 	for (auto r:_robots)
 	{
 		if (r.id == me.id) continue;
@@ -2324,7 +2325,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		}
 	}
 
-	if (!hasNearRobots && position >= 0 && me.z > 0 && startAttackTick == 0 &&
+	if (!hasNearRobots && isStrikeZone && position >= 0 && me.z > 0 && startAttackTick == 0 &&
 		me.nitro_amount > 0)
 	{		
 
@@ -2384,7 +2385,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 			for (int moveT = 0; moveT <= t; ++moveT)
 			{
-				if (moveT == 0 && hasNearRobots) continue;
+				if (moveT == 0 && (hasNearRobots || !isStrikeZone)) continue;
 				if (moveT > 0)
 				{
 					PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
@@ -2508,7 +2509,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 				for (int moveT = 0; moveT <= t; ++moveT)
 				{
-					if (moveT == 0 && hasNearRobots) continue;
+					if (moveT == 0 && (hasNearRobots || !isStrikeZone)) continue;
 					if (moveT > 0)
 					{
 						PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
