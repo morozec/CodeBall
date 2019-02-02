@@ -2192,7 +2192,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		me.nitro_amount > 0)
 	{		
 
-		for (int stop_nitro_tick = 2; stop_nitro_tick < 60; ++stop_nitro_tick)
+		for (int stop_nitro_tick = 59; stop_nitro_tick >= 2; --stop_nitro_tick)
 		{
 			auto re = RobotEntity(startPos, startVel,
 				Constants::Rules.ROBOT_MIN_RADIUS, true, Vector3D(0, 1, 0), me.nitro_amount);
@@ -3473,7 +3473,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		re.Position.X += re.Velocity.X * tickTime;
 		re.Position.Z += re.Velocity.Z * tickTime;
 
-		if (stopNitroTick != -1 && t >= stopNitroTick)
+		if (stopNitroTick != -1 && t > stopNitroTick)
 		{
 			re.Position.Y += re.Velocity.Y * tickTime - Constants::Rules.GRAVITY * tickTime * tickTime / 2.0;
 			re.Velocity.Y -= Constants::Rules.GRAVITY * tickTime;
@@ -3515,7 +3515,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		{
 			c++;
 			re.Position.X -= re.Velocity.X * mictoTickTime;
-			if (stopNitroTick != -1 && t >= stopNitroTick)
+			if (stopNitroTick != -1 && t > stopNitroTick)
 			{
 				re.Position.Y = re.Position.Y - re.Velocity.Y * mictoTickTime + Constants::Rules.GRAVITY * mictoTickTime * mictoTickTime / 2.0;
 				re.Velocity.Y += Constants::Rules.GRAVITY * mictoTickTime;
