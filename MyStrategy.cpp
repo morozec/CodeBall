@@ -3873,7 +3873,7 @@ bool MyStrategy::IsSafoToCollectNitro()
 {
 	for (int i = 0; i <= BallMoveTicks;++i)
 	{
-		if (_ballEntities[i].Position.Z < 0)
+		if (_ballEntities[i].Position.Z < EPS)
 			return false;
 	}
 	return true;
