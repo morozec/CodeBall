@@ -133,6 +133,7 @@ public:
 	int CompareDefenderBallEntities(const BallEntityContainer & b1, const BallEntityContainer & b2) const;
 
 	int CompareBeContainers(BallEntityContainer bec1, BallEntityContainer bec2) const;
+	int CompareDefenceNitroBeContainers(BallEntityContainer bec1, BallEntityContainer bec2) const;
 
 	bool IsGoalBallDirection2(
 		const BallEntity& startBallEntity, int directionCoeff, bool considerBoardSide, double& goalTime, BallEntity& collideBallEntity, bool isNitro,

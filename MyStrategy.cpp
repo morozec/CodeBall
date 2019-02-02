@@ -1648,6 +1648,15 @@ int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContaine
 	return CompareDefenderBallEntities(bec1, bec2);
 }
 
+int MyStrategy::CompareDefenceNitroBeContainers(BallEntityContainer bec1, BallEntityContainer bec2) const
+{
+	if (bec1.isGoalScored && !bec2.isGoalScored)
+		return -1;
+	if (!bec1.isGoalScored && bec2.isGoalScored)
+		return 1;
+	return bec1.ResBallEntity.Velocity.Z > bec2.ResBallEntity.Velocity.Z ? -1 : 1;
+}
+
 bool MyStrategy::IsGoalBallDirection2(
 	const BallEntity & startBallEntity, int directionCoeff, bool considerBoardSide , double& goalTime, BallEntity& collideBallEntity, 
 	bool isNitro, int& collisionsCount) const
@@ -2188,7 +2197,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					auto bec = BallEntityContainer(resBes[0], collisionTime, 
 						isGoal, goalTime,collisions_count, collideBe, 1);
 
-					if (!isOkBestBecP || bec.ResBallEntity.Velocity.Z > bestBecP.ResBallEntity.Velocity.Z)
+					if (!isOkBestBecP || CompareDefenceNitroBeContainers(bec, bestBecP) < 0)
 					{
 						isOkBestBecP = true;
 						bestBecP = bec;
