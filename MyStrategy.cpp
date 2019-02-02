@@ -2188,7 +2188,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 					auto bec = BallEntityContainer(resBes[0], collisionTime, 
 						isGoal, goalTime,collisions_count, collideBe, 1);
 
-					if (!isOkBestBecP || CompareBeContainers(bec, bestBecP) < 0)
+					if (!isOkBestBecP || bec.ResBallEntity.Velocity.Z > bestBecP.ResBallEntity.Velocity.Z)
 					{
 						isOkBestBecP = true;
 						bestBecP = bec;
