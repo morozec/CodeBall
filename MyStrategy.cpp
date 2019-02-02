@@ -2115,7 +2115,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		{
 			if (_ballEntities[t].Position.Z < -Constants::Rules.arena.depth / 4 &&
 				_ballEntities[t].Position.Z > -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS &&
-				abs(_ballEntities[t].Position.X) < Constants::Rules.arena.width / 4 &&
+				abs(_ballEntities[t].Position.X) < 3.0/8.0*Constants::Rules.arena.width &&
 				_ballEntities[t].Position.Y > Constants::Rules.arena.goal_height / 2 && 
 				_ballEntities[t].Position.Y < Constants::Rules.arena.goal_height)
 			{
@@ -2176,7 +2176,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime, true, -1);
 
 				if (isCollision && resBes[0].Position.Z > -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS &&
-					resBes[0].Velocity.Y > 0 && resBes[0].Velocity.Z > 10 &&
+					resBes[0].Velocity.Y > 0 && resBes[0].Velocity.Z > 0 &&
 					resBes[0].Velocity.Z > abs(resBes[0].Velocity.X) &&
 					re.Velocity.Y < 0) //летим вниз после коллизии
 				{
