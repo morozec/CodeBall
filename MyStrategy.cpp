@@ -3926,6 +3926,7 @@ model::Action MyStrategy::GetSaveGatesAction(const model::Robot & robot, bool& c
 			BallEntity collideBallEntity;
 			int collisionCount;
 			if (isCollision && resBes[0].Position.Z > -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS &&
+				collisionTime * Constants::Rules.TICKS_PER_SECOND < _meGoalScoringTick &&
 				!IsGoalBallDirection2(resBes[0], -1, true, goalTime, collideBallEntity, false, collisionCount)) //летим вниз после коллизии
 			{
 				canBeSaved = true;
