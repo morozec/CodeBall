@@ -2199,7 +2199,19 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		return action;			
 	}
 
-	if (position >= 0 && me.z > 0 && startAttackTick == 0 &&
+	bool hasNearRobots = false;
+	for (auto r:_robots)
+	{
+		if (r.id == me.id) continue;
+		if ((me.x - r.x)*(me.x - r.x) + (me.y - r.y) * (me.y - r.y) + (me.z - r.z)*(me.z - r.z) <=
+			(Constants::Rules.ROBOT_MAX_RADIUS + r.radius) * (Constants::Rules.ROBOT_MAX_RADIUS + r.radius))
+		{
+			hasNearRobots = true;
+			break;
+		}
+	}
+
+	if (!hasNearRobots && position >= 0 && me.z > 0 && startAttackTick == 0 &&
 		me.nitro_amount > 0)
 	{		
 
@@ -2259,6 +2271,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 			for (int moveT = 0; moveT <= t; ++moveT)
 			{
+				if (moveT == 0 && hasNearRobots) continue;
 				if (moveT > 0)
 				{
 					PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
@@ -2382,6 +2395,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 				for (int moveT = 0; moveT <= t; ++moveT)
 				{
+					if (moveT == 0 && hasNearRobots) continue;
 					if (moveT > 0)
 					{
 						PositionVelocityContainer pvContainer = Simulator::GetRobotPVContainer(
