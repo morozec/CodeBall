@@ -211,26 +211,37 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						continue;
 					}
 
-					BallEntityContainer curBestBec;
-					bool isOkBestBec;
-					int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
-					const Action attAction = SetAttackerAction(
-						robot, afterCollisionTick + AttackerAddTicks, curBestBec, isOkBestBec, position);
-
-					if (isOkBestBec)//нашли точку атаки - идем в нее
+					if (_goalScoringTick != -1) //идем прессовать вратаря
 					{
-						_actions[robot.id] = attAction;
-						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
-					}
-					else //идем за мячом или на противника
-					{
-						if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
-							goNitroRobots.insert(robot.id);
 						int resIndex;
 						_actions[robot.id] = GetMoveKeeperOrOppAction(robot, resIndex);
 						_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
 							resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
 					}
+					else
+					{
+						BallEntityContainer curBestBec;
+						bool isOkBestBec;
+						int position = robot.id == defender.id ? -1 : robot.id == attacker.id ? 1 : 0;
+						const Action attAction = SetAttackerAction(
+							robot, afterCollisionTick + AttackerAddTicks, curBestBec, isOkBestBec, position);
+
+						if (isOkBestBec)//нашли точку атаки - идем в нее
+						{
+							_actions[robot.id] = attAction;
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 0.5, 1, 0.5, 0.5);
+						}
+						else //идем прессовать противника
+						{
+							if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+								goNitroRobots.insert(robot.id);
+							_actions[robot.id] = GetNearestOppAttackAction(robot);
+							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+
+						}
+					}
+
+					
 				}
 			}
 			else//бьет защитник
@@ -289,14 +300,23 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 						if (!robot.touch) continue;
 						if (robot.id == bestBecPRobotId) continue;
 						if (robot.id == gkAttId) continue;
-						if (robot.id == attacker.id)//нап идет за мячом или на противника
+						if (robot.id == attacker.id)
 						{
-							if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
-								goNitroRobots.insert(robot.id);
-							int resIndex;
-							_actions[robot.id] = GetMoveKeeperOrOppAction(robot, resIndex);
-							_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
-								resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+
+							if (_isGoalPossible) //идем прессовать вратаря
+							{
+								int resIndex;
+								_actions[robot.id] = GetMoveKeeperOrOppAction(robot, resIndex);
+								_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
+									resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+							}
+							else//атакуем врага
+							{
+								if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+									goNitroRobots.insert(robot.id);
+								_actions[robot.id] = GetNearestOppAttackAction(robot);
+								_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+							}
 						}
 						else//пз атакует врага
 						{
@@ -447,12 +467,20 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 			}
 			else if (robot.id == attacker.id)//нап идет за мячом или на противника
 			{
-				if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
-					goNitroRobots.insert(robot.id);
-				int resIndex;
-				_actions[robot.id] = GetMoveKeeperOrOppAction(robot, resIndex);
-				_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
-					resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+				if (_isGoalPossible) //идем прессовать вратаря
+				{
+					int resIndex;
+					_actions[robot.id] = GetMoveKeeperOrOppAction(robot, resIndex);
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1,
+						resIndex == 1 ? 1 : 0, resIndex == 1 ? 0.5 : 0, resIndex == 1 ? 0.5 : 0, 0.5);
+				}
+				else//атакуем врага
+				{
+					if (robot.nitro_amount <= Constants::Rules.MAX_NITRO_AMOUNT * 0.75)
+						goNitroRobots.insert(robot.id);
+					_actions[robot.id] = GetNearestOppAttackAction(robot);
+					_drawSpheres.emplace_back(robot.x, robot.y, robot.z, 1, 1, 0.5, 0.5, 0.5);
+				}				
 				
 			}
 			else//пз атакует врага или идет на ворота, если там нет защитника и близится гол
