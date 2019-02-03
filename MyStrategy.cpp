@@ -1160,7 +1160,7 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 				nitroRe.Action = nitroAction;
 
 				bool isCollision = simulate_robot_nitro_jump(
-					re, oppId, 0, collisionTime, false);
+					nitroRe, oppId, 0, collisionTime, false);
 
 				const int collisionTickDelta = 2;
 				if (isCollision &&
@@ -1172,6 +1172,36 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 					return;
 				}
 			}							
+		}
+	}
+
+	if (!_isGoalPossible && _minOppCollisionTick != -1)
+	{
+		//включаем, чтобы просто ударить по м€чу раньше противника
+		for (int stop_nitro_tick = 59; stop_nitro_tick >= 2; --stop_nitro_tick)
+		{
+			auto nitroRe = RobotEntity(robot);
+			Action nitroAction = Action();
+			nitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+			nitroAction.target_velocity_x = robot.velocity_x;
+			nitroAction.target_velocity_y = Constants::Rules.MAX_ENTITY_SPEED;
+			nitroAction.target_velocity_z = robot.velocity_z;
+			nitroAction.use_nitro = true;
+			nitroRe.Action = nitroAction;
+
+			std::vector<BallEntity> resBes;
+			double collisionTime;
+			bool isCollision = simulate_ball_nitro_jump(
+				nitroRe, 0, resBes, collisionTime, true, stop_nitro_tick);
+
+			if (isCollision && resBes[0].Velocity.Z > 0&&
+				collisionTime * Constants::Rules.TICKS_PER_SECOND < _minOppCollisionTick)
+			{
+				auto collisionTicks = int(collisionTime * Constants::Rules.TICKS_PER_SECOND) + 1;
+				_actions[robot.id] = nitroAction;
+				_nitroTicks[robot.id] = collisionTicks;
+				return;
+			}
 		}
 	}
 
