@@ -3609,7 +3609,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 
 	resBes = std::vector<BallEntity>();
 	auto nitro = re.Nitro;
-	while (_ballEntities.count(t+1) > 0 && jumpT + 1 < 60)
+	while (_ballEntities.count(t+1) > 0 && jumpT + 1 < 100)
 	{
 		t++;
 		jumpT++;
@@ -3632,6 +3632,9 @@ bool MyStrategy::simulate_ball_nitro_jump(
 			re.Position.Y += constVy * tickTime;
 			nitro -= MtNitroLoss * Constants::Rules.MICROTICKS_PER_TICK;
 		}
+
+		if (re.Position.Y > Constants::Rules.arena.height - re.Radius)
+			return false;
 
 		if (curBe.Position.Y - re.Position.Y > collisionDist)//еще не достигли нужной высоты
 		{
