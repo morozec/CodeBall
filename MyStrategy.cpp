@@ -2182,7 +2182,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 			Vector3D curPos = Vector3D(startPos);
 			Vector3D curVelocity = Vector3D(startVel);
 			bool isGettingCloser = false;
-			for (int moveT = 0; moveT <= t; ++moveT)
+			for (int moveT = 0; moveT <= goalSearchTicks; ++moveT)
 			{				
 				if (_meGoalScoringTick != -1 && moveT >= _meGoalScoringTick)
 					break;
@@ -3609,6 +3609,8 @@ bool MyStrategy::simulate_ball_nitro_jump(
 
 	resBes = std::vector<BallEntity>();
 	auto nitro = re.Nitro;
+
+	bool isNitroStop = false;
 	while (_ballEntities.count(t+1) > 0 && jumpT + 1 < 100)
 	{
 		t++;
@@ -3619,8 +3621,10 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		re.Position.X += re.Velocity.X * tickTime;
 		re.Position.Z += re.Velocity.Z * tickTime;
 
-		if (stopNitroTick != -1 && t > stopNitroTick)
+		if (isNitroStop || (!isNitroStop && stopNitroTick != -1 && t > stopNitroTick))
 		{
+			isNitroStop = true;
+
 			re.Position.Y += re.Velocity.Y * tickTime - Constants::Rules.GRAVITY * tickTime * tickTime / 2.0;
 			re.Velocity.Y -= Constants::Rules.GRAVITY * tickTime;
 			if (re.Velocity.Y < 0)
@@ -3641,7 +3645,11 @@ bool MyStrategy::simulate_ball_nitro_jump(
 			/*if ((reX - curBe.Position.X) * startDx < 0 ||
 				(reZ - curBe.Position.Z) * startDz < 0)
 				return false;*/
-			if (nitro < 0) return false;
+			if (nitro < 0)
+			{
+				nitro = 0;
+				isNitroStop = true;
+			}
 			continue;
 		}
 		if (re.Position.Y - curBe.Position.Y > collisionDist)//пролетели выше м€ча
@@ -3665,7 +3673,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 		{
 			c++;
 			re.Position.X -= re.Velocity.X * mictoTickTime;
-			if (stopNitroTick != -1 && t > stopNitroTick)
+			if (isNitroStop)
 			{
 				re.Position.Y = re.Position.Y - re.Velocity.Y * mictoTickTime + Constants::Rules.GRAVITY * mictoTickTime * mictoTickTime / 2.0;
 				re.Velocity.Y += Constants::Rules.GRAVITY * mictoTickTime;
@@ -3696,7 +3704,7 @@ bool MyStrategy::simulate_ball_nitro_jump(
 
 		model::Action jumpNitroAction = model::Action();
 		jumpNitroAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
-		if (stopNitroTick != -1 && t > stopNitroTick)
+		if (isNitroStop)
 		{
 			jumpNitroAction.target_velocity_x = 0;
 			jumpNitroAction.target_velocity_y = 0;
