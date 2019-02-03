@@ -1101,6 +1101,44 @@ void MyStrategy::InitJumpingRobotAction(const Robot& robot, const Ball& ball)
 	{
 		if (_nitroTicks.at(robot.id) > 0)
 		{
+			if (robot.z > 0 && !_isGoalPossible)//пытаем выключить нитру
+			{
+				auto jumpRes = std::vector<RobotEntity>();
+				auto nitroRe = RobotEntity(robot);
+				nitroRe.Action.use_nitro = false;
+				nitroRe.Action.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+				jumpRes.push_back(nitroRe);
+
+				for (const auto & jre : _robotEntities.at(0))
+				{
+					if (jre.Id == robot.id) continue;
+					jumpRes.push_back(jre);
+				}
+				
+				auto be = BallEntity(_ballEntities[0]);
+				double afterJumpCollisionT = 0;
+				auto const isCol = SimulateFullCollision(be, jumpRes, afterJumpCollisionT,
+					_averageHitE[0], false, false);
+				if (isCol)
+				{
+					double gt;
+					BallEntity collideBe;
+					int collisionsCount;
+					bool isGoal = IsGoalBallDirection2(be, 1, true, gt, collideBe, false, collisionsCount);
+					if (isGoal)
+					{
+						_nitroTicks.erase(robot.id);
+						robotAction.target_velocity_x = 0;
+						robotAction.target_velocity_y = 0;
+						robotAction.target_velocity_z = 0;
+						robotAction.use_nitro = false;
+						robotAction.jump_speed = Constants::Rules.ROBOT_MAX_JUMP_SPEED;
+						_actions[robot.id] = robotAction;
+						return;
+					}
+				}
+			}
+
 			robotAction.target_velocity_x = robot.velocity_x;
 			robotAction.target_velocity_y = Constants::Rules.MAX_ENTITY_SPEED;
 			robotAction.target_velocity_z = robot.velocity_z;
