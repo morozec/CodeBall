@@ -1703,7 +1703,10 @@ int MyStrategy::CompareDefenceNitroBeContainers(
 	if (bec1.ResBallEntity.Velocity.Y < 0 && bec2.ResBallEntity.Velocity.Y > 0)
 		return 1;
 
-	return bec1.ResBallEntity.Velocity.Z > bec2.ResBallEntity.Velocity.Z ? -1 : 1;
+	const auto bec1Vz = bec1.ResBallEntity.Velocity.Z > 0 ? bec1.ResBallEntity.Velocity.Z : bec1.CollideBallEntity.Velocity.Z;
+	const auto bec2Vz = bec2.ResBallEntity.Velocity.Z > 0 ? bec2.ResBallEntity.Velocity.Z : bec2.CollideBallEntity.Velocity.Z;
+
+	return bec1Vz > bec2Vz ? -1 : 1;
 }
 
 bool MyStrategy::IsGoalBallDirection2(
@@ -2236,16 +2239,23 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 				double collisionTime;
 				bool isCollision = simulate_ball_nitro_jump(re, moveT, resBes, collisionTime, true, -1);
 
+				double goalTime;
+				BallEntity collideBe;
+				int collisions_count;
+				bool isMeGoal = isCollision && IsGoalBallDirection2(resBes[0], -1, true, goalTime, collideBe,
+					false, collisions_count);
+
 				if (isCollision && resBes[0].Position.Z > -Constants::Rules.arena.depth / 2 - Constants::Rules.BALL_RADIUS &&
-					resBes[0].Velocity.Y > 0 && resBes[0].Velocity.Z > 0 &&
+					resBes[0].Velocity.Y > 0 
+					&& !isMeGoal &&
 					resBes[0].Velocity.Z > abs(resBes[0].Velocity.X) &&
 					re.Velocity.Y < 0) //летим вниз после коллизии
 				{
 					
-					double goalTime;
-					BallEntity collideBe;
-					int collisions_count;
-					bool isGoal = IsGoalBallDirection2(resBes[0], 1, true, goalTime, collideBe, false, collisions_count);
+					
+					BallEntity attCollideBe;
+					
+					bool isGoal = IsGoalBallDirection2(resBes[0], 1, true, goalTime, attCollideBe, false, collisions_count);
 					auto bec = BallEntityContainer(resBes[0], collisionTime, 
 						isGoal, goalTime,collisions_count, collideBe, 1);
 
@@ -3998,11 +4008,11 @@ model::Action MyStrategy::GetSaveGatesAction(const model::Robot & robot, bool& c
 				collisionTime * Constants::Rules.TICKS_PER_SECOND < _meGoalScoringTick &&
 				!IsGoalBallDirection2(resBes[0], -1, true, goalTime, collideBallEntity, false, collisionCount)) //летим вниз после коллизии
 			{
-				BallEntity collideBe;
+				BallEntity attCollideBe;
 				int collisions_count;
-				bool isGoal = IsGoalBallDirection2(resBes[0], 1, true, goalTime, collideBe, false, collisions_count);
+				bool isGoal = IsGoalBallDirection2(resBes[0], 1, true, goalTime, attCollideBe, false, collisions_count);
 				auto bec = BallEntityContainer(resBes[0], collisionTime,
-					isGoal, goalTime, collisions_count, collideBe, 1);
+					isGoal, goalTime, collisions_count, collideBallEntity, 1);
 
 				if (!canBeSaved || CompareDefenceNitroBeContainers(bec, bestBec, re, bestRe) < 0)
 				{
