@@ -2187,8 +2187,8 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 
 	bool needUseDefenceNitro = position == -1 && me.nitro_amount > 0 &&
 		(_lastMyCollisionTick == -1 || _isMeGoalPossible)
-		&& (_minOppCollisionTick == -1 || 
-			_minOppCollisionTick != -1 && (_meGoalScoringTick == -1 || _meGoalScoringTick != -1 && _meGoalScoringTick <= 30))
+		/*&& (_minOppCollisionTick == -1 || 
+			_minOppCollisionTick != -1 && (_meGoalScoringTick == -1 || _meGoalScoringTick != -1 && _meGoalScoringTick <= 30))*/
 		&& (_defenderMovePoints.count(me.id) == 0 || !std::get<3>(_defenderMovePoints[me.id]).isGoalScored);
 	const auto goalSearchTicks = 40;
 	if (needUseDefenceNitro)
