@@ -2335,7 +2335,7 @@ model::Action MyStrategy::SetAttackerAction(const model::Robot & me,
 		}
 	}
 
-	if (!hasNearRobots && isStrikeZone && position >= 0 && me.z > 0 && startAttackTick == 0 &&
+	if (!hasNearRobots && isStrikeZone && position >= 0 && startAttackTick == 0 &&
 		me.nitro_amount > 0)
 	{		
 
