@@ -1660,7 +1660,7 @@ int MyStrategy::CompareDefenderBallEntities(const BallEntityContainer & b1, cons
 int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContainer bec2) const
 {
 	const auto deltaTickTime = 5.0 / Constants::Rules.TICKS_PER_SECOND;
-	if (_oppStrikeTime.has_value())
+	if (_oppStrikeTime.has_value())//если хотя бы один из вариантов бьет позже врага, выбираем тот вариант, что бьет раньше 
 	{
 		if (bec2.collisionTime > _oppStrikeTime.value() - deltaTickTime)
 		{
@@ -1669,59 +1669,65 @@ int MyStrategy::CompareBeContainers(BallEntityContainer bec1, BallEntityContaine
 		if (bec1.collisionTime >= _oppStrikeTime.value() - deltaTickTime)
 			return 1;
 	}
-
+	//приоритет на гол
 	if (bec2.isGoalScored && !bec1.isGoalScored)
 		return 1;
 	if (bec1.isGoalScored && !bec2.isGoalScored)
 		return -1;
+
 	if (bec1.isGoalScored && bec2.isGoalScored)
 	{
+		//приорите на гол с нитрой
 		if (bec1.NitroDest > bec2.NitroDest)
 			return -1;
 		if (bec1.NitroDest < bec2.NitroDest)
 			return 1;
 
+		//приоритет на гол с меньшим числом коллизий мяча с ареной
 		if (bec1.collisionsCount < bec2.collisionsCount)
 			return -1;
 		if (bec1.collisionsCount > bec2.collisionsCount)
 			return 1;
 
-		//if (bec1.ResBallEntity.Position.Z > 0 || bec2.ResBallEntity.Position.Z > 0)//чужой половине бьем быстрее
-		//{
-		//	return bec1.goalTime< bec2.goalTime ? -1 : 1;
-		//}
-
-		return  bec1.ResBallEntity.Velocity.Y > bec2.ResBallEntity.Velocity.Y ? -1 : 1;//на своей бьем выше
+		//приоритет на гол с максимальной скоростью по y
+		return bec1.ResBallEntity.Velocity.Y > bec2.ResBallEntity.Velocity.Y ? -1 : 1;
 	}
 
-	//оба не isGoalScored	
+	//оба варианта не забивают	
+
+	//приоритет на удар с нитрой
 	if (bec1.NitroDest > 0 && bec2.NitroDest <= 0)
 		return -1;
 	if (bec1.NitroDest <= 0 && bec2.NitroDest > 0)
 		return 1;
-	
+
 	return CompareDefenderBallEntities(bec1, bec2);
 }
 
+//сравнение 2 варинатов удара, в обоих случаях гола в чужие ворота не будет
 int MyStrategy::CompareDefenceNitroBeContainers(
 	const BallEntityContainer& bec1, const BallEntityContainer& bec2,
 	const RobotEntity& re1, const RobotEntity& re2) const
 {
+	//приоритет на гол (вероятно, лишняя проверка)
 	if (bec1.isGoalScored && !bec2.isGoalScored)
 		return -1;
 	if (!bec1.isGoalScored && bec2.isGoalScored)
 		return 1;
 
+	//приоритет на удар с отрицаительной сокростью робота по Y после коллизии
 	if (re1.Velocity.Y < 0 && re2.Velocity.Y > 0)
 		return -1;
 	if (re1.Velocity.Y > 0 && re2.Velocity.Y < 0)
 		return -1;
 
+	//приоритет на удар с положительной скоростью мяча по Y после коллизии
 	if (bec1.ResBallEntity.Velocity.Y > 0 && bec2.ResBallEntity.Velocity.Y < 0)
 		return -1;
 	if (bec1.ResBallEntity.Velocity.Y < 0 && bec2.ResBallEntity.Velocity.Y > 0)
 		return 1;
 
+	//приоритет на удар с большей скоростью по Z
 	const auto bec1Vz = bec1.ResBallEntity.Velocity.Z > 0 ? bec1.ResBallEntity.Velocity.Z : bec1.CollideBallEntity.Velocity.Z;
 	const auto bec2Vz = bec2.ResBallEntity.Velocity.Z > 0 ? bec2.ResBallEntity.Velocity.Z : bec2.CollideBallEntity.Velocity.Z;
 
